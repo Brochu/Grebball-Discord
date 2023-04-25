@@ -131,3 +131,7 @@ dist
 
 # ---------------------------------------------
 Grebball-bot-Tok.txt
+
+node_modules
+.env
+.env.sample
