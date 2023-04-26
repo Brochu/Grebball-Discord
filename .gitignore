@@ -26,3 +26,8 @@ rust-project.json
 # ---------------------------------------------
 .env
 Grebball-bot-Tok.txt
+
+
+# Added by cargo
+
+/target
