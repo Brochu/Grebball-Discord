@@ -17,6 +17,14 @@ impl EventHandler for Handler {
                 println!("[EVT] Error sending response: {:?}", reason);
             }
         }
+
+        if msg.content.starts_with("!week") {
+            let (_, arg) = msg.content.split_once(" ").expect("[EVT] Could not split");
+
+            if let Err(reason) = msg.channel_id.say(&ctx.http, arg).await {
+                println!("[EVT] Error sending response: {:?}", reason);
+            }
+        }
     }
 
     async fn ready(&self, _: Context, ready: Ready) {
