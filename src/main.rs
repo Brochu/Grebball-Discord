@@ -58,6 +58,9 @@ impl EventHandler for Handler {
     }
 }
 
+//TODO: Try and figure out the issue with Shuttle?
+// If we can't figure this one, test running a web server lib + Docker on home server
+// Last option is to handle everything just with messages, w/o slash commands
 #[shuttle_runtime::main]
 async fn serenity(
     #[shuttle_secrets::Secrets] secret_store: SecretStore,
