@@ -26,8 +26,6 @@ rust-project.json
 # ---------------------------------------------
 .env
 Secrets.toml
-Grebball-bot-Tok.txt
-
 
 # Added by cargo
 
