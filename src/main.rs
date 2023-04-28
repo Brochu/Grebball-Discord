@@ -1,18 +1,31 @@
-use dotenv::dotenv;
-use std::env;
+use anyhow::anyhow;
 
 use serenity::async_trait;
-use serenity::model::application::interaction::{ Interaction, InteractionResponseType };
+use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
+use serenity::model::prelude::interaction::{ Interaction, InteractionResponseType };
 use serenity::prelude::*;
+
+use shuttle_secrets::SecretStore;
+use tracing::{error, info};
 
 mod commands;
 
-struct Handler;
+struct Handler {
+    guild_id: GuildId,
+}
 
 #[async_trait]
 impl EventHandler for Handler {
+    async fn message(&self, ctx: Context, msg: Message) {
+        if msg.content == "!hello" {
+            if let Err(e) = msg.channel_id.say(&ctx.http, "world!").await {
+                error!("Error sending message: {:?}", e);
+            }
+        }
+    }
+
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(cmd) = interaction {
             println!("[EVT] Got command interaction: {:#?}", cmd);
@@ -34,15 +47,9 @@ impl EventHandler for Handler {
     }
 
     async fn ready(&self, ctx: Context, ready: Ready) {
-        println!("{} is connected!", ready.user.name);
+        info!("{} is connected!", ready.user.name);
 
-        let guild_id = GuildId(env::var("GUILD_ID")
-            .expect("[EVT] Could not find GUILD_ID env var")
-            .parse()
-            .expect("[EVT] GUILD_ID needs to be an integer")
-        );
-
-        let commands = GuildId::set_application_commands(&guild_id, &ctx.http, |cmds| {
+        let commands = GuildId::set_application_commands(&self.guild_id, &ctx.http, |cmds| {
             cmds
                 .create_application_command(|cmd| commands::ping::register(cmd))
         }).await;
@@ -51,17 +58,27 @@ impl EventHandler for Handler {
     }
 }
 
-#[tokio::main]
-async fn main() {
-    dotenv().ok();
-    let token = env::var("DISCORD_TOKEN").expect("[ENV] Need to set DISCORD_TOKEN env var.");
+#[shuttle_runtime::main]
+async fn serenity(
+    #[shuttle_secrets::Secrets] secret_store: SecretStore,
+) -> shuttle_serenity::ShuttleSerenity {
+    // Get the discord token set in `Secrets.toml`
+    let token = if let Some(token) = secret_store.get("DISCORD_TOKEN") {
+        token
+    } else {
+        return Err(anyhow!("'DISCORD_TOKEN' was not found").into());
+    };
+    
+    let gid = if let Some(gid) = secret_store.get("GUILD_ID") {
+        gid
+    } else {
+        return Err(anyhow!("'GUILD_ID' was not found").into());
+    };
 
-    let mut client = Client::builder(&token, GatewayIntents::empty())
-        .event_handler(Handler)
+    let client = Client::builder(&token, GatewayIntents::empty())
+        .event_handler(Handler { guild_id: GuildId(gid.parse().expect("'GUILD_ID' needs to be an integer")) })
         .await
-        .expect("[CLIENT] Could not create client.");
+        .expect("Err creating client");
 
-    if let Err(reason) = client.start().await {
-        println!("[MAIN] Client error: {:?}", reason);
-    }
+    Ok(client.into())
 }
