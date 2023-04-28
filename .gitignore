@@ -25,6 +25,7 @@ rust-project.json
 # End of https://www.toptal.com/developers/gitignore/api/rust,rust-analyzer
 # ---------------------------------------------
 .env
+Secrets.toml
 Grebball-bot-Tok.txt
 
 
