@@ -1,5 +1,5 @@
 [package]
-name = "grebball_discord"
+name = "grebball-discord"
 version = "0.1.0"
 authors = ["Alex B. <alexbrochu1@gmail.com>"]
 edition = "2021"
