@@ -24,6 +24,23 @@ impl EventHandler for Handler {
                 println!("![Handler] Handler message error : {:?}", reason);
             }
         }
+
+        if msg.content.starts_with("!week") {
+            let (_, arg) = msg.content.split_once(" ").unwrap();
+
+            let mut url = "https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4391&s=2022".to_string();
+            url.push_str("&r=");
+            url.push_str(arg);
+
+            let res = reqwest
+                ::get(url).await.expect("[Handler] Could not get reply")
+                .text().await.expect("[Handler] Could not parse reply");
+            
+            let reply = res.chars().take(200).collect::<String>();
+            if let Err(reason) = msg.channel_id.say(&ctx.http, reply.as_str()).await {
+                println!("![Handler] Handler message error : {:?}", reason);
+            }
+        }
     }
 
     //TODO: Handle slash commands
