@@ -11,6 +11,7 @@ use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 
 mod commands;
+mod football;
 
 struct Handler;
 
