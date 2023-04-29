@@ -1,6 +1,8 @@
 use dotenv::dotenv;
 use std::env;
 
+use serde_json::Value;
+
 use serenity::async_trait;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
@@ -34,11 +36,17 @@ impl EventHandler for Handler {
 
             let res = reqwest
                 ::get(url).await.expect("[Handler] Could not get reply")
-                .text().await.expect("[Handler] Could not parse reply");
-            
-            let reply = res.chars().take(200).collect::<String>();
-            if let Err(reason) = msg.channel_id.say(&ctx.http, reply.as_str()).await {
-                println!("![Handler] Handler message error : {:?}", reason);
+                .text().await.unwrap();
+
+            let val: Value = serde_json::from_str(res.as_str()).expect("[Handler] Could not parse response");
+            if let Value::Object(o) = &val {
+                let events = o.get("events").unwrap();
+
+                if let Value::Array(matches) = events {
+                    matches.iter().for_each(|m| {
+                        println!("{} vs. {}", m["strAwayTeam"], m["strHomeTeam"]);
+                    });
+                }
             }
         }
     }
