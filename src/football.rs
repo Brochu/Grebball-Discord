@@ -1,5 +1,46 @@
 use serenity::model::id::EmojiId;
 
+pub fn get_short_name(name: &str) -> String {
+    match name {
+        "Arizona Cardinals"    => "ARI",
+        "Atlanta Falcons"      => "ATL",
+        "Baltimore Ravens"     => "BAL",
+        "Buffalo Bills"        => "BUF",
+        "Carolina Panthers"    => "CAR",
+        "Chicago Bears"        => "CHI",
+        "Cincinnati Bengals"   => "CIN",
+        "Cleveland Browns"     => "CLE",
+        "Dallas Cowboys"       => "DAL",
+        "Denver Broncos"       => "DEN",
+        "Detroit Lions"        => "DET",
+        "Green Bay Packers"    => "GB",
+        "Houston Texans"       => "HOU",
+        "Indianapolis Colts"   => "IND",
+        "Jacksonville Jaguars" => "JAX",
+        "Kansas City Chiefs"   => "KC",
+        "Los Angeles Rams"     => "LA",
+        "Los Angeles Chargers" => "LAC",
+        "Las Vegas Raiders"    => "LV",
+        "Oakland Raiders"      => "LV",
+        "Miami Dolphins"       => "MIA",
+        "Minnesota Vikings"    => "MIN",
+        "New England Patriots" => "NE",
+        "New Orleans Saints"   => "NO",
+        "New York Giants"      => "NYG",
+        "New York Jets"        => "NYJ",
+        "Philadelphia Eagles"  => "PHI",
+        "Pittsburgh Steelers"  => "PIT",
+        "Seattle Seahawks"     => "SEA",
+        "San Francisco 49ers"  => "SF",
+        "Tampa Bay Buccaneers" => "TB",
+        "Tennessee Titans"     => "TEN",
+        "Washington"           => "WAS",
+        "Washington Commanders"=> "WAS",
+        "Washington Redskins"  => "WAS",
+        _                      => "N/A",
+    }.to_owned()
+}
+
 pub fn get_team_emoji(team: &str) -> EmojiId {
     return EmojiId(match team {
         "ARI" => 1101771924398424115,
