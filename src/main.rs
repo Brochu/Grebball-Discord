@@ -71,6 +71,7 @@ impl EventHandler for Handler {
 
             let reply = match cmd.data.name.as_str() {
                 "ping" => commands::ping::run(&cmd.data.options),
+                "week" => commands::week::run(&cmd.data.options),
                 _ => "Command not implemented!".to_string(),
             };
 
@@ -99,7 +100,9 @@ impl EventHandler for Handler {
         );
 
         let commands = GuildId::set_application_commands(&guild_id, &ctx.http, |cmds| {
-            cmds.create_application_command(|cmd| commands::ping::register(cmd))
+            cmds
+                .create_application_command(|cmd| commands::ping::register(cmd))
+                .create_application_command(|cmd| commands::week::register(cmd))
         }).await;
 
         println!("Here are the available commands: {:#?}", commands);
