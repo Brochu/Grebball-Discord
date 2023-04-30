@@ -6,7 +6,7 @@ use serde_json::Value;
 use serenity::async_trait;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
-//use serenity::model::id::GuildId;
+use serenity::model::id::GuildId;
 //use serenity::model::prelude::interaction::{ Interaction, InteractionResponseType };
 use serenity::prelude::*;
 
@@ -33,10 +33,10 @@ impl EventHandler for Handler {
             url.push_str(arg);
 
             let res = reqwest
-                ::get(url).await.expect("[Handler] Could not get reply")
+                ::get(url).await.expect("![Handler] Could not get reply")
                 .text().await.unwrap();
 
-            let val: Value = serde_json::from_str(res.as_str()).expect("[Handler] Could not parse response");
+            let val: Value = serde_json::from_str(res.as_str()).expect("![Handler] Could not parse response");
             if let Value::Object(o) = &val {
                 let events = o.get("events").unwrap();
 
@@ -77,6 +77,11 @@ impl EventHandler for Handler {
         );
 
         //TODO: Create the commands needed
+        let guild_id = GuildId(env::var("GUILD_ID")
+            .expect("![Handler] Could not find env var 'GUILD_ID'")
+            .parse()
+            .expect("![Handler] Could not parse guild_id to int")
+        );
     }
 }
 
@@ -84,7 +89,7 @@ impl EventHandler for Handler {
 async fn main() {
     dotenv().ok(); // Include .env file to environment
 
-    let token = env::var("DISCORD_TOKEN").expect("[MAIN] Cannot find 'DISCORD_TOKEN' in env");
+    let token = env::var("DISCORD_TOKEN").expect("![MAIN] Cannot find 'DISCORD_TOKEN' in env");
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
@@ -92,7 +97,7 @@ async fn main() {
     let mut client = Client::builder(token, intents)
         .event_handler(Handler)
         .await
-        .expect("[MAIN] Could not create client");
+        .expect("![MAIN] Could not create client");
 
     if let Err(reason) = client.start().await {
         println!("![MAIN] Client error : {:?}", reason);
