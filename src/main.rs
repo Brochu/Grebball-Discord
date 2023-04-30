@@ -18,12 +18,9 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
-        if msg.content == "!ping" {
-            let mut reply = "pong!".to_string();
-            reply.push_str(" to ");
-            reply.push_str(msg.author.name.as_str());
-
-            if let Err(reason) = msg.channel_id.say(&ctx.http, reply.as_str()).await {
+        if msg.content == "!hello" {
+            let reply = format!("Hi, {}!", msg.author.name);
+            if let Err(reason) = msg.channel_id.say(&ctx.http, reply).await {
                 println!("![Handler] Handler message error : {:?}", reason);
             }
         }
@@ -78,6 +75,8 @@ impl EventHandler for Handler {
             ready.user.name,
             ready.version
         );
+
+        //TODO: Create the commands needed
     }
 }
 
