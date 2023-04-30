@@ -43,10 +43,26 @@ impl EventHandler for Handler {
             if let Value::Object(o) = &val {
                 let events = o.get("events").unwrap();
 
-                if let Value::Array(matches) = events {
-                    matches.iter().for_each(|m| {
-                        println!("{} vs. {}", m["strAwayTeam"], m["strHomeTeam"]);
-                    });
+                let output = if let Value::Array(matches) = events {
+                    matches.iter().fold(String::new(), |mut out, m| {
+                        let ateam = football::get_short_name(m["strAwayTeam"].as_str().unwrap());
+                        let hteam = football::get_short_name(m["strHomeTeam"].as_str().unwrap());
+
+                        let aemoji = football::get_team_emoji(ateam.as_str());
+                        let hemoji = football::get_team_emoji(hteam.as_str());
+
+                        out.push_str(format!("<:{}:{}> <:VS:1102123108187525130> <:{}:{}>\n",
+                            ateam, aemoji,
+                            hteam, hemoji
+                        ).as_str());
+                        out
+                    })
+                } else {
+                    String::new()
+                };
+
+                if let Err(reason) = msg.channel_id.say(&ctx.http, output.as_str()).await {
+                    println!("![Handler] Handler message error : {:?}", reason);
                 }
             }
         }
