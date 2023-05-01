@@ -1,3 +1,7 @@
+use core::fmt::Display;
+use std::env;
+use serde_json::Value;
+
 use serenity::model::id::EmojiId;
 
 pub fn get_short_name(name: &str) -> String {
@@ -77,4 +81,61 @@ pub fn get_team_emoji(team: &str) -> EmojiId {
         "WAS" => 1101771957831221338,
         _     => 0,
     });
+}
+
+pub struct Match {
+    pub id_event: String,
+    pub away_team: String,
+    pub home_team: String,
+    pub away_score: Option<u64>,
+    pub home_score: Option<u64>,
+}
+
+impl Display for Match {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "[{}] {} - {:?} VS. {:?} - {}",
+            self.id_event,
+            self.away_team, self.away_score,
+            self.home_score, self.home_team
+        )
+    }
+}
+
+pub async fn get_week(week: u64) -> Option<impl Iterator<Item=Match>> {
+    let league = env::var("CONF_LEAGUE")
+        .expect("![Week] Could not find 'CONF_LEAGUE' env var")
+        .parse::<u16>()
+        .expect("![Week] Could not parse 'CONF_LEAGUE' to int");
+    let season = env::var("CONF_SEASON")
+        .expect("![Week] Could not find 'CONF_SEASON' env var")
+        .parse::<u16>()
+        .expect("![Week] Could not parse 'CONF_SEASON' to int");
+
+    let url = format!("https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id={}&s={}&r={}",
+        league, season, week);
+
+    let res = reqwest::get(url).await
+        .expect("![Football] Could not get reply")
+        .text().await
+        .expect("![Football] Could not retrieve text from response");
+
+    let json: Value = serde_json::from_str(res.as_str())
+        .expect("![Football] Could not parse response");
+    if let Value::Object(o) = json {
+        let events = o.get("events").expect("![Football] Could not find key 'events'")
+            .as_array().expect("![Football] Could not parse 'events' as an array")
+            .to_owned();
+
+        return Some(events.into_iter().map(move |m| {
+            Match {
+                id_event: m["idEvent"].as_str().unwrap().to_owned(),
+                away_team: m["strAwayTeam"].as_str().unwrap().to_owned(),
+                home_team: m["strHomeTeam"].as_str().unwrap().to_owned(),
+                away_score: m["intAwayScore"].as_u64(),
+                home_score: m["intHomeScore"].as_u64(),
+            }
+        }));
+    } else {
+        None
+    }
 }
