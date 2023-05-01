@@ -1,8 +1,6 @@
 use dotenv::dotenv;
 use std::env;
 
-use serde_json::Value;
-
 use serenity::async_trait;
 use serenity::model::application::interaction::{ Interaction, InteractionResponseType };
 use serenity::model::channel::Message;
@@ -11,7 +9,6 @@ use serenity::model::id::GuildId;
 use serenity::prelude::*;
 
 mod commands;
-mod football;
 
 struct Handler;
 
@@ -24,45 +21,6 @@ impl EventHandler for Handler {
                 println!("![Handler] Handler message error : {:?}", reason);
             }
         }
-
-        if msg.content.starts_with("!week") {
-            let (_, arg) = msg.content.split_once(" ").unwrap();
-
-            let mut url = "https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4391&s=2022".to_string();
-            url.push_str("&r=");
-            url.push_str(arg);
-
-            let res = reqwest
-                ::get(url).await.expect("![Handler] Could not get reply")
-                .text().await.unwrap();
-
-            let val: Value = serde_json::from_str(res.as_str()).expect("![Handler] Could not parse response");
-            if let Value::Object(o) = &val {
-                let events = o.get("events").unwrap();
-
-                let output = if let Value::Array(matches) = events {
-                    matches.iter().fold(String::new(), |mut out, m| {
-                        let ateam = football::get_short_name(m["strAwayTeam"].as_str().unwrap());
-                        let hteam = football::get_short_name(m["strHomeTeam"].as_str().unwrap());
-
-                        let aemoji = football::get_team_emoji(ateam.as_str());
-                        let hemoji = football::get_team_emoji(hteam.as_str());
-
-                        out.push_str(format!("<:{}:{}> <:VS:1102123108187525130> <:{}:{}>\n",
-                            ateam, aemoji,
-                            hteam, hemoji
-                        ).as_str());
-                        out
-                    })
-                } else {
-                    String::new()
-                };
-
-                if let Err(reason) = msg.channel_id.say(&ctx.http, output.as_str()).await {
-                    println!("![Handler] Handler message error : {:?}", reason);
-                }
-            }
-        }
     }
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
@@ -71,7 +29,7 @@ impl EventHandler for Handler {
 
             let reply = match cmd.data.name.as_str() {
                 "ping" => commands::ping::run(&cmd.data.options),
-                "week" => commands::week::run(&cmd.data.options),
+                "week" => commands::week::run(&cmd.data.options).await,
                 _ => "Command not implemented!".to_string(),
             };
 
