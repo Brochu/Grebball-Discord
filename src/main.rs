@@ -34,10 +34,15 @@ impl EventHandler for Handler {
                 _ => "Command not implemented!".to_string(),
             };
 
+            //TODO: Might want to move this to the command file
+            // Each command might want to send a different type of response
             if let Err(reason) = cmd.create_interaction_response(&ctx.http, |res| {
                 res
                     .kind(InteractionResponseType::ChannelMessageWithSource)
-                    .interaction_response_data(|m| m.content(reply))
+                    .interaction_response_data(|m| m
+                        .content(reply)
+                        //TODO: Look for more options here
+                    )
             })
             .await {
                 println!("![Handler] Cannot respond to slash command : {:?}", reason);
