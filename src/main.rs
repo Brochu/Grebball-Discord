@@ -30,7 +30,7 @@ impl EventHandler for Handler {
             let reply = match cmd.data.name.as_str() {
                 "ping" => commands::ping::run(&cmd.data.options),
                 "week" => commands::week::run(&cmd.data.options).await,
-                "submit" => commands::submit::run(&cmd.data.options),
+                "submit" => commands::submit::run(&cmd.data),
                 _ => "Command not implemented!".to_string(),
             };
 
