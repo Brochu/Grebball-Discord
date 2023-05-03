@@ -1,14 +1,16 @@
 use serenity::builder::CreateApplicationCommand;
+use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::{MessageId, ReactionType};
+use serenity::model::prelude::interaction::InteractionResponseType;
 use serenity::model::prelude::command::CommandType;
-use serenity::model::prelude::interaction::application_command::CommandData;
+use serenity::prelude::*;
 
-pub fn run(command_data: &CommandData) -> String {
-    println!("Data sent with the submit command : {:#?}", command_data);
+pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
+    println!("Data sent with the submit command : {:#?}", command.data);
 
-    if let Some(id) = command_data.target_id {
+    if let Some(id) = command.data.target_id {
         let message_id = MessageId(*id.as_u64());
-        let message = command_data.resolved.messages.get(&message_id)
+        let message = command.data.resolved.messages.get(&message_id)
             .expect("![Submit] Could not find message with provided TargetId");
 
         println!("Message : {:#?}", message);
@@ -24,10 +26,21 @@ pub fn run(command_data: &CommandData) -> String {
                 println!("reaction: {:#?}", name);
             }
         });
-        return "Found the message with picks to submit".to_string();
+
+        if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+            res
+                .kind(InteractionResponseType::ChannelMessageWithSource)
+                .interaction_response_data(|m| m
+                    .content("Found the message with picks to submit")
+                    //TODO: Look for more options here
+                )
+        })
+        .await {
+            println!("![week] Cannot respond to slash command : {:?}", reason);
+        }
     }
 
-    return "![Submit] No target message sent with the command".to_string();
+    println!("![Submit] No target message sent with the command");
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
