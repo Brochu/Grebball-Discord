@@ -129,8 +129,8 @@ pub async fn get_week(week: u64) -> Option<impl Iterator<Item=Match>> {
         return Some(events.into_iter().map(move |m| {
             Match {
                 id_event: m["idEvent"].as_str().unwrap().to_owned(),
-                away_team: m["strAwayTeam"].as_str().unwrap().to_owned(),
-                home_team: m["strHomeTeam"].as_str().unwrap().to_owned(),
+                away_team: get_short_name(m["strAwayTeam"].as_str().unwrap()),
+                home_team: get_short_name(m["strHomeTeam"].as_str().unwrap()),
                 away_score: m["intAwayScore"].as_u64(),
                 home_score: m["intHomeScore"].as_u64(),
             }

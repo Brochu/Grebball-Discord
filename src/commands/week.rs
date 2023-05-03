@@ -20,16 +20,13 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
     let output = football::get_week(week)
         .await.expect("![Week] Could not fetch match data")
         .fold(String::new(), |mut out, m| {
-            let ateam = football::get_short_name(m.away_team.as_str());
-            let hteam = football::get_short_name(m.home_team.as_str());
-
-            let aemoji = football::get_team_emoji(ateam.as_str());
-            let hemoji = football::get_team_emoji(hteam.as_str());
+            let aemoji = football::get_team_emoji(m.away_team.as_str());
+            let hemoji = football::get_team_emoji(m.home_team.as_str());
 
             out.push_str(format!("<:{}:{}> {} <:{}:{}>\n",
-                ateam, aemoji,
+                m.away_team, aemoji,
                 VS_EMOJI,
-                hteam, hemoji
+                m.home_team, hemoji
             ).as_str());
             out
         });
