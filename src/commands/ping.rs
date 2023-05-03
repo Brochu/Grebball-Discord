@@ -1,8 +1,20 @@
 use serenity::builder::CreateApplicationCommand;
-use serenity::model::prelude::interaction::application_command::CommandDataOption;
+use serenity::model::application::interaction::InteractionResponseType;
+use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
+use serenity::prelude::*;
 
-pub fn run(_options: &[CommandDataOption]) -> String {
-    return "Hey, this bot is online!".to_string();
+pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
+    if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+        res
+            .kind(InteractionResponseType::ChannelMessageWithSource)
+            .interaction_response_data(|m| m
+                .content("Ping response!")
+                //TODO: Look for more options here
+            )
+    })
+    .await {
+        println!("![ping] Cannot respond to slash command : {:?}", reason);
+    }
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
