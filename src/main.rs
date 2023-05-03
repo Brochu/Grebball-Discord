@@ -2,7 +2,7 @@ use dotenv::dotenv;
 use std::env;
 
 use serenity::async_trait;
-use serenity::model::application::interaction::{ Interaction, InteractionResponseType };
+use serenity::model::application::interaction::Interaction;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
@@ -27,26 +27,12 @@ impl EventHandler for Handler {
         if let Interaction::ApplicationCommand(cmd) = interaction {
             //println!("[Handler] Got command interaction: {:#?}", cmd);
 
-            let reply = match cmd.data.name.as_str() {
-                "ping" => commands::ping::run(&cmd.data.options),
-                "week" => commands::week::run(&cmd.data.options).await,
-                "submit" => commands::submit::run(&cmd.data),
-                _ => "Command not implemented!".to_string(),
+            match cmd.data.name.as_str() {
+                "ping" => commands::ping::run(ctx, &cmd).await,
+                "week" => commands::week::run(ctx, &cmd).await,
+                "submit" => commands::submit::run(ctx, &cmd).await,
+                _ => println!("Command not implemented!"),
             };
-
-            //TODO: Might want to move this to the command file
-            // Each command might want to send a different type of response
-            if let Err(reason) = cmd.create_interaction_response(&ctx.http, |res| {
-                res
-                    .kind(InteractionResponseType::ChannelMessageWithSource)
-                    .interaction_response_data(|m| m
-                        .content(reply)
-                        //TODO: Look for more options here
-                    )
-            })
-            .await {
-                println!("![Handler] Cannot respond to slash command : {:?}", reason);
-            }
         }
     }
 
