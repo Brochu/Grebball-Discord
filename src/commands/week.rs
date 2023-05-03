@@ -1,13 +1,15 @@
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::command::{ CommandType, CommandOptionType };
-use serenity::model::prelude::interaction::application_command::CommandDataOption;
+use serenity::model::prelude::interaction::InteractionResponseType;
+use serenity::model::prelude::interaction::application_command::ApplicationCommandInteraction;
+use serenity::prelude::*;
 
 use football;
 
 const VS_EMOJI: &str = "<:VS:1102123108187525130>";
 
-pub async fn run(options: &[CommandDataOption]) -> String {
-    let week = options.first()
+pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
+    let week = command.data.options.first()
         .expect("[Week] No argument provided")
         .value.as_ref().unwrap()
         .as_u64()
@@ -30,7 +32,17 @@ pub async fn run(options: &[CommandDataOption]) -> String {
             out
         });
 
-    return output;
+    if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+        res
+            .kind(InteractionResponseType::ChannelMessageWithSource)
+            .interaction_response_data(|m| m
+                .content(output)
+                //TODO: Look for more options here
+            )
+    })
+    .await {
+        println!("![week] Cannot respond to slash command : {:?}", reason);
+    }
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
