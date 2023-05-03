@@ -41,7 +41,7 @@ pub async fn run(_: Context, command: &ApplicationCommandInteraction) {
         //        )
         //})
         //.await {
-        //    println!("![week] Cannot respond to slash command : {:?}", reason);
+        //    println!("![submit] Cannot respond to slash command : {:?}", reason);
         //}
     }
 }

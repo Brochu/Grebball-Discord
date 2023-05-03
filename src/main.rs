@@ -25,13 +25,11 @@ impl EventHandler for Handler {
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(cmd) = interaction {
-            //println!("[Handler] Got command interaction: {:#?}", cmd);
-
             match cmd.data.name.as_str() {
                 "ping" => commands::ping::run(ctx, &cmd).await,
                 "week" => commands::week::run(ctx, &cmd).await,
                 "submit" => commands::submit::run(ctx, &cmd).await,
-                _ => println!("Command not implemented!"),
+                _ => println!("![Handler] Command not implemented!"),
             };
         }
     }
