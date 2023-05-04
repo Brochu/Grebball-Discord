@@ -27,7 +27,7 @@ impl EventHandler for Handler {
         if let Interaction::ApplicationCommand(cmd) = interaction {
             match cmd.data.name.as_str() {
                 "ping" => commands::ping::run(ctx, &cmd).await,
-                "week" => commands::week::run(ctx, &cmd).await,
+                "matches" => commands::matches::run(ctx, &cmd).await,
                 "submit" => commands::submit::run(ctx, &cmd).await,
                 _ => println!("![Handler] Command not implemented!"),
             };
@@ -50,7 +50,7 @@ impl EventHandler for Handler {
         let commands = GuildId::set_application_commands(&guild_id, &ctx.http, |cmds| {
             cmds
                 .create_application_command(|cmd| commands::ping::register(cmd))
-                .create_application_command(|cmd| commands::week::register(cmd))
+                .create_application_command(|cmd| commands::matches::register(cmd))
                 .create_application_command(|cmd| commands::submit::register(cmd))
         }).await;
 

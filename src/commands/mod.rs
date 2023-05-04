@@ -1,3 +1,3 @@
 pub mod ping;
-pub mod week;
+pub mod matches;
 pub mod submit;

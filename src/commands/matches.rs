@@ -49,7 +49,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
-        .name("week")
+        .name("matches")
         .description("Shows matches for a given week")
         .kind(CommandType::ChatInput)
         .create_option(|opt| {
