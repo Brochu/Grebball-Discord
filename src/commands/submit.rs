@@ -1,11 +1,11 @@
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::{MessageId, ReactionType};
-//use serenity::model::prelude::interaction::InteractionResponseType;
+use serenity::model::prelude::interaction::InteractionResponseType;
 use serenity::model::prelude::command::CommandType;
 use serenity::prelude::*;
 
-pub async fn run(_: Context, command: &ApplicationCommandInteraction) {
+pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
     println!("Data sent with the submit command : {:#?}", command.data);
 
     if let Some(id) = command.data.target_id {
@@ -29,20 +29,19 @@ pub async fn run(_: Context, command: &ApplicationCommandInteraction) {
         });
 
         //TODO: How can we track match ids, season and week number to add to db
-
-        //TODO: Maybe send a message in case of error later
         // Handle adding picks to database first
-        //if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
-        //    res
-        //        .kind(InteractionResponseType::ChannelMessageWithSource)
-        //        .interaction_response_data(|m| m
-        //            .content("Found the message with picks to submit")
-        //            //TODO: Look for more options here
-        //        )
-        //})
-        //.await {
-        //    println!("![submit] Cannot respond to slash command : {:?}", reason);
-        //}
+
+        if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+            res
+                .kind(InteractionResponseType::ChannelMessageWithSource)
+                .interaction_response_data(|m| m
+                    .content("Found the message with picks to submit")
+                    //TODO: Look for more options here
+                )
+        })
+        .await {
+            println!("![submit] Cannot respond to slash command : {:?}", reason);
+        }
     }
 }
 
