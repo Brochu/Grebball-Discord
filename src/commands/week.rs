@@ -9,13 +9,10 @@ use football;
 const VS_EMOJI: &str = "<:VS:1102123108187525130>";
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
-    let week = command.data.options.first()
-        .expect("[Week] No argument provided")
+    let week = command.data.options.first().expect("[Week] No argument provided")
         .value.as_ref().unwrap()
-        .as_str()
-        .expect("[Week] Could not fetch week arg")
-        .parse::<u64>()
-        .expect("[Week] Could not parse week arg to int");
+        .as_str().expect("[Week] Could not fetch week arg")
+        .parse::<u64>().expect("[Week] Could not parse week arg to int");
 
     let output = football::get_week(week)
         .await.expect("![Week] Could not fetch match data")
