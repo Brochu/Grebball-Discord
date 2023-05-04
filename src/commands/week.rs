@@ -14,25 +14,31 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
         .as_str().expect("[Week] Could not fetch week arg")
         .parse::<u64>().expect("[Week] Could not parse week arg to int");
 
-    let output = football::get_week(week)
-        .await.expect("![Week] Could not fetch match data")
-        .fold(String::new(), |mut out, m| {
-            let aemoji = football::get_team_emoji(m.away_team.as_str());
-            let hemoji = football::get_team_emoji(m.home_team.as_str());
+    let matches = football::get_week(week).await.expect("![Week] Could not fetch match data");
 
-            out.push_str(format!("<:{}:{}> {} <:{}:{}>\n",
-                m.away_team, aemoji,
-                VS_EMOJI,
-                m.home_team, hemoji
-            ).as_str());
-            out
-        });
+    let (output, embeds) = matches.fold((String::new(), Vec::<(String, String, bool)>::new()), |mut out, m| {
+        let aemoji = football::get_team_emoji(m.away_team.as_str());
+        let hemoji = football::get_team_emoji(m.home_team.as_str());
+
+        out.0.push_str(format!("<:{}:{}> {} <:{}:{}>\n",
+            m.away_team, aemoji,
+            VS_EMOJI,
+            m.home_team, hemoji
+        ).as_str());
+
+        out.1.push((format!("{}", m.id_event), format!("{}-{}", m.away_team, m.home_team), false));
+        out
+    });
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res
             .kind(InteractionResponseType::ChannelMessageWithSource)
-            .interaction_response_data(|m| m
-                .content(output)
+            .interaction_response_data(|m|
+                m
+                    .content(output)
+                    .embed(|e| {
+                        e.fields(embeds)
+                    })
                 //TODO: Look for more options here
             )
     })
