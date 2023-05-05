@@ -1,27 +1,14 @@
-use std::env;
-
-use mongodb::{ bson::doc, options::ClientOptions, Client };
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::command::{CommandType, CommandOptionType};
 use serenity::prelude::*;
 
+use library::database;
+
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
-    let uri = env::var("MONGDO_URI")
-        .expect("![Results] Could not find 'MONGDO_URI' env var");
-    let client_opts = ClientOptions::parse(uri).await
-        .expect("![Results] Could not parse MongoDB connect info");
+    database::ping().await;
 
-    let client = Client::with_options(client_opts)
-        .expect("![Results] Could not connect to MongoDB");
-    let result = client
-        .database("admin")
-        .run_command(doc! {"ping": 1}, None)
-        .await
-        .expect("![Results] Could not run command");
-
-    println!("{:#?}", result);
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res
             .kind(InteractionResponseType::ChannelMessageWithSource)
