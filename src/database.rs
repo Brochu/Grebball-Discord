@@ -4,11 +4,11 @@ use std::fmt::Display;
 use mongodb::{ bson::oid::ObjectId, bson::doc, options::ClientOptions, Client };
 
 pub struct PoolerResult {
-    pooler_id: ObjectId,
-    pooler_name: String,
+    pub pooler_id: ObjectId,
+    pub pooler_name: String,
 
-    match_ids: Vec<String>,
-    results: Vec<i8>,
+    pub match_ids: Vec<String>,
+    pub results: Vec<i8>,
 }
 
 impl Display for PoolerResult {
