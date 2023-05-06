@@ -7,7 +7,11 @@ use serenity::prelude::*;
 use library::database;
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
-    database::ping().await;
+    database::fetch_results()
+        .await.expect("![Results] Could not fetch week's results")
+        .for_each(|res| {
+            println!("{}", res);
+        });
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res
