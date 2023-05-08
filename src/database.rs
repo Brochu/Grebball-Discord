@@ -1,7 +1,7 @@
 use std::env;
 use std::fmt::Display;
 
-use mongodb::{ bson::oid::ObjectId, bson::doc, options::ClientOptions, Client, Cursor };
+use mongodb::{ bson::oid::ObjectId, bson::doc, options::ClientOptions, Client };
 //use crate::football;
 
 pub struct PoolerResult {
@@ -55,8 +55,9 @@ pub async fn ping() {
     println!("Ping result: {:#?}", result);
 }
 
-pub async fn fetch_results(_week: u64) -> Option<impl Iterator<Item=PoolerResult>> {
+pub async fn fetch_results(week: u64) -> Option<impl Iterator<Item=PoolerResult>> {
     //let matches = football::get_week(week);
+    println!("For week: {}", week);
 
     let uri = env::var("MONGDO_URI")
         .expect("![Results] Could not find 'MONGDO_URI' env var");
