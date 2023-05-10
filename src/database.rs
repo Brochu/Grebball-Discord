@@ -68,12 +68,19 @@ pub async fn fetch_results(week: u64) -> Option<impl Iterator<Item=PoolerResult>
 
     let client = Client::with_options(client_opts)
         .expect("![Results] Could not connect to MongoDB");
-    let result = client.database("pool_football_app_dev")
-        .collection::<Pooler>("poolers").find_one(None, None)
+    let mut result = client.database("pool_football_app_dev")
+        .collection::<Pooler>("poolers").find(None, None)
         .await.expect("![Results] Could not find all poolers");
 
-    if let Some(pooler) = result {
-        println!("{}", pooler);
+    while let Ok(found) = result.advance().await {
+        if found {
+            let pooler = result.deserialize_current()
+                .expect("[Database] Could not parse pooler");
+
+            println!("{}", pooler);
+        } else {
+            break;
+        }
     }
 
     let temp = vec![ PoolerResult {
