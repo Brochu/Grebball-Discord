@@ -7,6 +7,8 @@ use serenity::prelude::*;
 use library::database;
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
+    println!("Command => {:?}", command.user.id.as_u64());
+
     let week = command.data.options.first().expect("[Week] No argument provided")
         .value.as_ref().unwrap()
         .as_str().expect("[Week] Could not fetch week arg")
@@ -14,7 +16,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
 
     database::fetch_results(week)
         .await.expect("![Results] Could not fetch week's results")
-        .for_each(|res| {
+        .for_each(|_res| {
             //println!("{}", res);
         });
 

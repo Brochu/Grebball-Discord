@@ -29,15 +29,14 @@ impl Display for PoolerResult {
 struct Pooler {
     _id: ObjectId,
     name: String,
-    fav_team: String,
     pool_id: ObjectId,
     user_id: ObjectId,
 }
 
 impl Display for Pooler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "[{}] {} - ({})\n\tpool: {}; user: {}\n",
-            self._id, self.name, self.favTeam,
+        writeln!(f, "[{}] {}\n\tpool: {}; user: {}\n",
+            self._id, self.name,
             self.pool_id, self.user_id
         )
     }
@@ -68,10 +67,11 @@ pub async fn fetch_results(week: u64) -> Option<impl Iterator<Item=PoolerResult>
 
     let client = Client::with_options(client_opts)
         .expect("![Results] Could not connect to MongoDB");
-    let mut result = client.database("pool_football_app_dev")
-        .collection::<Pooler>("poolers").find(None, None)
-        .await.expect("![Results] Could not find all poolers");
+    let db = client.database("pool_football_app_dev");
 
+    let mut result = db.collection::<Pooler>("poolers")
+        .find(None, None).await
+        .expect("![Results] Could not find all poolers");
     while let Ok(found) = result.advance().await {
         if found {
             let pooler = result.deserialize_current()
