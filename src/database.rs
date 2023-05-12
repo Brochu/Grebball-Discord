@@ -29,7 +29,7 @@ impl Display for PoolerResult {
 struct Pooler {
     _id: ObjectId,
     name: String,
-    favTeam: String,
+    fav_team: String,
     pool_id: ObjectId,
     user_id: ObjectId,
 }

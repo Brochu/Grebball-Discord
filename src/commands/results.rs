@@ -15,7 +15,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
     database::fetch_results(week)
         .await.expect("![Results] Could not fetch week's results")
         .for_each(|res| {
-            println!("{}", res);
+            //println!("{}", res);
         });
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
