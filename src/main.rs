@@ -1,6 +1,8 @@
 use dotenv::dotenv;
 use std::env;
 
+use libsql_client::DatabaseClient;
+
 use serenity::async_trait;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::channel::Message;
@@ -64,17 +66,29 @@ impl EventHandler for Handler {
 async fn main() {
     dotenv().ok(); // Include .env file to environment
 
-    let token = env::var("DISCORD_TOKEN").expect("![MAIN] Cannot find 'DISCORD_TOKEN' in env");
-    let intents = GatewayIntents::GUILD_MESSAGES
-        | GatewayIntents::DIRECT_MESSAGES
-        | GatewayIntents::MESSAGE_CONTENT;
+    //let token = env::var("DISCORD_TOKEN").expect("![MAIN] Cannot find 'DISCORD_TOKEN' in env");
+    //let intents = GatewayIntents::GUILD_MESSAGES
+    //    | GatewayIntents::DIRECT_MESSAGES
+    //    | GatewayIntents::MESSAGE_CONTENT;
 
-    let mut client = Client::builder(token, intents)
-        .event_handler(Handler)
-        .await
-        .expect("![MAIN] Could not create client");
+    //let mut client = Client::builder(token, intents)
+    //    .event_handler(Handler)
+    //    .await
+    //    .expect("![MAIN] Could not create client");
 
-    if let Err(reason) = client.start().await {
-        println!("![MAIN] Client error : {:?}", reason);
+    //if let Err(reason) = client.start().await {
+    //    println!("![MAIN] Client error : {:?}", reason);
+    //}
+
+    match libsql_client::local::Client::from_env() {
+        Ok(db) => {
+            match db.execute("SELECT 'test' AS 'hello'").await {
+                Ok(response) => {
+                    println!("Response: {:?}", response);
+                },
+                Err(e) => println!("[MAIN] Error: {}", e),
+            }
+        },
+        Err(e) => println!("[MAIN] Error: {}", e),
     }
 }
