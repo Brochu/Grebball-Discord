@@ -10,6 +10,7 @@ name = "library"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.71"
 dotenv = "0.15.0"
 libsql-client = "0.26.0"
 reqwest = { version = "0.11", features = ["json"] }
