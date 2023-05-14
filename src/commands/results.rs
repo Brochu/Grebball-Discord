@@ -7,7 +7,7 @@ use serenity::prelude::*;
 use library::database;
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
-    println!("Command => {:?}", command.user.id.as_u64());
+    //println!("Command => {:?}", command.user.id.as_u64());
 
     let week = command.data.options.first().expect("[Week] No argument provided")
         .value.as_ref().unwrap()

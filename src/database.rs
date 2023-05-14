@@ -18,10 +18,7 @@ impl Display for PoolerResult {
     }
 }
 
-pub async fn fetch_results(week: u64) -> Option<impl Iterator<Item=PoolerResult>> {
-    //let matches = football::get_week(week);
-    println!("For week: {}", week);
-
+pub async fn fetch_results(_week: u64) -> Option<impl Iterator<Item=PoolerResult>> {
     let temp = vec![ PoolerResult {
         pooler_name: "".to_string(),
         match_ids: vec![],
