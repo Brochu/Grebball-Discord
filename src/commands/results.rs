@@ -9,16 +9,17 @@ use library::database;
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
     //println!("Command => {:?}", command.user.id.as_u64());
 
-    let week = command.data.options.first().expect("[Week] No argument provided")
+    let week = command.data.options.first().expect("[results] No argument provided")
         .value.as_ref().unwrap()
-        .as_str().expect("[Week] Could not fetch week arg")
-        .parse::<u64>().expect("[Week] Could not parse week arg to int");
+        .as_str().expect("[results] Could not fetch week arg")
+        .parse::<u64>().expect("[results] Could not parse week arg to int");
 
-    database::fetch_results(week)
-        .await.expect("![Results] Could not fetch week's results")
-        .for_each(|_res| {
-            //println!("{}", res);
-        });
+    match database::fetch_results(week).await {
+        Ok(res) => {
+            println!("{:?}", res);
+        },
+        Err(e) => println!("[results] Could not complete DB query: {}", e),
+    };
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res
