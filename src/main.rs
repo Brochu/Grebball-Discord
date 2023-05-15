@@ -8,6 +8,8 @@ use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
 use serenity::prelude::*;
 
+use sqlx::sqlite::SqlitePool;
+
 mod commands;
 
 struct Bot {
@@ -18,6 +20,16 @@ struct Bot {
 impl EventHandler for Bot {
     async fn message(&self, ctx: Context, msg: Message) {
         if msg.content == "!hello" {
+            let test = sqlx::query!(
+            r#"
+            SELECT 'Hello' AS 'greeting'
+            "#
+            )
+            .fetch_all(&self.database).await
+            .unwrap();
+
+            println!("{:?}", test);
+
             let reply = format!("Hi, {}!", msg.author.name);
             if let Err(reason) = msg.channel_id.say(&ctx.http, reply).await {
                 println!("![Handler] Handler message error : {:?}", reason);
@@ -66,17 +78,9 @@ impl EventHandler for Bot {
 async fn main() {
     dotenv().ok(); // Include .env file to environment
 
-    let db_file = env::var("SQLITE_DB")
-        .expect("![MAIN] Cannot find 'SQLITE_DB' in env");
-    let database = sqlx::sqlite::SqlitePoolOptions::new()
-        .max_connections(5)
-        .connect_with(
-            sqlx::sqlite::SqliteConnectOptions::new()
-                .filename(db_file)
-                .create_if_missing(true)
-        )
-        .await
-        .expect("![MAIN] Could not connect to Sqlite database");
+    let db_url = env::var("DATABASE_URL")
+        .expect("![MAIN] Cannot find 'DATABASE_URL' in env");
+    let database = SqlitePool::connect(db_url.as_str()).await.unwrap();
     let bot = Bot { database };
 
     let token = env::var("DISCORD_TOKEN")
