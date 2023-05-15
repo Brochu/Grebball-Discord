@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use anyhow::Result;
 
 pub struct PoolerResult {
     pub pooler_name: String,
@@ -18,12 +19,12 @@ impl Display for PoolerResult {
     }
 }
 
-pub async fn fetch_results(_week: u64) -> Option<impl Iterator<Item=PoolerResult>> {
+pub async fn fetch_results(_week: u64) -> Result<impl Iterator<Item=PoolerResult>> {
     let temp = vec![ PoolerResult {
         pooler_name: "".to_string(),
         match_ids: vec![],
         results: vec![]
     }];
 
-    Some(temp.into_iter())
+    Ok(temp.into_iter())
 }
