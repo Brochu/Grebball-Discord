@@ -10,10 +10,12 @@ use serenity::prelude::*;
 
 mod commands;
 
-struct Handler;
+struct Bot {
+    database: sqlx::SqlitePool,
+}
 
 #[async_trait]
-impl EventHandler for Handler {
+impl EventHandler for Bot {
     async fn message(&self, ctx: Context, msg: Message) {
         if msg.content == "!hello" {
             let reply = format!("Hi, {}!", msg.author.name);
@@ -64,13 +66,27 @@ impl EventHandler for Handler {
 async fn main() {
     dotenv().ok(); // Include .env file to environment
 
-    let token = env::var("DISCORD_TOKEN").expect("![MAIN] Cannot find 'DISCORD_TOKEN' in env");
+    let db_file = env::var("SQLITE_DB")
+        .expect("![MAIN] Cannot find 'SQLITE_DB' in env");
+    let database = sqlx::sqlite::SqlitePoolOptions::new()
+        .max_connections(5)
+        .connect_with(
+            sqlx::sqlite::SqliteConnectOptions::new()
+                .filename(db_file)
+                .create_if_missing(true)
+        )
+        .await
+        .expect("![MAIN] Could not connect to Sqlite database");
+    let bot = Bot { database };
+
+    let token = env::var("DISCORD_TOKEN")
+        .expect("![MAIN] Cannot find 'DISCORD_TOKEN' in env");
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
 
     let mut client = Client::builder(token, intents)
-        .event_handler(Handler)
+        .event_handler(bot)
         .await
         .expect("![MAIN] Could not create client");
 
