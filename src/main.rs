@@ -20,16 +20,6 @@ struct Bot {
 impl EventHandler for Bot {
     async fn message(&self, ctx: Context, msg: Message) {
         if msg.content == "!hello" {
-            let test = sqlx::query!(
-            r#"
-            SELECT 'Hello' AS 'greeting'
-            "#
-            )
-            .fetch_all(&self.database).await
-            .unwrap();
-
-            println!("{:?}", test);
-
             let reply = format!("Hi, {}!", msg.author.name);
             if let Err(reason) = msg.channel_id.say(&ctx.http, reply).await {
                 println!("![Handler] Handler message error : {:?}", reason);
