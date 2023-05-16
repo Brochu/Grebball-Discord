@@ -8,7 +8,7 @@ use sqlx::{ Pool, Sqlite };
 
 use library::database;
 
-pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, _db: &Pool<Sqlite>) {
+pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &Pool<Sqlite>) {
     //println!("Command => {:?}", command.user.id.as_u64());
 
     let week = command.data.options.first().expect("[results] No argument provided")
@@ -16,7 +16,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, _db: &Po
         .as_str().expect("[results] Could not fetch week arg")
         .parse::<u64>().expect("[results] Could not parse week arg to int");
 
-    match database::fetch_results(week).await {
+    match database::fetch_results(db, week).await {
         Ok(res) => {
             println!("{:?}", res);
         },

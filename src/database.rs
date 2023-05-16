@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
 use anyhow::Result;
+use sqlx::{ Pool, Sqlite };
+use sqlx::Row;
 
 pub struct PoolerResult {
     pub pooler_name: String,
@@ -20,6 +22,15 @@ impl Display for PoolerResult {
     }
 }
 
-pub async fn fetch_results(_week: u64) -> Result<()> {
+pub async fn fetch_results(db: &Pool<Sqlite>, _week: u64) -> Result<()> {
+    let users = sqlx::query("SELECT id, email, discordid FROM Users")
+        .fetch_all(db)
+        .await?;
+
+    for row in users {
+        let email = row.get::<String, &str>("email");
+        println!("{}", email);
+    }
+
     Ok(())
 }
