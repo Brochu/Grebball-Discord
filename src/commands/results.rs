@@ -4,11 +4,9 @@ use serenity::model::application::interaction::application_command::ApplicationC
 use serenity::model::prelude::command::{CommandType, CommandOptionType};
 use serenity::prelude::*;
 
-use sqlx::{ Pool, Sqlite };
+use library::database::DB;
 
-use library::database;
-
-pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &Pool<Sqlite>) {
+pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
     //println!("Command => {:?}", command.user.id.as_u64());
 
     let week = command.data.options.first().expect("[results] No argument provided")
@@ -16,11 +14,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &Poo
         .as_str().expect("[results] Could not fetch week arg")
         .parse::<u64>().expect("[results] Could not parse week arg to int");
 
-    match database::fetch_results(db, week).await {
-        Ok(res) => {
-            println!("{:?}", res);
-        },
-        Err(e) => println!("[results] Could not complete DB query: {}", e),
+    match db.fetch_results(week).await {
+        Ok(res) => println!("Query success: {:?}", res),
+        Err(e) => println!("Query error: {:?}", e),
     };
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {

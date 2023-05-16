@@ -8,12 +8,12 @@ use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
 use serenity::prelude::*;
 
-use sqlx::sqlite::SqlitePool;
+use library::database::DB;
 
 mod commands;
 
 struct Bot {
-    database: SqlitePool,
+    database: DB,
 }
 
 #[async_trait]
@@ -68,11 +68,6 @@ impl EventHandler for Bot {
 async fn main() {
     dotenv().ok(); // Include .env file to environment
 
-    let db_url = env::var("DATABASE_URL")
-        .expect("![MAIN] Cannot find 'DATABASE_URL' in env");
-    let database = SqlitePool::connect(db_url.as_str()).await.unwrap();
-    let bot = Bot { database };
-
     let token = env::var("DISCORD_TOKEN")
         .expect("![MAIN] Cannot find 'DISCORD_TOKEN' in env");
     let intents = GatewayIntents::GUILD_MESSAGES
@@ -80,7 +75,7 @@ async fn main() {
         | GatewayIntents::MESSAGE_CONTENT;
 
     let mut client = Client::builder(token, intents)
-        .event_handler(bot)
+        .event_handler(Bot { database: DB::new().await })
         .await
         .expect("![MAIN] Could not create client");
 
