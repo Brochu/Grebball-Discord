@@ -101,15 +101,11 @@ impl Display for Match {
     }
 }
 
-pub async fn get_week(week: u64) -> Option<impl Iterator<Item=Match>> {
+pub async fn get_week(season: u16, week: u64) -> Option<impl Iterator<Item=Match>> {
     let league = env::var("CONF_LEAGUE")
         .expect("![Week] Could not find 'CONF_LEAGUE' env var")
         .parse::<u16>()
         .expect("![Week] Could not parse 'CONF_LEAGUE' to int");
-    let season = env::var("CONF_SEASON")
-        .expect("![Week] Could not find 'CONF_SEASON' env var")
-        .parse::<u16>()
-        .expect("![Week] Could not parse 'CONF_SEASON' to int");
 
     let url = format!("https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id={}&s={}&r={}",
         league, season, week);

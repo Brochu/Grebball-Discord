@@ -1,3 +1,7 @@
+use std::env;
+
+use serde_json::Value;
+
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::command::{ CommandType, CommandOptionType };
 use serenity::model::prelude::interaction::InteractionResponseType;
@@ -9,41 +13,47 @@ use library::football::{ get_week, get_team_emoji };
 const VS_EMOJI: &str = "<:VS:1102123108187525130>";
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
-    let week = command.data.options.first().expect("[Week] No argument provided")
-        .value.as_ref().unwrap()
-        .as_str().expect("[Week] Could not fetch week arg")
-        .parse::<u64>().expect("[Week] Could not parse week arg to int");
+    if let Value::String(str) = command.data.options.get(0)
+        .expect("![Week] Could not fetch week arg")
+        .value.as_ref()
+        .expect("![Week] Could not get value of the week arg")
+    {
+        let season = env::var("CONF_SEASON")
+            .expect("![Week] Could not find 'CONF_SEASON' env var")
+            .parse::<u16>()
+            .expect("![Week] Could not parse 'CONF_SEASON' to int");
+        let week = str.parse::<u64>()
+            .expect("![Week] Could not parse week arg to u64");
+        let matches = get_week(season, week).await
+            .expect("![Week] Could not fetch match data");
 
-    let matches = get_week(week).await.expect("![Week] Could not fetch match data");
+        let output = matches.fold(String::new(), |mut out, m| {
+            let aemoji = get_team_emoji(m.away_team.as_str());
+            let hemoji = get_team_emoji(m.home_team.as_str());
 
-    let (output, embeds) = matches.fold((String::new(), Vec::<(String, String, bool)>::new()), |mut out, m| {
-        let aemoji = get_team_emoji(m.away_team.as_str());
-        let hemoji = get_team_emoji(m.home_team.as_str());
+            out.push_str(format!("{} : <:{}:{}> {} <:{}:{}>\n",
+                m.id_event,
+                m.away_team, aemoji,
+                VS_EMOJI,
+                m.home_team, hemoji
+            ).as_str());
+            out
+        });
 
-        out.0.push_str(format!("<:{}:{}> {} <:{}:{}>\n",
-            m.away_team, aemoji,
-            VS_EMOJI,
-            m.home_team, hemoji
-        ).as_str());
-
-        out.1.push((format!("{}", m.id_event), format!("{}-{}", m.away_team, m.home_team), false));
-        out
-    });
-
-    if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
-        res
-            .kind(InteractionResponseType::ChannelMessageWithSource)
-            .interaction_response_data(|m|
-                m
-                    .content(output)
-                    .embed(|e| {
-                        e.fields(embeds)
-                    })
-                //TODO: Look for more options here
-            )
-    })
-    .await {
-        println!("![week] Cannot respond to slash command : {:?}", reason);
+        if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+            res
+                .kind(InteractionResponseType::ChannelMessageWithSource)
+                .interaction_response_data(|m|
+                    m.content(format!("{season}-{week}\n{output}"))
+                    //TODO: Find a better way to send metadata
+                    // - Season num
+                    // - Week num
+                    // - Matches Ids
+                )
+        })
+        .await {
+            println!("![week] Cannot respond to slash command : {:?}", reason);
+        }
     }
 }
 
