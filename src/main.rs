@@ -13,7 +13,7 @@ use sqlx::sqlite::SqlitePool;
 mod commands;
 
 struct Bot {
-    database: sqlx::SqlitePool,
+    database: SqlitePool,
 }
 
 #[async_trait]
@@ -32,8 +32,8 @@ impl EventHandler for Bot {
             match cmd.data.name.as_str() {
                 "matches" => commands::matches::run(ctx, &cmd).await,
                 "ping"    => commands::ping::run(ctx, &cmd).await,
-                "results" => commands::results::run(ctx, &cmd).await,
-                "submit"  => commands::submit::run(ctx, &cmd).await,
+                "results" => commands::results::run(ctx, &cmd, &self.database).await,
+                "submit"  => commands::submit::run(ctx, &cmd, &self.database).await,
                 _         => println!("![Handler] Command not implemented!"),
             };
         }

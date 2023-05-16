@@ -4,9 +4,11 @@ use serenity::model::application::interaction::application_command::ApplicationC
 use serenity::model::prelude::command::{CommandType, CommandOptionType};
 use serenity::prelude::*;
 
+use sqlx::{ Pool, Sqlite };
+
 use library::database;
 
-pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
+pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, _db: &Pool<Sqlite>) {
     //println!("Command => {:?}", command.user.id.as_u64());
 
     let week = command.data.options.first().expect("[results] No argument provided")

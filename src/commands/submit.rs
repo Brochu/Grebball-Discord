@@ -5,7 +5,10 @@ use serenity::model::prelude::interaction::InteractionResponseType;
 use serenity::model::prelude::command::CommandType;
 use serenity::prelude::*;
 
-pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
+use sqlx::{ Pool, Sqlite };
+
+
+pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, _db: &Pool<Sqlite>) {
     println!("Data sent with the submit command : {:#?}", command.data);
 
     if let Some(id) = command.data.target_id {
