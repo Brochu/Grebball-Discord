@@ -8,25 +8,25 @@ use serenity::prelude::*;
 use library::database::DB;
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, _db: &DB) {
-    println!("Data sent with the submit command : {:#?}", command.data);
-
     if let Some(id) = command.data.target_id {
         let message_id = MessageId(*id.as_u64());
         let message = command.data.resolved.messages.get(&message_id)
             .expect("![Submit] Could not find message with provided TargetId");
 
         println!("Message : {:#?}", message);
-        message.content.lines().for_each(|l| {
-            let (first, second) = l.split_once(" ").unwrap();
-            let (_, second) = second.split_once(" ").unwrap();
+        //TODO: Parse metadata from the message
+        //message.content.lines().for_each(|l| {
+        //    let (first, second) = l.split_once(" ").unwrap();
+        //    let (_, second) = second.split_once(" ").unwrap();
 
-            println!("Match, {} vs. {}", first, second);
-        });
+        //    println!("Match, {} vs. {}", first, second);
+        //});
 
+        println!("Reations :");
         message.reactions.iter().for_each(|r| {
             if let ReactionType::Custom { name, .. } = &r.reaction_type {
                 let pick = name.as_ref().unwrap();
-                println!("reaction: {:#?}", pick);
+                println!("\t- {:#?}", pick);
             }
         });
 
