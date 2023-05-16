@@ -58,9 +58,11 @@ impl EventHandler for Bot {
                 .create_application_command(|cmd| commands::ping::register(cmd))
                 .create_application_command(|cmd| commands::results::register(cmd))
                 .create_application_command(|cmd| commands::submit::register(cmd))
-        }).await;
+        }).await.expect("![Handler] Could not set application commands in Discord Guild");
 
-        println!("Here are the available commands: {:#?}", commands);
+        println!("Here are the available commands:");
+        commands.iter()
+            .for_each(|c| println!("\t-{}", c.name))
     }
 }
 
