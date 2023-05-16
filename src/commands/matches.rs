@@ -4,7 +4,7 @@ use serenity::model::prelude::interaction::InteractionResponseType;
 use serenity::model::prelude::interaction::application_command::ApplicationCommandInteraction;
 use serenity::prelude::*;
 
-use library::football;
+use library::football::{ get_week, get_team_emoji };
 
 const VS_EMOJI: &str = "<:VS:1102123108187525130>";
 
@@ -14,11 +14,11 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
         .as_str().expect("[Week] Could not fetch week arg")
         .parse::<u64>().expect("[Week] Could not parse week arg to int");
 
-    let matches = library::football::get_week(week).await.expect("![Week] Could not fetch match data");
+    let matches = get_week(week).await.expect("![Week] Could not fetch match data");
 
     let (output, embeds) = matches.fold((String::new(), Vec::<(String, String, bool)>::new()), |mut out, m| {
-        let aemoji = football::get_team_emoji(m.away_team.as_str());
-        let hemoji = football::get_team_emoji(m.home_team.as_str());
+        let aemoji = get_team_emoji(m.away_team.as_str());
+        let hemoji = get_team_emoji(m.home_team.as_str());
 
         out.0.push_str(format!("<:{}:{}> {} <:{}:{}>\n",
             m.away_team, aemoji,
