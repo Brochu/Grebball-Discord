@@ -19,6 +19,7 @@ impl DB {
 
     pub async fn fetch_results(&self, week: u64) -> Result<()> {
         println!("[DB] Getting results for week {week}");
+        //TODO: Finish implementation
 
         let users = sqlx::query("SELECT id, email, discordid FROM Users")
             .fetch_all(&self.pool)
