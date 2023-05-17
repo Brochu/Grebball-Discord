@@ -1,0 +1,11 @@
+Here is the plan for letting Discord users create picks for a given week
+------------------------------------------------------------------------
+
+- When in the Discord server, use the /picks command for a given week.
+- Retrieve the DiscordID that initiated the command, season and week
+- Generate random token based off of this data
+- Create a new picks entry in the DB with this data
+- Create a URL to the picks web page, add the new picks entry's ID in the URL
+- The web page will update the picks entry with the picks string when done
+
+If the pick for the user/season/week already exists, skip creating a new one and return an error
