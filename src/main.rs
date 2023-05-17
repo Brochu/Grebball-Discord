@@ -63,6 +63,8 @@ impl EventHandler for Bot {
         println!("Here are the available commands:");
         commands.iter()
             .for_each(|c| println!("\t-{}", c.name))
+
+        //TODO: Test calling Web Hook here, on a timer with weekly results
     }
 }
 
