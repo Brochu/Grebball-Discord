@@ -1,5 +1,5 @@
 use dotenv::dotenv;
-use std::env;
+use std::{env, time::Duration};
 
 use serenity::async_trait;
 use serenity::model::application::interaction::Interaction;
@@ -8,12 +8,15 @@ use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
 use serenity::prelude::*;
 
+use tokio::time::{ interval, Interval, MissedTickBehavior };
+
 use library::database::DB;
 
 mod commands;
 
 struct Bot {
     database: DB,
+    timer: Interval,
 }
 
 #[async_trait]
@@ -40,11 +43,15 @@ impl EventHandler for Bot {
     }
 
     async fn ready(&self, ctx: Context, ready: Ready) {
-        println!("[Handler] ({}) {} is connected w/ version: {}",
+        println!("[Handler] ({}) {} is connected w/ version: {}\n",
             ready.user.id,
             ready.user.name,
             ready.version
         );
+
+        //TODO: Test calling Web Hook here, on a timer with weekly results
+        // Start a separate thread to keep track of the interval?
+        println!("Setting up timer for weekly results message {:?}\n", self.timer);
 
         let guild_id = GuildId(env::var("GUILD_ID")
             .expect("![Handler] Could not find env var 'GUILD_ID'")
@@ -63,8 +70,6 @@ impl EventHandler for Bot {
         println!("Here are the available commands:");
         commands.iter()
             .for_each(|c| println!("\t-{}", c.name))
-
-        //TODO: Test calling Web Hook here, on a timer with weekly results
     }
 }
 
@@ -78,8 +83,12 @@ async fn main() {
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
 
+    //TODO: Change this interval to fire every week
+    let mut timer = interval(Duration::from_secs_f64(5.0));
+    timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
+
     let mut client = Client::builder(token, intents)
-        .event_handler(Bot { database: DB::new().await })
+        .event_handler(Bot { database: DB::new().await, timer })
         .await
         .expect("![MAIN] Could not create client");
 
