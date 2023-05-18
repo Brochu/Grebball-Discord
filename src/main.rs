@@ -8,7 +8,8 @@ use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
 use serenity::prelude::*;
 
-use tokio::time::{ interval, Interval, MissedTickBehavior };
+use tokio::spawn;
+use tokio::time::{ interval, MissedTickBehavior };
 
 use library::database::DB;
 
@@ -16,7 +17,6 @@ mod commands;
 
 struct Bot {
     database: DB,
-    timer: Interval,
 }
 
 #[async_trait]
@@ -51,7 +51,23 @@ impl EventHandler for Bot {
 
         //TODO: Test calling Web Hook here, on a timer with weekly results
         // Start a separate thread to keep track of the interval?
-        println!("Setting up timer for weekly results message {:?}\n", self.timer);
+        spawn(async {
+            let mut timer = interval(Duration::from_secs_f64(5.0));
+            timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
+
+            let guild_id = GuildId(env::var("GUILD_ID")
+                .expect("![Handler] Could not find env var 'GUILD_ID'")
+                .parse()
+                .expect("![Handler] Could not parse guild_id to int")
+            );
+
+            println!("Setting up timer for weekly results message {:?}\nFor guild: {:?}\n", timer, guild_id);
+
+            loop {
+                timer.tick().await;
+                println!("[MAIN] Interval completed: Should show results ...");
+            }
+        });
 
         let guild_id = GuildId(env::var("GUILD_ID")
             .expect("![Handler] Could not find env var 'GUILD_ID'")
@@ -83,12 +99,8 @@ async fn main() {
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
 
-    //TODO: Change this interval to fire every week
-    let mut timer = interval(Duration::from_secs_f64(5.0));
-    timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
-
     let mut client = Client::builder(token, intents)
-        .event_handler(Bot { database: DB::new().await, timer })
+        .event_handler(Bot { database: DB::new().await })
         .await
         .expect("![MAIN] Could not create client");
 
