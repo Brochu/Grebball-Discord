@@ -6,6 +6,7 @@ use serenity::model::application::interaction::Interaction;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
+use serenity::model::webhook::Webhook;
 use serenity::prelude::*;
 
 use tokio::spawn;
@@ -49,26 +50,6 @@ impl EventHandler for Bot {
             ready.version
         );
 
-        //TODO: Test calling Web Hook here, on a timer with weekly results
-        // Start a separate thread to keep track of the interval?
-        spawn(async {
-            let mut timer = interval(Duration::from_secs_f64(5.0));
-            timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
-
-            let guild_id = GuildId(env::var("GUILD_ID")
-                .expect("![Handler] Could not find env var 'GUILD_ID'")
-                .parse()
-                .expect("![Handler] Could not parse guild_id to int")
-            );
-
-            println!("Setting up timer for weekly results message {:?}\nFor guild: {:?}\n", timer, guild_id);
-
-            loop {
-                timer.tick().await;
-                println!("[MAIN] Interval completed: Should show results ...");
-            }
-        });
-
         let guild_id = GuildId(env::var("GUILD_ID")
             .expect("![Handler] Could not find env var 'GUILD_ID'")
             .parse()
@@ -83,9 +64,28 @@ impl EventHandler for Bot {
                 .create_application_command(|cmd| commands::submit::register(cmd))
         }).await.expect("![Handler] Could not set application commands in Discord Guild");
 
-        println!("Here are the available commands:");
+        println!("[Handler] Here are the available commands:");
         commands.iter()
-            .for_each(|c| println!("\t-{}", c.name))
+            .for_each(|c| println!("\t-{}", c.name));
+
+        spawn(async move {
+            let mut timer = interval(Duration::from_secs_f64(5.0));
+            timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
+
+            if let Ok(hook_url) = env::var("RESULTS_WEBHOOK") {
+                let hook = Webhook::from_url(&ctx.http, hook_url.as_str()).await.unwrap();
+                println!("[Handler] Webhook created and ready to fire");
+
+                loop {
+                    timer.tick().await;
+
+                    //TODO: Create right message here with database results
+                    hook.execute(&ctx.http, false, |m| {
+                        m.content("Separate job message")
+                    }).await.unwrap();
+                }
+            }
+        });
     }
 }
 
