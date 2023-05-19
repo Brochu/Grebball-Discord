@@ -10,17 +10,41 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-inverse" role="navigation" style="padding-left:130px;">
-        <ul class="nav navbar-nav">
-            <li class="active"><a href="/">Home<span class="sr-only">(current)</span></a></li>
-            <li><a href="/about">About us</a></li>
-            <li><a href="/contact">Contact us</a></li>
-        </ul>
-    </nav>
-
     <div class="jumbotron">
-    <p>This is place your index including bootstrap</p>
+        <p>This is place your index including bootstrap</p>
+
+        <h1>Choix pour saison: <%= p['season'] %>, semaine: <%= p['week'] %></h1>
     </div>
+
+    <form>
+    <div class="card-group">
+    <% array.forEach((i) => { %>
+        <div class="card">
+            <img src="https://placehold.co/600x400" class="card-img-top" alt="...">
+            <div class="card-body">
+
+            <h4 class="card-header">Card header</h4>
+            <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
+            <p class="card-text"><small class="text-body-secondary">Last updated 3 mins ago</small></p>
+
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="RadioPick<%= i %>" id="PickAway<%= i %>" />
+                <label class="form-check-label" for="PickAway<%= i %>">
+                    Away Team
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="RadioPick<%= i %>" id="PickHome<%= i %>" />
+                <label class="form-check-label" for="PickHome<%= i %>">
+                    Home Team
+                </label>
+            </div>
+
+            </div>
+        </div>
+    <% }); %>
+    </div>
+    </form>
 
     <script src="/js/bootstrap.min.js" type="text/javascript"></script>
 </body>
