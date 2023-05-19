@@ -10,8 +10,8 @@ app.set('view engine', 'html');
 app.use(express.static(__dirname + '\\node_modules\\bootstrap\\dist'));
 app.use(express.static('public'));
 
-app.get('/', (_, res) => {
-    res.render('picks.html');
+app.get('/:season/:week/:token', (req, res) => {
+    res.render('picks.html', { p: req.params, array: [ 1, 2, 3 ] });
 });
 
 app.listen(port, () => {
