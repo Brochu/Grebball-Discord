@@ -11,7 +11,7 @@ app.use(express.static(__dirname + '\\node_modules\\bootstrap\\dist'));
 app.use(express.static('public'));
 
 app.get('/', (_, res) => {
-    res.render('picks.ejs');
+    res.render('picks.html');
 });
 
 app.listen(port, () => {
