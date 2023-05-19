@@ -37,7 +37,6 @@ impl EventHandler for Bot {
                 "matches" => commands::matches::run(ctx, &cmd).await,
                 "ping"    => commands::ping::run(ctx, &cmd).await,
                 "results" => commands::results::run(ctx, &cmd, &self.database).await,
-                "submit"  => commands::submit::run(ctx, &cmd, &self.database).await,
                 _         => println!("![Handler] Command not implemented!"),
             };
         }
@@ -61,7 +60,6 @@ impl EventHandler for Bot {
                 .create_application_command(|cmd| commands::matches::register(cmd))
                 .create_application_command(|cmd| commands::ping::register(cmd))
                 .create_application_command(|cmd| commands::results::register(cmd))
-                .create_application_command(|cmd| commands::submit::register(cmd))
         }).await.expect("![Handler] Could not set application commands in Discord Guild");
 
         println!("[Handler] Here are the available commands:");
