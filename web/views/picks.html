@@ -15,30 +15,36 @@
 
     <div class="container-sm">
     <form>
-    <div class="row row-cols-1 row-cols-md-3 g-4">
-    <% matches.forEach((i) => { %>
+    <div class="row row-cols-1 row-cols-md-2 g-4">
+    <% matches.forEach((m) => { %>
         <div class="col">
         <div class="card">
-            <img src="https://placehold.co/600x400" class="card-img-top" alt="...">
+            <div class="card-header">
+                <%= m['strEventAlternate'] %>
+            </div>
+
             <div class="card-body">
-
-            <h4 class="card-header">Card header</h4>
-            <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
-            <p class="card-text"><small class="text-body-secondary">Last updated 3 mins ago</small></p>
-
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="RadioPick<%= i %>" id="PickAway<%= i %>" />
-                <label class="form-check-label" for="PickAway<%= i %>">
-                    Away Team
+            <div class="form-check card-text">
+                <input
+                    class="form-check-input"
+                    type="radio"
+                    name="RadioPick-<%= m['idEvent'] %>"
+                    id="PickAway-<%= m['idEvent'] %>"
+                />
+                <label class="form-check-label" for="PickAway-<%= m['idEvent'] %>">
+                    <img src="/teams/<%= m['awayTeam'] %>.png" width=40 height=40 />
                 </label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="RadioPick<%= i %>" id="PickHome<%= i %>" />
-                <label class="form-check-label" for="PickHome<%= i %>">
-                    Home Team
+                <input
+                    class="form-check-input"
+                    type="radio"
+                    name="RadioPick-<%= m['idEvent'] %>"
+                    id="PickHome-<%= m['idEvent'] %>" />
+                <label class="form-check-label" for="PickHome-<%= m['idEvent'] %>">
+                    <img src="/teams/<%= m['homeTeam'] %>.png" width=40 height=40 />
                 </label>
             </div>
-
             </div>
         </div>
         </div>
