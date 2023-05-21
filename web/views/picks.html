@@ -1,8 +1,9 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta name="robots" content="noindex, nofollow">
     <link href="/css/bootstrap.min.css" rel="stylesheet" type="text/css">
     <link rel="icon" type="image/x-icon" href="/favicon-16.ico">
 
@@ -20,7 +21,8 @@
         <div class="col">
         <div class="card">
             <div class="card-header">
-                <%= m['strEventAlternate'] %>
+                <img src="/teams/<%= m['awayTeam'] %>.png" width=40 height=40 />
+                <img src="/teams/<%= m['homeTeam'] %>.png" width=40 height=40 />
             </div>
 
             <div class="card-body">
@@ -28,21 +30,21 @@
                 <input
                     class="form-check-input"
                     type="radio"
-                    name="RadioPick-<%= m['idEvent'] %>"
-                    id="PickAway-<%= m['idEvent'] %>"
+                    name="<%= m['idEvent'] %>"
+                    id="<%= m['awayTeam'] %>"
                 />
-                <label class="form-check-label" for="PickAway-<%= m['idEvent'] %>">
-                    <img src="/teams/<%= m['awayTeam'] %>.png" width=40 height=40 />
+                <label class="form-check-label" for="<%= m['awayTeam'] %>">
+                    <%= m['strAwayTeam'] %>
                 </label>
             </div>
-            <div class="form-check">
+            <div class="form-check card-text">
                 <input
                     class="form-check-input"
                     type="radio"
-                    name="RadioPick-<%= m['idEvent'] %>"
-                    id="PickHome-<%= m['idEvent'] %>" />
-                <label class="form-check-label" for="PickHome-<%= m['idEvent'] %>">
-                    <img src="/teams/<%= m['homeTeam'] %>.png" width=40 height=40 />
+                    name="<%= m['idEvent'] %>"
+                    id="<%= m['homeTeam'] %>" />
+                <label class="form-check-label" for="<%= m['homeTeam'] %>">
+                    <%= m['strHomeTeam'] %>
                 </label>
             </div>
             </div>
@@ -54,7 +56,6 @@
     </div>
     </div>
 
-    <script src="/js/bootstrap.min.js" type="text/javascript"></script>
 </body>
 
 </html>
