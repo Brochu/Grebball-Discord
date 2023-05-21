@@ -14,46 +14,43 @@
     <div class="content">
     <h1>Choix pour saison: <%= season %>, semaine: <%= week %></h1>
 
-    <div class="container-sm">
     <form>
-    <div class="row row-cols-1 row-cols-md-2 g-4">
+    <div class="container-sm">
+    <table class="table table-sm table-hover align-middle">
     <% matches.forEach((m) => { %>
-        <div class="col">
-        <div class="card">
-            <div class="card-header">
-                <img src="/teams/<%= m['awayTeam'] %>.png" width=40 height=40 />
-                <img src="/teams/<%= m['homeTeam'] %>.png" width=40 height=40 />
-            </div>
-
-            <div class="card-body">
-            <div class="form-check card-text">
+        <tr>
+            <td><label class="form-check-label" for="<%= m['awayTeam'] %>"><%= m['strAwayTeam'] %></label></td>
+            <td>
+                <label class="form-check-label" for="<%= m['awayTeam'] %>">
+                    <img src="/teams/<%= m['awayTeam'] %>.png" width=40 height=40 />
+                </label>
+            </td>
+            <td>
                 <input
                     class="form-check-input"
                     type="radio"
                     name="<%= m['idEvent'] %>"
-                    id="<%= m['awayTeam'] %>"
-                />
-                <label class="form-check-label" for="<%= m['awayTeam'] %>">
-                    <%= m['strAwayTeam'] %>
-                </label>
-            </div>
-            <div class="form-check card-text">
+                    id="<%= m['awayTeam'] %>" />
+            </td>
+            <td>VS.</td>
+            <td>
                 <input
                     class="form-check-input"
                     type="radio"
                     name="<%= m['idEvent'] %>"
                     id="<%= m['homeTeam'] %>" />
+            </td>
+            <td>
                 <label class="form-check-label" for="<%= m['homeTeam'] %>">
-                    <%= m['strHomeTeam'] %>
+                    <img src="/teams/<%= m['homeTeam'] %>.png" width=40 height=40 />
                 </label>
-            </div>
-            </div>
-        </div>
-        </div>
+            </td>
+            <td><label class="form-check-label" for="<%= m['homeTeam'] %>"><%= m['strHomeTeam'] %></label></td>
+        </tr>
     <% }); %>
+    </table>
     </div>
     </form>
-    </div>
     </div>
 
 </body>
