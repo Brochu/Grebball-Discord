@@ -10,9 +10,14 @@ app.set('view engine', 'html');
 app.use(express.static(__dirname + '\\node_modules\\bootstrap\\dist'));
 app.use(express.static('public'));
 
+// Setup needed to handle POST requests
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
 app.get('/:season/:week/:token', async (req, res) => {
-    const season = req.params['season']
-    const week = req.params['week']
+    const season = req.params['season'];
+    const week = req.params['week'];
+    const token = req.params['token'];
     const url = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4391&r=${week}&s=${season}`;
 
     const result = await fetch(url);
@@ -27,7 +32,12 @@ app.get('/:season/:week/:token', async (req, res) => {
         });
     }
 
-    res.render('picks.html', { season, week, matches });
+    res.render('picks.html', { season, week, token, matches });
+});
+
+app.post('/submit', (req, res) => {
+    console.log(req.body);
+    res.send('OK');
 });
 
 app.listen(port, () => {
