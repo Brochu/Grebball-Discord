@@ -17,11 +17,15 @@ app.get('/:season/:week/:token', async (req, res) => {
 
     const result = await fetch(url);
     const json = await result.json();
-    const matches = json['events'].map((m) => {
-        m['awayTeam'] = GetTeamShortName(m['strAwayTeam']);
-        m['homeTeam'] = GetTeamShortName(m['strHomeTeam']);
-        return m;
-    });
+
+    let matches = [];
+    if (json['events']) {
+        matches = json['events'].map((m) => {
+            m['awayTeam'] = GetTeamShortName(m['strAwayTeam']);
+            m['homeTeam'] = GetTeamShortName(m['strHomeTeam']);
+            return m;
+        });
+    }
 
     res.render('picks.html', { season, week, matches });
 });
@@ -49,6 +53,7 @@ const lNameMap = {
     'Jacksonville Jaguars' : 'JAX',
     'Kansas City Chiefs'   : 'KC',
     'Los Angeles Rams'     : 'LA',
+    'St. Louis Rams'       : 'LA',
     'Los Angeles Chargers' : 'LAC',
     'Las Vegas Raiders'    : 'LV',
     'Oakland Raiders'      : 'LV',
