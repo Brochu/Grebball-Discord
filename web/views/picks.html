@@ -11,18 +11,22 @@
 </head>
 
 <body>
-    <div class="content">
+<div class="content">
     <h1>Choix pour saison: <%= season %>, semaine: <%= week %></h1>
 
-    <form>
+    <form action="/submit" method="post">
+    <input type="hidden" name="token" value="<%= token %>" />
+
     <div class="container-sm">
     <table class="table table-sm table-hover align-middle">
     <% matches.forEach((m) => { %>
         <tr>
-            <td><label class="form-check-label" for="<%= m['awayTeam'] %>"><%= m['strAwayTeam'] %></label></td>
+            <td style="text-align: right">
+                <label class="form-check-label" for="<%= m['awayTeam'] %>"><%= m['strAwayTeam'] %></label>
+            </td>
             <td>
                 <label class="form-check-label" for="<%= m['awayTeam'] %>">
-                    <img src="/teams/<%= m['awayTeam'] %>.png" width=40 height=40 />
+                    <img src="/teams/<%= m['awayTeam'] %>.png" width=35 height=35 />
                 </label>
             </td>
             <td>
@@ -30,7 +34,8 @@
                     class="form-check-input"
                     type="radio"
                     name="<%= m['idEvent'] %>"
-                    id="<%= m['awayTeam'] %>" />
+                    id="<%= m['awayTeam'] %>"
+                    value="<%= m['awayTeam'] %>" />
             </td>
             <td>VS.</td>
             <td>
@@ -38,21 +43,24 @@
                     class="form-check-input"
                     type="radio"
                     name="<%= m['idEvent'] %>"
-                    id="<%= m['homeTeam'] %>" />
+                    id="<%= m['homeTeam'] %>"
+                    value="<%= m['homeTeam'] %>" />
             </td>
             <td>
                 <label class="form-check-label" for="<%= m['homeTeam'] %>">
-                    <img src="/teams/<%= m['homeTeam'] %>.png" width=40 height=40 />
+                    <img src="/teams/<%= m['homeTeam'] %>.png" width=35 height=35 />
                 </label>
             </td>
             <td><label class="form-check-label" for="<%= m['homeTeam'] %>"><%= m['strHomeTeam'] %></label></td>
         </tr>
     <% }); %>
     </table>
-    </div>
-    </form>
+
+    <button type="submit" class="btn btn-primary">Submit</button>
     </div>
 
+    </form>
+</div>
 </body>
 
 </html>
