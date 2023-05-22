@@ -14,10 +14,10 @@ app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-app.get('/:season/:week/:token/:user/:id-:hash', async (req, res) => {
+app.get('/:season/:week/:pickid/:user/:id-:hash', async (req, res) => {
     const season = req.params['season'];
     const week = req.params['week'];
-    const token = req.params['token'];
+    const pickid = req.params['pickid'];
     const user = req.params['user'];
     const avatar = `${req.params['id']}/${req.params['hash']}`;
 
@@ -26,24 +26,36 @@ app.get('/:season/:week/:token/:user/:id-:hash', async (req, res) => {
     const json = await result.json();
 
     let matches = [];
+    let matchids = [];
     if (json['events']) {
         matches = json['events'].map((m) => {
             m['awayTeam'] = GetTeamShortName(m['strAwayTeam']);
             m['homeTeam'] = GetTeamShortName(m['strHomeTeam']);
+
+            matchids.push(m['idEvent']);
             return m;
         });
     }
 
-    res.render('picks.html', { season, week, token, user, avatar, matches });
+    res.render('picks.html', { season, week, pickid, user, avatar, matches, matchids });
 });
 
 app.post('/submit', (req, res) => {
-    console.log(req.body);
+    const pickid = req.body['pickid'];
+    const matchids = req.body['matchids'];
+
+    console.log('Submitting picks at id: ', pickid);
+    var picks = [];
+    matchids.split(',').forEach((i) => {
+        console.log('Match id: ', i);
+        picks.push(req.body[i]);
+    });
+    console.log('Submitting picks : ', picks);
+
     res.send('OK');
 });
 
 app.listen(port, () => {
-    console.log(`using -${__dirname + '\\node_modules\\bootstrap\\dist'}- for static files`);
     console.log(`Picks page application, listening on port ${port}`);
 });
 

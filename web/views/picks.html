@@ -34,7 +34,8 @@
     <span class="h2">Choix pour saison: <%= season %>, semaine: <%= week %></span>
 
     <form action="/submit" method="post">
-    <input type="hidden" name="token" value="<%= token %>" />
+    <input type="hidden" name="pickid" value="<%= pickid %>" />
+    <input type="hidden" name="matchids" value="<%= matchids %>" />
 
     <table class="table table-sm table-hover align-middle">
     <% matches.forEach((m) => { %>
