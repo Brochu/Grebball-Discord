@@ -76,7 +76,8 @@ app.post('/submit', (req, res) => {
     matchids.split(',').forEach((i) => {
         picks[i] = req.body[i];
     });
-    console.log('Submitting picks : ', picks);
+    console.log('Submitting picks : ', JSON.stringify(picks));
+    //TODO: Update picks entry with given pickid, with the correct pickstring
 
     res.render('success.html');
 });
