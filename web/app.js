@@ -14,12 +14,14 @@ app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-app.get('/:season/:week/:token', async (req, res) => {
+app.get('/:season/:week/:token/:user/:id-:hash', async (req, res) => {
     const season = req.params['season'];
     const week = req.params['week'];
     const token = req.params['token'];
-    const url = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4391&r=${week}&s=${season}`;
+    const user = req.params['user'];
+    const avatar = `${req.params['id']}/${req.params['hash']}`;
 
+    const url = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4391&r=${week}&s=${season}`;
     const result = await fetch(url);
     const json = await result.json();
 
@@ -32,7 +34,7 @@ app.get('/:season/:week/:token', async (req, res) => {
         });
     }
 
-    res.render('picks.html', { season, week, token, matches });
+    res.render('picks.html', { season, week, token, user, avatar, matches });
 });
 
 app.post('/submit', (req, res) => {
