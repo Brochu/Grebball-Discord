@@ -19,16 +19,16 @@ app.get('/:discordid/:pickid', async (req, res) => {
     const discordid = req.params['discordid'];
     const pickid = req.params['pickid'];
 
-    const sql = `
-        SELECT u.avatar, po.name, pi.season, pi.week
-        FROM users AS u
-        JOIN poolers as po
-        ON u.id = po.userid
-        JOIN picks as pi
-        ON po.id = pi.poolerid
-        WHERE u.discordid = ? AND pi.id = ?
-    `;
     LoadDB((db) => {
+        const sql = `
+            SELECT u.avatar, po.name, pi.season, pi.week
+            FROM users AS u
+            JOIN poolers as po
+            ON u.id = po.userid
+            JOIN picks as pi
+            ON po.id = pi.poolerid
+            WHERE u.discordid = ? AND pi.id = ?
+        `;
         db.get(sql, discordid, pickid, async (err, row) => {
             if (err || !row) {
                 if (err) {
@@ -69,16 +69,27 @@ app.post('/submit', (req, res) => {
     const pickid = req.body['pickid'];
     const matchids = req.body['matchids'];
 
-    console.log('Submitting picks at id: ', pickid);
     var picks = {};
     matchids.split(',').forEach((i) => {
         picks[i] = req.body[i];
     });
-    console.log('Submitting picks : ', JSON.stringify(picks));
 
-    //TODO: Database access
-
-    res.render('success.html');
+    LoadDB((db) => {
+        const sql = `
+            UPDATE picks
+            SET pickstring = ?
+            WHERE id = ?
+        `;
+        db.run(sql, JSON.stringify(picks), pickid, (err) => {
+            if (err) {
+                console.log(err);
+                res.render('error.html');
+            }
+            else {
+                res.render('success.html');
+            }
+        });
+    });
 });
 
 const port = 8080;
