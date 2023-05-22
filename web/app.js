@@ -37,7 +37,7 @@ app.get('/:discordid/:pickid', async (req, res) => {
             if (err) {
                 console.log('Could not query DB for users, err: ', err.message);
             }
-            res.send('Invalid request');
+            res.render('error.html');
             return;
         }
         else {
@@ -78,7 +78,7 @@ app.post('/submit', (req, res) => {
     });
     console.log('Submitting picks : ', picks);
 
-    res.send('OK');
+    res.render('success.html');
 });
 
 const port = 8080;
