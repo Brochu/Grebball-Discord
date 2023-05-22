@@ -1,5 +1,3 @@
-const port = 8080;
-
 const express = require('express');
 const app = express();
 // Setup rendering engine
@@ -14,12 +12,32 @@ app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-app.get('/:season/:week/:pickid/:user/:id-:hash', async (req, res) => {
+const db = require('./database');
+
+app.get('/:season/:week/:pickid/:userid', async (req, res) => {
+    // Get params from querystring
     const season = req.params['season'];
     const week = req.params['week'];
     const pickid = req.params['pickid'];
-    const user = req.params['user'];
-    const avatar = `${req.params['id']}/${req.params['hash']}`;
+
+    const sql = `
+        SELECT u.avatar, p.name
+        FROM users AS u
+        JOIN poolers AS p
+        ON p.userid = u.id
+        WHERE u.id = ?
+    `;
+    let username = '';
+    let avatar = '';
+    db.get(sql, req.params['userid'], (err, row) => {
+        if (err) {
+            console.log('Could not query DB for users, err: ', err.message);
+        }
+        else {
+            username = row['name']
+            avatar = row['avatar']
+        }
+    });
 
     const url = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4391&r=${week}&s=${season}`;
     const result = await fetch(url);
@@ -37,7 +55,7 @@ app.get('/:season/:week/:pickid/:user/:id-:hash', async (req, res) => {
         });
     }
 
-    res.render('picks.html', { season, week, pickid, user, avatar, matches, matchids });
+    res.render('picks.html', { season, week, pickid, username, avatar, matches, matchids });
 });
 
 app.post('/submit', (req, res) => {
@@ -54,6 +72,8 @@ app.post('/submit', (req, res) => {
 
     res.send('OK');
 });
+
+const port = 8080;
 
 app.listen(port, () => {
     console.log(`Picks page application, listening on port ${port}`);
