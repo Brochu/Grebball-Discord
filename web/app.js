@@ -14,48 +14,57 @@ app.use(express.urlencoded({ extended: false }));
 
 const db = require('./database');
 
-app.get('/:season/:week/:pickid/:userid', async (req, res) => {
+app.get('/:discordid/:pickid', async (req, res) => {
     // Get params from querystring
-    const season = req.params['season'];
-    const week = req.params['week'];
+    const discordid = req.params['discordid'];
     const pickid = req.params['pickid'];
 
     const sql = `
-        SELECT u.avatar, p.name
+        SELECT u.avatar, po.name, pi.season, pi.week
         FROM users AS u
-        JOIN poolers AS p
-        ON p.userid = u.id
-        WHERE u.id = ?
+        JOIN poolers as po
+        ON u.id = po.userid
+        JOIN picks as pi
+        ON po.id = pi.poolerid
+        WHERE u.discordid = ? AND pi.id = ?
     `;
-    let username = '';
     let avatar = '';
-    db.get(sql, req.params['userid'], (err, row) => {
-        if (err) {
-            console.log('Could not query DB for users, err: ', err.message);
+    let username = '';
+    let season = '';
+    let week = '';
+    db.get(sql, discordid, pickid, async (err, row) => {
+        if (err || !row) {
+            if (err) {
+                console.log('Could not query DB for users, err: ', err.message);
+            }
+            res.send('Invalid request');
+            return;
         }
         else {
-            username = row['name']
-            avatar = row['avatar']
+            avatar = row['avatar'];
+            username = row['name'];
+            season = row['season'];
+            week = row['week'];
+
+            const url = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4391&r=${week}&s=${season}`;
+            const result = await fetch(url);
+            const json = await result.json();
+
+            let matches = [];
+            let matchids = [];
+            if (json['events']) {
+                matches = json['events'].map((m) => {
+                    m['awayTeam'] = GetTeamShortName(m['strAwayTeam']);
+                    m['homeTeam'] = GetTeamShortName(m['strHomeTeam']);
+
+                    matchids.push(m['idEvent']);
+                    return m;
+                });
+            }
+
+            res.render('picks.html', { season, week, pickid, username, avatar, matches, matchids });
         }
     });
-
-    const url = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4391&r=${week}&s=${season}`;
-    const result = await fetch(url);
-    const json = await result.json();
-
-    let matches = [];
-    let matchids = [];
-    if (json['events']) {
-        matches = json['events'].map((m) => {
-            m['awayTeam'] = GetTeamShortName(m['strAwayTeam']);
-            m['homeTeam'] = GetTeamShortName(m['strHomeTeam']);
-
-            matchids.push(m['idEvent']);
-            return m;
-        });
-    }
-
-    res.render('picks.html', { season, week, pickid, username, avatar, matches, matchids });
 });
 
 app.post('/submit', (req, res) => {
@@ -63,10 +72,9 @@ app.post('/submit', (req, res) => {
     const matchids = req.body['matchids'];
 
     console.log('Submitting picks at id: ', pickid);
-    var picks = [];
+    var picks = {};
     matchids.split(',').forEach((i) => {
-        console.log('Match id: ', i);
-        picks.push(req.body[i]);
+        picks[i] = req.body[i];
     });
     console.log('Submitting picks : ', picks);
 
