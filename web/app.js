@@ -21,7 +21,7 @@ app.get('/:discordid/:pickid', async (req, res) => {
 
     LoadDB((db) => {
         const sql = `
-            SELECT u.avatar, po.name, pi.season, pi.week
+            SELECT u.avatar, po.name, po.favteam, pi.season, pi.week
             FROM users AS u
             JOIN poolers as po
             ON u.id = po.userid
@@ -40,6 +40,7 @@ app.get('/:discordid/:pickid', async (req, res) => {
             else {
                 const avatar = row['avatar'];
                 const username = row['name'];
+                const favteam = row['favteam']
                 const season = row['season'];
                 const week = row['week'];
 
@@ -59,7 +60,7 @@ app.get('/:discordid/:pickid', async (req, res) => {
                     });
                 }
 
-                res.render('picks.html', { season, week, pickid, username, avatar, matches, matchids });
+                res.render('picks.html', { season, week, pickid, username, favteam, avatar, matches, matchids });
             }
         });
     });
