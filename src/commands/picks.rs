@@ -7,7 +7,15 @@ use serenity::prelude::*;
 use library::database::DB;
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
-    let week = command.data.options.get(0).unwrap().value.as_ref().unwrap();
+    let week = command.data.options.get(0)
+        .expect("[picks] No week arg given with the command").value.as_ref()
+        .unwrap().as_u64()
+        .expect("[picks] Could not parse week arg to u64");
+
+    match db.prime_picks(&week).await {
+        Ok(_) => println!("[picks] Successfully primed picks for week {}", week),
+        Err(_) => println!("[picks] Could not prime picks for week {}", week),
+    }
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res

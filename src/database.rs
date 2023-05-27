@@ -17,7 +17,7 @@ impl DB {
         DB { pool: SqlitePool::connect(db_url.as_str()).await.unwrap() }
     }
 
-    pub async fn fetch_results(&self, week: u64) -> Result<()> {
+    pub async fn fetch_results(&self, week: &u64) -> Result<()> {
         println!("[DB] Getting results for week {week}");
         //TODO: Finish implementation
 
@@ -30,6 +30,12 @@ impl DB {
             println!("{}", email);
         }
 
+        Ok(())
+    }
+
+    pub async fn prime_picks(&self, week: &u64) -> Result<()> {
+        println!("[DB] Prime picks for week {week}");
+        //TODO: Finish implementation
         Ok(())
     }
 }
