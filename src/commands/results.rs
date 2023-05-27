@@ -9,7 +9,7 @@ use library::database::DB;
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
     let week = command.data.options.first()
         .expect("[results] No argument provided").value.as_ref()
-        .unwrap().as_u64()
+        .unwrap().as_str().unwrap().parse::<u64>()
         .expect("[results] Could not parse week arg to u64");
 
     //TODO: Complete implementation
