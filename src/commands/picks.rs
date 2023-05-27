@@ -11,28 +11,29 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[picks] No week arg given with the command").value.as_ref()
         .unwrap().as_str().unwrap().parse::<i64>()
         .expect("[picks] Could not parse week arg to u64");
+    let week_name = command.data.options.first().unwrap().name.as_str();
 
     let discordid = command.user.id.as_u64()
         .to_string().parse::<i64>()
         .unwrap();
 
     match db.prime_picks(&discordid, &week).await {
-        Ok(_) => println!("[picks] Successfully primed picks for week {}", week),
+        Ok(row_id) => {
+            let url = format!("http://localhost:8080/{}/{}", discordid, row_id);
+
+            if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+                res
+                    .kind(InteractionResponseType::ChannelMessageWithSource)
+                    .interaction_response_data(|m| m
+                        .ephemeral(true)
+                        .content(format!("Ready for {}'s pick to be completed here: {}", week_name, url))
+                    )
+            })
+            .await {
+                println!("![picks] Cannot respond to slash command : {:?}", reason);
+            }
+        },
         Err(_) => println!("[picks] Could not prime picks for week {}", week),
-    }
-
-    //TODO: Generate URL to send back to the user
-
-    if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
-        res
-            .kind(InteractionResponseType::ChannelMessageWithSource)
-            .interaction_response_data(|m| m
-                .ephemeral(true)
-                .content(format!("Generate link for picks of week: {}", week))
-            )
-    })
-    .await {
-        println!("![picks] Cannot respond to slash command : {:?}", reason);
     }
 }
 

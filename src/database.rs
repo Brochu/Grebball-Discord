@@ -62,8 +62,6 @@ impl DB {
             .await?;
 
         let id: i64 = new_row.get(0);
-        println!("[DB] Id of new row added: {id}");
-
         Ok(id)
     }
 }
