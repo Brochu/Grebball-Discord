@@ -7,22 +7,28 @@ use serenity::prelude::*;
 use library::database::DB;
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
-    let week = command.data.options.get(0)
+    let week = command.data.options.first()
         .expect("[picks] No week arg given with the command").value.as_ref()
-        .unwrap().as_u64()
+        .unwrap().as_str().unwrap().parse::<i64>()
         .expect("[picks] Could not parse week arg to u64");
 
-    match db.prime_picks(&week).await {
+    let discordid = command.user.id.as_u64()
+        .to_string().parse::<i64>()
+        .unwrap();
+
+    match db.prime_picks(&discordid, &week).await {
         Ok(_) => println!("[picks] Successfully primed picks for week {}", week),
         Err(_) => println!("[picks] Could not prime picks for week {}", week),
     }
+
+    //TODO: Generate URL to send back to the user
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res
             .kind(InteractionResponseType::ChannelMessageWithSource)
             .interaction_response_data(|m| m
+                .ephemeral(true)
                 .content(format!("Generate link for picks of week: {}", week))
-                //TODO: Look for more options here
             )
     })
     .await {

@@ -33,9 +33,37 @@ impl DB {
         Ok(())
     }
 
-    pub async fn prime_picks(&self, week: &u64) -> Result<()> {
-        println!("[DB] Prime picks for week {week}");
-        //TODO: Finish implementation
-        Ok(())
+    pub async fn prime_picks(&self, discordid: &i64, week: &i64) -> Result<i64> {
+        //TODO: Need to check if picks entry exists already first
+        let season = env::var("CONF_SEASON")
+            .expect("[DB] Cannot find 'CONF_SEASON' in env").parse::<u16>()
+            .expect("[DB] Could not parse 'CONF_SEASON' to u16");
+
+        let poolerid: i64 = sqlx::query("
+                SELECT p.id FROM users AS u
+                JOIN poolers AS p
+                ON u.id = p.userid
+                WHERE u.discordid = ?
+                ")
+            .bind(discordid)
+            .fetch_one(&self.pool)
+            .await?
+            .get("id");
+
+        let new_row = sqlx::query("
+                INSERT INTO picks (season, week, poolerid)
+                VALUES (?, ?, ?);
+                SELECT last_insert_rowid();
+                ")
+            .bind(season)
+            .bind(week)
+            .bind(poolerid)
+            .fetch_one(&self.pool)
+            .await?;
+
+        let id: i64 = new_row.get(0);
+        println!("[DB] Id of new row added: {id}");
+
+        Ok(id)
     }
 }
