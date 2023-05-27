@@ -7,13 +7,13 @@ use serenity::prelude::*;
 use library::database::DB;
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
-    let week = command.data.options.first().expect("[results] No argument provided")
-        .value.as_ref().unwrap()
-        .as_str().expect("[results] Could not fetch week arg")
-        .parse::<u64>().expect("[results] Could not parse week arg to int");
+    let week = command.data.options.first()
+        .expect("[results] No argument provided").value.as_ref()
+        .unwrap().as_u64()
+        .expect("[results] Could not parse week arg to u64");
 
     //TODO: Complete implementation
-    match db.fetch_results(week).await {
+    match db.fetch_results(&week).await {
         Ok(res) => println!("Query success: {:?}", res),
         Err(e) => println!("Query error: {:?}", e),
     };
