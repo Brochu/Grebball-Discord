@@ -69,6 +69,8 @@ app.get('/:discordid/:pickid', async (req, res) => {
 app.post('/submit', (req, res) => {
     const pickid = req.body['pickid'];
     const matchids = req.body['matchids'];
+    const favteam = req.body['favteam'];
+    console.log(favteam);
 
     var picks = {};
     matchids.split(',').forEach((i) => {

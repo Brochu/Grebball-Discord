@@ -35,6 +35,7 @@
     <form action="/submit" method="post">
     <input type="hidden" name="pickid" value="<%= pickid %>" />
     <input type="hidden" name="matchids" value="<%= matchids %>" />
+    <input type="hidden" name="favteam" value="<%= favteam %>" />
 
     <table class="table table-sm table-hover align-middle">
     <% matches.forEach((m) => { %>
@@ -51,21 +52,37 @@
                 <input class="form-check-input" type="radio"
                     name="<%= m['idEvent'] %>"
                     id="<%= m['awayTeam'] %>"
-                    value="<%= m['awayTeam'] %>" />
+                    value="<%= m['awayTeam'] %>"
+                    <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
+                        disabled
+                        <% if (favteam === m['awayTeam']) { %>
+                            checked
+                        <% } %>
+                    <% } %>
+                    />
             </td>
             <td>VS.</td>
             <td>
                 <input class="form-check-input" type="radio"
                     name="<%= m['idEvent'] %>"
                     id="<%= m['homeTeam'] %>"
-                    value="<%= m['homeTeam'] %>" />
+                    value="<%= m['homeTeam'] %>"
+                    <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
+                        disabled
+                        <% if (favteam === m['homeTeam']) { %>
+                            checked
+                        <% } %>
+                    <% } %>
+                    />
             </td>
             <td>
                 <label class="form-check-label" for="<%= m['homeTeam'] %>">
                     <img src="/teams/<%= m['homeTeam'] %>.png" width=35 height=35 />
                 </label>
             </td>
-            <td><label class="form-check-label" for="<%= m['homeTeam'] %>"><%= m['strHomeTeam'] %></label></td>
+            <td>
+                <label class="form-check-label" for="<%= m['homeTeam'] %>"><%= m['strHomeTeam'] %></label>
+            </td>
         </tr>
     <% }); %>
     </table>
