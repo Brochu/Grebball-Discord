@@ -9,11 +9,15 @@ use library::database::DB;
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
     let week = command.data.options.first()
         .expect("[results] No argument provided").value.as_ref()
-        .unwrap().as_str().unwrap().parse::<u64>()
+        .unwrap().as_str().unwrap().parse::<i64>()
         .expect("[results] Could not parse week arg to u64");
 
+    let discordid = command.user.id.as_u64()
+        .to_string().parse::<i64>()
+        .unwrap();
+
     //TODO: Complete implementation
-    match db.fetch_results(&week).await {
+    match db.fetch_results(&discordid, &week).await {
         Ok(res) => println!("Query success: {:?}", res),
         Err(e) => println!("Query error: {:?}", e),
     };

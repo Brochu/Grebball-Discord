@@ -17,8 +17,8 @@ impl DB {
         DB { pool: SqlitePool::connect(db_url.as_str()).await.unwrap() }
     }
 
-    pub async fn fetch_results(&self, week: &u64) -> Result<()> {
-        println!("[DB] Getting results for week {week}");
+    pub async fn fetch_results(&self, discordid: &i64, week: &i64) -> Result<()> {
+        println!("[DB] Getting results for discordid: {discordid}, week {week}");
         //TODO: Finish implementation
 
         let users = sqlx::query("SELECT id, email, discordid FROM Users")
