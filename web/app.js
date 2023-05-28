@@ -71,6 +71,7 @@ app.post('/submit', (req, res) => {
     const matchids = req.body['matchids'];
     const favteam = req.body['favteam'];
     console.log(favteam);
+    //TODO: Add the favorite team pick in the picks dict
 
     var picks = {};
     matchids.split(',').forEach((i) => {
