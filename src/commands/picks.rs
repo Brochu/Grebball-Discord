@@ -33,7 +33,21 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 println!("![picks] Cannot respond to slash command : {:?}", reason);
             }
         },
-        Err(_) => println!("[picks] Could not prime picks for week {}", week),
+        Err(_) => {
+            println!("[picks] Could not prime picks for week {}", week);
+
+            if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+                res
+                    .kind(InteractionResponseType::ChannelMessageWithSource)
+                    .interaction_response_data(|m| m
+                        .ephemeral(true)
+                        .content(format!("Picks for week {} are already found in the database", week_name))
+                    )
+            })
+            .await {
+                println!("![picks] Cannot respond to slash command : {:?}", reason);
+            }
+        }
     }
 }
 
