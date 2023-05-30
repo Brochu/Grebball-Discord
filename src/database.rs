@@ -1,6 +1,6 @@
 use std::env;
 
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 
 use sqlx::{ Pool, Sqlite, Row };
 use sqlx::sqlite::SqlitePool;
@@ -34,7 +34,6 @@ impl DB {
     }
 
     pub async fn prime_picks(&self, discordid: &i64, week: &i64) -> Result<i64> {
-        //TODO: Need to check if picks entry exists already first
         let season = env::var("CONF_SEASON")
             .expect("[DB] Cannot find 'CONF_SEASON' in env").parse::<u16>()
             .expect("[DB] Could not parse 'CONF_SEASON' to u16");
@@ -50,18 +49,40 @@ impl DB {
             .await?
             .get("id");
 
-        let new_row = sqlx::query("
-                INSERT INTO picks (season, week, poolerid)
-                VALUES (?, ?, ?);
-                SELECT last_insert_rowid();
-                ")
-            .bind(season)
-            .bind(week)
-            .bind(poolerid)
-            .fetch_one(&self.pool)
-            .await?;
+        match sqlx::query("
+            SELECT id, pickstring FROM picks
+            WHERE poolerid = ? AND season = ? AND week = ?
+            ")
+        .bind(poolerid)
+        .bind(season)
+        .bind(week)
+        .fetch_one(&self.pool)
+        .await {
+            Ok(row) => {
+                if let Some(_) = row.get::<Option<String>, &str>("pickstring") {
+                    return Err(anyhow!("[DB] Picks for given pooler, season and week already entered!"));
+                }
+                else {
+                    // Picks are already primed and not filled
+                    let id: i64 = row.get("id");
+                    return Ok(id);
+                }
+            },
+            Err(_) => {
+                let new_row = sqlx::query("
+                        INSERT INTO picks (season, week, poolerid)
+                        VALUES (?, ?, ?);
+                        SELECT last_insert_rowid();
+                        ")
+                    .bind(season)
+                    .bind(week)
+                    .bind(poolerid)
+                    .fetch_one(&self.pool)
+                    .await?;
 
-        let id: i64 = new_row.get(0);
-        Ok(id)
+                let id: i64 = new_row.get(0);
+                Ok(id)
+            }
+        }
     }
 }
