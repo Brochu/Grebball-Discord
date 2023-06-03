@@ -18,9 +18,24 @@ impl DB {
     }
 
     pub async fn fetch_results(&self, discordid: &i64, week: &i64) -> Result<()> {
-        println!("[DB] Getting results for discordid: {discordid}, week {week}");
-        //TODO: Finish implementation
+        let season = env::var("CONF_SEASON")
+            .expect("[DB] Cannot find 'CONF_SEASON' in env").parse::<u16>()
+            .expect("[DB] Could not parse 'CONF_SEASON' to u16");
 
+        let poolid: i64 = sqlx::query("
+                SELECT p.poolid FROM users AS u
+                JOIN poolers AS p
+                ON u.id = p.userid
+                WHERE u.discordid = ?
+                ")
+            .bind(discordid)
+            .fetch_one(&self.pool)
+            .await?
+            .get("id");
+
+        println!("[DB] fetch_results: season: {}, week: {}, pool id: {}", season, week, poolid);
+
+        //TODO: Finish implementation
         let users = sqlx::query("
                 SELECT id, season, week, pickstring, poolerid, scorecache FROM picks
                 ")
