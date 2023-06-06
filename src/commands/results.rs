@@ -21,8 +21,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             println!("Query success: {:?}", res);
             //TODO: Complete message formatting
             let message = res.iter()
-                .fold(String::new(), |mut m, r| {
-                    m.push_str(format!("{}\n", r).as_str());
+                .fold(String::new(), |mut m, (name, result)| {
+                    m.push_str(format!("{name}: {result}\n").as_str());
                     m
                 });
 
