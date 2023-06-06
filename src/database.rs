@@ -9,6 +9,8 @@ pub struct DB {
     pool: Pool<Sqlite>,
 }
 
+//TODO: Adding a struct to hold results
+
 impl DB {
     pub async fn new() -> DB {
         let db_url = env::var("DATABASE_URL")
@@ -17,11 +19,7 @@ impl DB {
         DB { pool: SqlitePool::connect(db_url.as_str()).await.unwrap() }
     }
 
-    pub async fn fetch_results(&self, discordid: &i64, week: &i64) -> Result<()> {
-        let season = env::var("CONF_SEASON")
-            .expect("[DB] Cannot find 'CONF_SEASON' in env").parse::<u16>()
-            .expect("[DB] Could not parse 'CONF_SEASON' to u16");
-
+    pub async fn fetch_results(&self, discordid: &i64, week: &i64) -> Result<Vec<(String, u32)>> {
         let poolid: i64 = sqlx::query("
                 SELECT p.poolid FROM users AS u
                 JOIN poolers AS p
@@ -31,29 +29,37 @@ impl DB {
             .bind(discordid)
             .fetch_one(&self.pool)
             .await?
-            .get("id");
+            .get("poolid");
 
-        println!("[DB] fetch_results: season: {}, week: {}, pool id: {}", season, week, poolid);
+        let season = env::var("CONF_SEASON")
+            .expect("[DB] Cannot find 'CONF_SEASON' in env").parse::<u16>()
+            .expect("[DB] Could not parse 'CONF_SEASON' to u16");
 
-        //TODO: Finish implementation
-        let users = sqlx::query("
-                SELECT id, season, week, pickstring, poolerid, scorecache FROM picks
+        let picks = sqlx::query("
+                SELECT name, pickstring, scorecache FROM picks AS pk
+                JOIN poolers AS pl ON pl.id = pk.poolerid
+                WHERE season = ? AND week = ? AND pl.poolid = ?
                 ")
+            .bind(season)
+            .bind(week)
+            .bind(poolid)
             .fetch_all(&self.pool)
             .await?;
 
-        for row in users {
-            let id: i64 = row.get("id");
-            let season: i64 = row.get("season");
-            let week: i64 = row.get("week");
-            let picks: Option<String> = row.get("pickstring");
-            let poolerid: i64 = row.get("poolerid");
-            let score: Option<i64> = row.get("scorecache");
+        let results: Vec<(String, u32)> = picks.iter()
+            .map(|row| {
+                let name: String = row.get("name");
+                if let Some(cached) = row.get::<Option<u32>, &str>("scorecache") {
+                    (name, cached)
+                }
+                else {
+                    //TODO: Implement calculating results if needed
+                    (name, 0)
+                }
+            })
+            .collect();
 
-            println!("|{}|{}|{}|{:?}|{}|{:?}|", id, season, week, picks, poolerid, score);
-        }
-
-        Ok(())
+        Ok(results)
     }
 
     pub async fn prime_picks(&self, discordid: &i64, week: &i64) -> Result<i64> {
