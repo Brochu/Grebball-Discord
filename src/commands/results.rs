@@ -16,22 +16,29 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .to_string().parse::<i64>()
         .unwrap();
 
-    //TODO: Complete implementation
     match db.fetch_results(&discordid, &week).await {
-        Ok(res) => println!("Query success: {:?}", res),
+        Ok(res) => {
+            println!("Query success: {:?}", res);
+            //TODO: Complete message formatting
+            let message = res.iter()
+                .fold(String::new(), |mut m, r| {
+                    m.push_str(format!("{}\n", r).as_str());
+                    m
+                });
+
+            if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+                res
+                    .kind(InteractionResponseType::ChannelMessageWithSource)
+                    .interaction_response_data(|m| m
+                        .content(format!("Results:\n{}", message))
+                    )
+            })
+            .await {
+                println!("![results] Cannot respond to slash command : {:?}", reason);
+            }
+        }
         Err(e) => println!("Query error: {:?}", e),
     };
-
-    if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
-        res
-            .kind(InteractionResponseType::ChannelMessageWithSource)
-            .interaction_response_data(|m| m
-                .content("Create a reply with the results for the given week here...")
-            )
-    })
-    .await {
-        println!("![results] Cannot respond to slash command : {:?}", reason);
-    }
 }
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
