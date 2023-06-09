@@ -29,7 +29,7 @@ impl DB {
         DB { pool: SqlitePool::connect(db_url.as_str()).await.unwrap() }
     }
 
-    pub async fn fetch_picks(&self, discordid: &i64, week: &i64) -> Result<Vec<WeekPicks>> {
+    pub async fn fetch_picks(&self, discordid: &i64, season: &u16, week: &i64) -> Result<Vec<WeekPicks>> {
         let poolid: i64 = sqlx::query("
                 SELECT p.poolid FROM users AS u
                 JOIN poolers AS p
@@ -40,10 +40,6 @@ impl DB {
             .fetch_one(&self.pool)
             .await?
             .get("poolid");
-
-        let season = env::var("CONF_SEASON")
-            .expect("[DB] Cannot find 'CONF_SEASON' in env").parse::<u16>()
-            .expect("[DB] Could not parse 'CONF_SEASON' to u16");
 
         let results: Vec<WeekPicks> = sqlx::query("
                 SELECT name, pickstring, scorecache FROM picks AS pk
