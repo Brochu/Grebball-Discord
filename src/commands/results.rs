@@ -18,6 +18,30 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
     match db.fetch_results(&discordid, &week).await {
         Ok(res) => {
+            //let results = get_week(&season, week).await
+            //    .expect("[DB] Could not get week data to calculate results")
+            //    .fold(Vec::<(String, u32)>::new(), |mut res, m| {
+            //        picks.iter()
+            //            .enumerate()
+            //            .for_each(|(i, row)| {
+            //                let name: String = row.get("name");
+            //                if let Some(cached) = row.get::<Option<u32>, &str>("scorecache") {
+            //                    res.push((name., cached));
+            //                }
+            //                else {
+            //                    // TODO: Calculate match results here
+            //                    println!("Match Id: {:?}", m.id_event);
+
+            //                    if let Some(entry) = res.get_mut(i) {
+            //                        entry.1 += 1;
+            //                    }
+            //                    else {
+            //                        res.push((name, 1));
+            //                    }
+            //                }
+            //            });
+            //        res
+            //    });
             println!("Query success: {:?}", res);
             //TODO: Complete message formatting
             let message = res.iter()
