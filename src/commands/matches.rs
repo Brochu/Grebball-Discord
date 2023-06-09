@@ -22,9 +22,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
             .expect("![Week] Could not find 'CONF_SEASON' env var")
             .parse::<u16>()
             .expect("![Week] Could not parse 'CONF_SEASON' to int");
-        let week = str.parse::<u64>()
+        let week = str.parse::<i64>()
             .expect("![Week] Could not parse week arg to u64");
-        let matches = get_week(season, week).await
+        let matches = get_week(&season, &week).await
             .expect("![Week] Could not fetch match data");
 
         let output = matches.fold(String::new(), |mut out, m| {

@@ -101,7 +101,7 @@ impl Display for Match {
     }
 }
 
-pub async fn get_week(season: u16, week: u64) -> Option<impl Iterator<Item=Match>> {
+pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Match>> {
     let league = env::var("CONF_LEAGUE")
         .expect("![Week] Could not find 'CONF_LEAGUE' env var")
         .parse::<u16>()
