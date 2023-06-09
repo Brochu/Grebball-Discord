@@ -1,9 +1,10 @@
 use std::env;
 
 use anyhow::{Result, anyhow};
-
 use sqlx::{ Pool, Sqlite, Row };
 use sqlx::sqlite::SqlitePool;
+
+use crate::football::{ Match, get_week };
 
 pub struct DB {
     pool: Pool<Sqlite>,
@@ -46,6 +47,13 @@ impl DB {
             .fetch_all(&self.pool)
             .await?;
 
+        let week = get_week(&season, week).await
+            .expect("[DB] Could not get week data to calculate results")
+            .collect::<Vec<Match>>();
+        week.iter().for_each(|m| {
+            println!("[DB] {} -> {} VS. {}", m.id_event, m.away_team, m.home_team);
+        });
+
         let results: Vec<(String, u32)> = picks.iter()
             .map(|row| {
                 let name: String = row.get("name");
@@ -54,6 +62,8 @@ impl DB {
                 }
                 else {
                     //TODO: Implement calculating results if needed
+                    let pickstr: String = row.get("pickstring");
+                    println!("[DB] Pooler: {}; pickstr: {}", name, pickstr);
                     (name, 0)
                 }
             })
