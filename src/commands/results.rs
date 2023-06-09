@@ -1,3 +1,5 @@
+use std::env;
+
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
@@ -5,8 +7,12 @@ use serenity::model::prelude::command::{CommandType, CommandOptionType};
 use serenity::prelude::*;
 
 use library::database::DB;
+use library::football::{ Match, get_week };
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
+    let season = env::var("CONF_SEASON")
+        .expect("[results] Cannot find 'CONF_SEASON' in env").parse::<u16>()
+        .expect("[results] Could not parse 'CONF_SEASON' to u16");
     let week = command.data.options.first()
         .expect("[results] No argument provided").value.as_ref()
         .unwrap().as_str().unwrap().parse::<i64>()
@@ -16,42 +22,28 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .to_string().parse::<i64>()
         .unwrap();
 
-    match db.fetch_picks(&discordid, &week).await {
+    match db.fetch_picks(&discordid, &season, &week).await {
         Ok(picks) => {
-            //let results = get_week(&season, week).await
-            //    .expect("[DB] Could not get week data to calculate results")
-            //    .fold(Vec::<(String, u32)>::new(), |mut res, m| {
-            //        picks.iter()
-            //            .enumerate()
-            //            .for_each(|(i, row)| {
-            //                let name: String = row.get("name");
-            //                if let Some(cached) = row.get::<Option<u32>, &str>("scorecache") {
-            //                    res.push((name., cached));
-            //                }
-            //                else {
-            //                    // TODO: Calculate match results here
-            //                    println!("Match Id: {:?}", m.id_event);
+            let matches: Vec<Match> = get_week(&season, &week).await
+                .expect("[results] Could not fetch week data")
+                .collect();
 
-            //                    if let Some(entry) = res.get_mut(i) {
-            //                        entry.1 += 1;
-            //                    }
-            //                    else {
-            //                        res.push((name, 1));
-            //                    }
-            //                }
-            //            });
-            //        res
-            //    });
-
-            println!("Query success:\n");
-            picks.iter().for_each(|p| {
-                println!("\t{}", p);
-            });
+            let results: Vec<(String, u32)> = picks.iter()
+                .map(|weekpick| {
+                    if let Some(cached) = weekpick.cached {
+                        (weekpick.name.to_owned(), cached)
+                    }
+                    else {
+                        // Make sure the week is corrected properly
+                        (weekpick.name.to_owned(), 0)
+                    }
+                })
+                .collect();
 
             //TODO: Complete message formatting
-            let message = picks.iter()
-                .fold(String::new(), |mut m, w| {
-                    m.push_str(format!("{}: 0\n", w.name).as_str());
+            let message = results.iter()
+                .fold(String::new(), |mut m, (name, score)| {
+                    m.push_str(format!("{name}: {score}\n").as_str());
                     m
                 });
 
