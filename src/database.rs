@@ -54,8 +54,12 @@ impl DB {
             .bind(week)
             .bind(poolid)
             .fetch_all(&self.pool).await?
-            .iter().map(|_row| {
-                WeekPicks { name: "".to_string(), picks: None, cached: None }
+            .iter().map(|row| {
+                let name: String = row.get("name");
+                let picks: Option<String> = row.get("pickstring");
+                let cached: Option<u32> = row.get("scorecache");
+
+                WeekPicks { name, picks, cached }
             })
             .collect();
         
