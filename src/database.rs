@@ -4,7 +4,7 @@ use anyhow::{Result, anyhow};
 use sqlx::{ Pool, Sqlite, Row };
 use sqlx::sqlite::SqlitePool;
 
-use crate::football::{ Match, get_week };
+use crate::football::get_week;
 
 pub struct DB {
     pool: Pool<Sqlite>,
@@ -47,27 +47,30 @@ impl DB {
             .fetch_all(&self.pool)
             .await?;
 
-        let week = get_week(&season, week).await
+        let results = get_week(&season, week).await
             .expect("[DB] Could not get week data to calculate results")
-            .collect::<Vec<Match>>();
-        week.iter().for_each(|m| {
-            println!("[DB] {} -> {} VS. {}", m.id_event, m.away_team, m.home_team);
-        });
+            .fold(Vec::<(String, u32)>::new(), |mut res, m| {
+                picks.iter()
+                    .enumerate()
+                    .for_each(|(i, row)| {
+                        let name: String = row.get("name");
+                        if let Some(cached) = row.get::<Option<u32>, &str>("scorecache") {
+                            res.push((name, cached));
+                        }
+                        else {
+                            // TODO: Calculate match results here
+                            println!("Match Id: {:?}", m.id_event);
 
-        let results: Vec<(String, u32)> = picks.iter()
-            .map(|row| {
-                let name: String = row.get("name");
-                if let Some(cached) = row.get::<Option<u32>, &str>("scorecache") {
-                    (name, cached)
-                }
-                else {
-                    //TODO: Implement calculating results if needed
-                    let pickstr: String = row.get("pickstring");
-                    println!("[DB] Pooler: {}; pickstr: {}", name, pickstr);
-                    (name, 0)
-                }
-            })
-            .collect();
+                            if let Some(entry) = res.get_mut(i) {
+                                entry.1 += 1;
+                            }
+                            else {
+                                res.push((name, 1));
+                            }
+                        }
+                    });
+                res
+            });
 
         Ok(results)
     }
