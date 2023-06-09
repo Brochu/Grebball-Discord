@@ -16,8 +16,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .to_string().parse::<i64>()
         .unwrap();
 
-    match db.fetch_results(&discordid, &week).await {
-        Ok(res) => {
+    match db.fetch_picks(&discordid, &week).await {
+        Ok(picks) => {
             //let results = get_week(&season, week).await
             //    .expect("[DB] Could not get week data to calculate results")
             //    .fold(Vec::<(String, u32)>::new(), |mut res, m| {
@@ -42,11 +42,16 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             //            });
             //        res
             //    });
-            println!("Query success: {:?}", res);
+
+            println!("Query success:\n");
+            picks.iter().for_each(|p| {
+                println!("\t{}", p);
+            });
+
             //TODO: Complete message formatting
-            let message = res.iter()
-                .fold(String::new(), |mut m, (name, result)| {
-                    m.push_str(format!("{name}: {result}\n").as_str());
+            let message = picks.iter()
+                .fold(String::new(), |mut m, w| {
+                    m.push_str(format!("{}: 0\n", w.name).as_str());
                     m
                 });
 

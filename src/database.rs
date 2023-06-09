@@ -10,9 +10,9 @@ pub struct DB {
 }
 
 pub struct WeekPicks {
-    name: String,
-    picks: Option<String>,
-    cached: Option<u32>,
+    pub name: String,
+    pub picks: Option<String>,
+    pub cached: Option<u32>,
 }
 
 impl Display for WeekPicks {
