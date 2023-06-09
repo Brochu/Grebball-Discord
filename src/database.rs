@@ -1,16 +1,25 @@
 use std::env;
+use std::fmt::Display;
 
 use anyhow::{Result, anyhow};
 use sqlx::{ Pool, Sqlite, Row };
 use sqlx::sqlite::SqlitePool;
 
-use crate::football::get_week;
-
 pub struct DB {
     pool: Pool<Sqlite>,
 }
 
-//TODO: Adding a struct to hold results
+pub struct WeekPicks {
+    name: String,
+    picks: Option<String>,
+    cached: Option<u32>,
+}
+
+impl Display for WeekPicks {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "[{}] ({:?}) -> {:?}", self.name, self.cached, self.picks)
+    }
+}
 
 impl DB {
     pub async fn new() -> DB {
@@ -20,7 +29,7 @@ impl DB {
         DB { pool: SqlitePool::connect(db_url.as_str()).await.unwrap() }
     }
 
-    pub async fn fetch_results(&self, discordid: &i64, week: &i64) -> Result<Vec<(String, u32)>> {
+    pub async fn fetch_results(&self, discordid: &i64, week: &i64) -> Result<Vec<WeekPicks>> {
         let poolid: i64 = sqlx::query("
                 SELECT p.poolid FROM users AS u
                 JOIN poolers AS p
@@ -36,7 +45,7 @@ impl DB {
             .expect("[DB] Cannot find 'CONF_SEASON' in env").parse::<u16>()
             .expect("[DB] Could not parse 'CONF_SEASON' to u16");
 
-        let picks = sqlx::query("
+        let results: Vec<WeekPicks> = sqlx::query("
                 SELECT name, pickstring, scorecache FROM picks AS pk
                 JOIN poolers AS pl ON pl.id = pk.poolerid
                 WHERE season = ? AND week = ? AND pl.poolid = ?
@@ -44,34 +53,12 @@ impl DB {
             .bind(season)
             .bind(week)
             .bind(poolid)
-            .fetch_all(&self.pool)
-            .await?;
-
-        let results = get_week(&season, week).await
-            .expect("[DB] Could not get week data to calculate results")
-            .fold(Vec::<(String, u32)>::new(), |mut res, m| {
-                picks.iter()
-                    .enumerate()
-                    .for_each(|(i, row)| {
-                        let name: String = row.get("name");
-                        if let Some(cached) = row.get::<Option<u32>, &str>("scorecache") {
-                            res.push((name, cached));
-                        }
-                        else {
-                            // TODO: Calculate match results here
-                            println!("Match Id: {:?}", m.id_event);
-
-                            if let Some(entry) = res.get_mut(i) {
-                                entry.1 += 1;
-                            }
-                            else {
-                                res.push((name, 1));
-                            }
-                        }
-                    });
-                res
-            });
-
+            .fetch_all(&self.pool).await?
+            .iter().map(|_row| {
+                WeekPicks { name: "".to_string(), picks: None, cached: None }
+            })
+            .collect();
+        
         Ok(results)
     }
 
