@@ -102,16 +102,16 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     };
 }
 
-fn calc_results(matches: &[Match], poolpicks: &[WeekPicks], pickstr: &str, pickid: i64) -> u32 {
-    println!("[results] Calculating for pick id {}: ", pickid);
+fn calc_results(_matches: &[Match], _poolpicks: &[WeekPicks], _pickstr: &str, _pickid: i64) -> u32 {
+    //println!("[results] Calculating for pick id {}: ", pickid);
 
-    println!("[results] Match data: ");
-    matches.iter().for_each(|m| println!("{}", m));
+    //println!("[results] Match data: ");
+    //matches.iter().for_each(|m| println!("{}", m));
 
-    println!("[results] Pool picks: ");
-    poolpicks.iter().for_each(|p| println!("{}", p));
+    //println!("[results] Pool picks: ");
+    //poolpicks.iter().for_each(|p| println!("{}", p));
 
-    println!("[results] Picks to correct: {pickstr}");
+    //println!("[results] Picks to correct: {pickstr}");
 
     0
 }
