@@ -27,15 +27,23 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             let matches: Vec<Match> = get_week(&season, &week).await
                 .expect("[results] Could not fetch week data")
                 .collect();
+            println!("[results] Number of matches: {}", matches.len());
 
             let results: Vec<(String, u32)> = picks.iter()
-                .map(|weekpick| {
-                    if let Some(cached) = weekpick.cached {
-                        (weekpick.name.to_owned(), cached)
-                    }
-                    else {
-                        // Make sure the week is corrected properly
-                        (weekpick.name.to_owned(), 0)
+                .map(|p| {
+                    println!("[results] Getting results for picks: {}", p.id);
+
+                    match p.cached {
+                        Some(cached) => (p.name.to_owned(), cached),
+                        None => {
+                            match &p.picks {
+                                Some(pickstr) => {
+                                    println!("[results] Need to correct picks: {}", pickstr);
+                                    return (p.name.to_owned(), 0);
+                                },
+                                None => (p.name.to_owned(), 0),
+                            }
+                        }
                     }
                 })
                 .collect();
