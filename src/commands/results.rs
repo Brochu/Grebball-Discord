@@ -6,7 +6,7 @@ use serenity::model::application::interaction::application_command::ApplicationC
 use serenity::model::prelude::command::{CommandType, CommandOptionType};
 use serenity::prelude::*;
 
-use library::database::DB;
+use library::database::{ DB, WeekPicks };
 use library::football::{ Match, get_week };
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
@@ -63,20 +63,16 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             let matches: Vec<Match> = get_week(&season, &week).await
                 .expect("[results] Could not fetch week data")
                 .collect();
-            println!("[results] Number of matches: {}", matches.len());
-
             let results: Vec<(String, u32)> = picks.iter()
                 .map(|p| {
-                    println!("[results] Getting results for picks: {}", p.id);
-
                     match p.cached {
                         Some(cached) => (p.name.to_owned(), cached),
                         None => {
                             match &p.picks {
-                                Some(pickstr) => {
-                                    println!("[results] Need to correct picks: {}", pickstr);
-                                    return (p.name.to_owned(), 0);
-                                },
+                                Some(pickstr) => (
+                                    p.name.to_owned(),
+                                    calc_results(&matches, &picks, &pickstr, p.id)
+                                ),
                                 None => (p.name.to_owned(), 0),
                             }
                         }
@@ -104,4 +100,18 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         }
         Err(e) => println!("Query error: {:?}", e),
     };
+}
+
+fn calc_results(matches: &[Match], poolpicks: &[WeekPicks], pickstr: &str, pickid: i64) -> u32 {
+    println!("[results] Calculating for pick id {}: ", pickid);
+
+    println!("[results] Match data: ");
+    matches.iter().for_each(|m| println!("{}", m));
+
+    println!("[results] Pool picks: ");
+    poolpicks.iter().for_each(|p| println!("{}", p));
+
+    println!("[results] Picks to correct: {pickstr}");
+
+    0
 }
