@@ -127,8 +127,8 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
                 id_event: m["idEvent"].as_str().unwrap().to_owned(),
                 away_team: get_short_name(m["strAwayTeam"].as_str().unwrap()),
                 home_team: get_short_name(m["strHomeTeam"].as_str().unwrap()),
-                away_score: m["intAwayScore"].as_u64(),
-                home_score: m["intHomeScore"].as_u64(),
+                away_score: m["intAwayScore"].as_str().unwrap().parse().ok(),
+                home_score: m["intHomeScore"].as_str().unwrap().parse().ok(),
             }
         }));
     } else {
