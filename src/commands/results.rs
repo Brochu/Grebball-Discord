@@ -125,6 +125,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 }
 
 fn calc_results(matches: &[Match], poolpicks: &[WeekPicks], pickstr: &str, pickid: i64) -> u32 {
+    //TODO: Finish implementation
     println!("[results] Calculating for pick id {}: ", pickid);
 
     println!("[results] Match data: ");
