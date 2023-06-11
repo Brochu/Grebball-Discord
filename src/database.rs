@@ -10,7 +10,8 @@ pub struct DB {
 }
 
 pub struct WeekPicks {
-    pub id: i64,
+    pub pickid: i64,
+    pub poolerid: i64,
     pub name: String,
     pub picks: Option<String>,
     pub cached: Option<u32>,
@@ -43,7 +44,7 @@ impl DB {
             .get("poolid");
 
         let results: Vec<WeekPicks> = sqlx::query("
-                SELECT pl.id, name, pickstring, scorecache FROM picks AS pk
+                SELECT pk.id, pl.id, name, pickstring, scorecache FROM picks AS pk
                 JOIN poolers AS pl ON pl.id = pk.poolerid
                 WHERE season = ? AND week = ? AND pl.poolid = ?
                 ")
@@ -52,12 +53,13 @@ impl DB {
             .bind(poolid)
             .fetch_all(&self.pool).await?
             .iter().map(|row| {
-                let id: i64 = row.get("id");
+                let pickid: i64 = row.get(0);
+                let poolerid: i64 = row.get(1);
                 let name: String = row.get("name");
                 let picks: Option<String> = row.get("pickstring");
                 let cached: Option<u32> = row.get("scorecache");
 
-                WeekPicks { id, name, picks, cached }
+                WeekPicks { pickid, poolerid, name, picks, cached }
             })
             .collect();
         

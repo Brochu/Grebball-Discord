@@ -72,7 +72,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                             match &p.picks {
                                 Some(pickstr) => (
                                     p.name.to_owned(),
-                                    calc_results(&matches, &picks, &pickstr, p.id)
+                                    calc_results(&matches, &picks, &pickstr, p.pickid, p.poolerid)
                                 ),
                                 None => (p.name.to_owned(), 0),
                             }
@@ -124,9 +124,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     };
 }
 
-fn calc_results(matches: &[Match], poolpicks: &[WeekPicks], pickstr: &str, pickid: i64) -> u32 {
+fn calc_results(matches: &[Match], poolpicks: &[WeekPicks], pickstr: &str, pickid: i64, poolerid: i64) -> u32 {
     //TODO: Finish implementation
-    println!("[results] Calculating for pick id {}: ", pickid);
+    println!("[results] Calculating for pooler id {}; pick id {}: ", poolerid, pickid);
 
     println!("[results] Match data: ");
     matches.iter().for_each(|m| println!("{}", m));
