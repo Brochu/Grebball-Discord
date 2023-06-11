@@ -2,6 +2,7 @@ use std::env;
 use std::fmt::Display;
 
 use anyhow::{Result, anyhow};
+use serde_json::{Value, Map};
 use sqlx::{ Pool, Sqlite, Row };
 use sqlx::sqlite::SqlitePool;
 
@@ -13,7 +14,7 @@ pub struct WeekPicks {
     pub pickid: i64,
     pub poolerid: i64,
     pub name: String,
-    pub picks: Option<String>,
+    pub picks: Option<Map<String, Value>>,
     pub cached: Option<u32>,
 }
 
@@ -56,7 +57,7 @@ impl DB {
                 let pickid: i64 = row.get(0);
                 let poolerid: i64 = row.get(1);
                 let name: String = row.get("name");
-                let picks: Option<String> = row.get("pickstring");
+                let picks: Option<Map<String, Value>> = serde_json::from_str(row.get("pickstring")).ok();
                 let cached: Option<u32> = row.get("scorecache");
 
                 WeekPicks { pickid, poolerid, name, picks, cached }

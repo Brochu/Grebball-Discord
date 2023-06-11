@@ -70,9 +70,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                         Some(cached) => (p.name.to_owned(), cached),
                         None => {
                             match &p.picks {
-                                Some(pickstr) => (
+                                Some(poolerpicks) => (
                                     p.name.to_owned(),
-                                    calc_results(&matches, &picks, &pickstr, p.pickid, p.poolerid)
+                                    calc_results(&matches, &picks, &poolerpicks, p.pickid, p.poolerid)
                                 ),
                                 None => (p.name.to_owned(), 0),
                             }
@@ -80,11 +80,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     };
 
                     let icons = match &p.picks {
-                        Some(pickstr) => {
-                            let picks: Map<String, Value> = serde_json::from_str(pickstr).unwrap();
-
+                        Some(poolerpicks) => {
                             matches.iter().fold(String::new(), |mut str, m| {
-                                let choice = picks.get(&m.id_event).unwrap().as_str().unwrap();
+                                let choice = poolerpicks.get(&m.id_event).unwrap().as_str().unwrap();
                                 str.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
 
                                 str.push(' ');
@@ -124,7 +122,13 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     };
 }
 
-fn calc_results(matches: &[Match], poolpicks: &[WeekPicks], pickstr: &str, pickid: i64, poolerid: i64) -> u32 {
+fn calc_results(
+    matches: &[Match],
+    poolpicks: &[WeekPicks],
+    picks: &Map<String, Value>,
+    pickid: i64,
+    poolerid: i64) -> u32 {
+
     //TODO: Finish implementation
     println!("[results] Calculating for pooler id {}; pick id {}: ", poolerid, pickid);
 
@@ -134,7 +138,7 @@ fn calc_results(matches: &[Match], poolpicks: &[WeekPicks], pickstr: &str, picki
     println!("[results] Pool picks: ");
     poolpicks.iter().for_each(|p| println!("{}", p));
 
-    println!("[results] Picks to correct: {pickstr}");
+    println!("[results] Picks to correct: {:?}", picks);
 
     0
 }
