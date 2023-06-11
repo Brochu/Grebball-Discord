@@ -82,7 +82,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     let icons = match &p.picks {
                         Some(poolerpicks) => {
                             matches.iter().fold(String::new(), |mut str, m| {
-                                let choice = poolerpicks.get(&m.id_event).unwrap().as_str().unwrap();
+                                let choice = poolerpicks.get(&m.id_event)
+                                    .unwrap().as_str()
+                                    .unwrap();
                                 str.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
 
                                 str.push(' ');
