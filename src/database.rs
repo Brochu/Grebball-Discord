@@ -43,7 +43,7 @@ impl DB {
             .get("poolid");
 
         let results: Vec<WeekPicks> = sqlx::query("
-                SELECT pk.id, name, pickstring, scorecache FROM picks AS pk
+                SELECT pl.id, name, pickstring, scorecache FROM picks AS pk
                 JOIN poolers AS pl ON pl.id = pk.poolerid
                 WHERE season = ? AND week = ? AND pl.poolid = ?
                 ")
