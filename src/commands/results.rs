@@ -63,9 +63,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             let matches: Vec<Match> = get_week(&season, &week).await
                 .expect("[results] Could not fetch week data")
                 .collect();
-            let results: Vec<(String, u32)> = picks.iter()
+            let results: Vec<(String, u32, String)> = picks.iter()
                 .map(|p| {
-                    match p.cached {
+                    let (name, score) = match p.cached {
                         Some(cached) => (p.name.to_owned(), cached),
                         None => {
                             match &p.picks {
@@ -76,14 +76,25 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                                 None => (p.name.to_owned(), 0),
                             }
                         }
-                    }
+                    };
+
+                    let icons = match &p.picks {
+                        Some(_pickstr) => "PICKS".to_owned(),
+                        None => String::new(),
+                    };
+
+                    (name, score, icons)
                 })
                 .collect();
 
             //TODO: Complete message formatting
             let message = results.iter()
-                .fold(String::new(), |mut m, (name, score)| {
-                    m.push_str(format!("{name}: {score}\n").as_str());
+                .fold(String::new(), |mut m, (name, score, icons)| {
+                    let width = 10 - name.len();
+                    m.push_str(format!("`{name}{}`->", " ".repeat(width)).as_str());
+
+                    m.push_str(format!("{icons} |").as_str());
+                    m.push_str(format!(" {score}\n").as_str());
                     m
                 });
 
