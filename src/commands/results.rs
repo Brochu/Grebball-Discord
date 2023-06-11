@@ -1,5 +1,6 @@
 use std::env;
 
+use serde_json::{Value, Map};
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
@@ -7,7 +8,7 @@ use serenity::model::prelude::command::{CommandType, CommandOptionType};
 use serenity::prelude::*;
 
 use library::database::{ DB, WeekPicks };
-use library::football::{ Match, get_week };
+use library::football::{ Match, get_week, get_team_emoji };
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -79,7 +80,17 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     };
 
                     let icons = match &p.picks {
-                        Some(_pickstr) => "PICKS".to_owned(),
+                        Some(pickstr) => {
+                            let picks: Map<String, Value> = serde_json::from_str(pickstr).unwrap();
+
+                            matches.iter().fold(String::new(), |mut str, m| {
+                                let choice = picks.get(&m.id_event).unwrap().as_str().unwrap();
+                                str.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
+
+                                str.push(' ');
+                                str
+                            })
+                        },
                         None => String::new(),
                     };
 
