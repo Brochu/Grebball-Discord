@@ -1,7 +1,8 @@
+use std::{env, str::FromStr};
 use core::fmt::Display;
-use std::env;
-use serde_json::Value;
 
+use chrono::NaiveDate;
+use serde_json::Value;
 use serenity::model::id::EmojiId;
 
 pub fn get_short_name(name: &str) -> String {
@@ -89,12 +90,13 @@ pub struct Match {
     pub home_team: String,
     pub away_score: Option<u64>,
     pub home_score: Option<u64>,
+    pub date: NaiveDate,
 }
 
 impl Display for Match {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "[{}] {} - {:?} VS. {:?} - {}",
-            self.id_event,
+        write!(f, "[{} - {}] {} - {:?} VS. {:?} - {}",
+            self.id_event, self.date,
             self.away_team, self.away_score,
             self.home_score, self.home_team
         )
@@ -129,6 +131,7 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
                 home_team: get_short_name(m["strHomeTeam"].as_str().unwrap()),
                 away_score: m["intAwayScore"].as_str().unwrap().parse().ok(),
                 home_score: m["intHomeScore"].as_str().unwrap().parse().ok(),
+                date: NaiveDate::from_str(m["dateEvent"].as_str().unwrap()).unwrap(),
             }
         }));
     } else {
