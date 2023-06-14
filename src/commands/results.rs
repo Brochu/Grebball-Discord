@@ -134,13 +134,27 @@ fn calc_results(
     //TODO: Finish implementation
     println!("[results] Calculating for pooler id {}; pick id {}: ", poolerid, pickid);
 
-    println!("[results] Match data: ");
-    matches.iter().for_each(|m| println!("{}", m));
+    matches.iter().fold(0, |total, m| {
+        if let Some(pick) = picks.get(&m.id_event) {
+            let pick = pick.as_str()
+                .expect("[results] Could not get match pick as str");
 
-    println!("[results] Pool picks: ");
-    poolpicks.iter().for_each(|p| println!("{}", p));
+            //TODO: Better handling of errors here in case a pooler did not make picks yet
+            let pool: Vec<&str> = poolpicks.iter()
+                .filter(|&pp| pp.poolerid != poolerid)
+                .map(|pp| { 
+                    match &pp.picks {
+                        Some(p) => p.get(&m.id_event).unwrap().as_str().unwrap(),
+                        None => "",
+                    }
+                })
+                .collect();
 
-    println!("[results] Picks to correct: {:?}", picks);
-
-    0
+            println!("{}\n\tmy pick: {}; pool picks: {:?}", m, pick, pool);
+            total
+        }
+        else {
+            total
+        }
+    })
 }
