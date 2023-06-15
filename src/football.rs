@@ -138,3 +138,27 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
         None
     }
 }
+
+#[derive(Debug)]
+pub enum MatchOutcome {
+    Win,
+    Loss,
+    Tied,
+}
+
+pub fn calculate_score(outcome: &MatchOutcome, unique: bool, week: &i64) -> u32 {
+    match outcome {
+        MatchOutcome::Win => {
+            match week {
+                1..=18 => if unique { 3 } else { 2 },
+                19 => if unique { 6 } else { 4 },
+                20 => if unique { 9 } else { 6 },
+                21 => if unique { 12 } else { 8 },
+                22 => if unique { 15 } else { 10 },
+                _ => 2,
+            }
+        },
+        MatchOutcome::Loss => 0,
+        MatchOutcome::Tied => 1,
+    }
+}
