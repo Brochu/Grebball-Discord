@@ -1,4 +1,5 @@
 use std::env;
+use std::cmp::Ordering;
 
 use serde_json::{Value, Map};
 use serenity::builder::CreateApplicationCommand;
@@ -8,7 +9,7 @@ use serenity::model::prelude::command::{CommandType, CommandOptionType};
 use serenity::prelude::*;
 
 use library::database::{ DB, WeekPicks };
-use library::football::{ Match, get_week, get_team_emoji };
+use library::football::{ Match, get_week, get_team_emoji, MatchOutcome, calculate_score };
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -72,7 +73,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                             match &p.picks {
                                 Some(poolerpicks) => (
                                     p.name.to_owned(),
-                                    calc_results(&matches, &picks, &poolerpicks, p.pickid, p.poolerid)
+                                    calc_results(&matches, &week, &picks, &poolerpicks, p.pickid, p.poolerid)
                                 ),
                                 None => (p.name.to_owned(), 0),
                             }
@@ -126,15 +127,13 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
 fn calc_results(
     matches: &[Match],
+    week: &i64,
     poolpicks: &[WeekPicks],
     picks: &Map<String, Value>,
-    pickid: i64,
+    _pickid: i64,
     poolerid: i64) -> u32 {
 
-    //TODO: Finish implementation
-    println!("[results] Calculating for pooler id {}; pick id {}: ", poolerid, pickid);
-
-    matches.iter().fold(0, |total, m| {
+    let total = matches.iter().fold(0, |acc, m| {
         if let Some(pick) = picks.get(&m.id_event) {
             let pick = pick.as_str()
                 .expect("[results] Could not get match pick as str");
@@ -149,11 +148,19 @@ fn calc_results(
                 })
                 .all(|pp| pp != pick);
 
-            println!("my pick: {} (is_unique = {})", pick, unique);
-            total
+            let outcome = match m.away_score.cmp(&m.home_score) {
+                Ordering::Less => if pick == m.away_team { MatchOutcome::Loss } else { MatchOutcome::Win },
+                Ordering::Greater => if pick == m.away_team { MatchOutcome::Win } else { MatchOutcome::Loss },
+                Ordering::Equal => MatchOutcome::Tied,
+            };
+
+            acc + calculate_score(&outcome, unique, &week)
         }
         else {
-            total
+            acc
         }
-    })
+    });
+
+    //TODO: If all matches are played, update score cache
+    total
 }
