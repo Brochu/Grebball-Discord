@@ -139,8 +139,7 @@ fn calc_results(
             let pick = pick.as_str()
                 .expect("[results] Could not get match pick as str");
 
-            //TODO: Better handling of errors here in case a pooler did not make picks yet
-            let pool: Vec<&str> = poolpicks.iter()
+            let unique = poolpicks.iter()
                 .filter(|&pp| pp.poolerid != poolerid)
                 .map(|pp| { 
                     match &pp.picks {
@@ -148,9 +147,9 @@ fn calc_results(
                         None => "",
                     }
                 })
-                .collect();
+                .all(|pp| pp != pick);
 
-            println!("{}\n\tmy pick: {}; pool picks: {:?}", m, pick, pool);
+            println!("my pick: {} (is_unique = {})", pick, unique);
             total
         }
         else {
