@@ -66,7 +66,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             let matches: Vec<Match> = get_week(&season, &week).await
                 .expect("[results] Could not fetch week data")
                 .collect();
-            let results: Vec<(String, u32, String)> = picks.iter()
+            let results: Vec<(i64, String, u32, String)> = picks.iter()
                 .map(|p| {
                     let (name, score) = match p.cached {
                         Some(cached) => (p.name.to_owned(), cached),
@@ -74,7 +74,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                             match &p.picks {
                                 Some(poolerpicks) => (
                                     p.name.to_owned(),
-                                    calc_results(&matches, &week, &picks, &poolerpicks, p.pickid, p.poolerid)
+                                    calc_results(&matches, &week, &picks, &poolerpicks, p.poolerid)
                                 ),
                                 None => (p.name.to_owned(), 0),
                             }
@@ -96,13 +96,29 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                         None => String::new(),
                     };
 
-                    (name, score, icons)
+                    (p.pickid, name, score, icons)
                 })
                 .collect();
 
+            let now = Local::now().date_naive();
+            let cache_score = matches.iter().all(|m| {
+                match m.date.cmp(&now) {
+                    Ordering::Less => {
+                        true
+                    },
+                    Ordering::Equal | Ordering::Greater => {
+                        false
+                    },
+                }
+            });
+
             //TODO: Complete message formatting
             let message = results.iter()
-                .fold(String::new(), |mut m, (name, score, icons)| {
+                .fold(String::new(), |mut m, (_pickid, name, score, icons)| {
+                    if cache_score {
+                        //TODO: Should update score in DB
+                    }
+
                     let width = 10 - name.len();
                     m.push_str(format!("`{name}{}`->", " ".repeat(width)).as_str());
 
@@ -131,7 +147,6 @@ fn calc_results(
     week: &i64,
     poolpicks: &[WeekPicks],
     picks: &Map<String, Value>,
-    pickid: i64,
     poolerid: i64) -> u32 {
 
     let total = matches.iter().fold(0, |acc, m| {
@@ -161,20 +176,5 @@ fn calc_results(
             acc
         }
     });
-
-    //TODO: If all matches are played, update score cache
-    let now = Local::now().date_naive();
-    if matches.iter().all(|m| {
-        match m.date.cmp(&now) {
-            Ordering::Less => {
-                true
-            },
-            Ordering::Equal | Ordering::Greater => {
-                false
-            },
-        }
-    }){
-        println!("Cache result {} for pickid {}", total, pickid);
-    }
     total
 }
