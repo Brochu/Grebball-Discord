@@ -1,6 +1,7 @@
 use std::env;
 use std::cmp::Ordering;
 
+use chrono::Local;
 use serde_json::{Value, Map};
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
@@ -162,5 +163,21 @@ fn calc_results(
     });
 
     //TODO: If all matches are played, update score cache
+    let now = Local::now().date_naive();
+    if matches.iter().all(|m| {
+        println!("[{}] -> {} ; {}", m.id_event, m.date, now);
+        match m.date.cmp(&now) {
+            Ordering::Less => {
+                println!("Match date less then today");
+                true
+            },
+            Ordering::Equal | Ordering::Greater => {
+                println!("Match date greater or equal then today");
+                false
+            },
+        }
+    }) {
+        println!("*Cache result here*");
+    }
     total
 }
