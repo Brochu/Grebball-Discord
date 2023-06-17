@@ -1,7 +1,7 @@
 use std::{env, str::FromStr};
 use core::fmt::Display;
 
-use chrono::NaiveDate;
+use chrono::NaiveDateTime;
 use serde_json::Value;
 use serenity::model::id::EmojiId;
 
@@ -90,7 +90,7 @@ pub struct Match {
     pub home_team: String,
     pub away_score: Option<u64>,
     pub home_score: Option<u64>,
-    pub date: NaiveDate,
+    pub date: NaiveDateTime,
 }
 
 impl Display for Match {
@@ -131,7 +131,7 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
                 home_team: get_short_name(m["strHomeTeam"].as_str().unwrap()),
                 away_score: m["intAwayScore"].as_str().unwrap().parse().ok(),
                 home_score: m["intHomeScore"].as_str().unwrap().parse().ok(),
-                date: NaiveDate::from_str(m["dateEvent"].as_str().unwrap()).unwrap(),
+                date: NaiveDateTime::from_str(m["dateEvent"].as_str().unwrap()).unwrap(),
             }
         }));
     } else {
