@@ -119,4 +119,8 @@ impl DB {
                 }
         }
     }
+
+    pub async fn cache_results(&self) -> Result<bool> {
+        Ok(true)
+    }
 }

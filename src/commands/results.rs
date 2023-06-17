@@ -131,7 +131,7 @@ fn calc_results(
     week: &i64,
     poolpicks: &[WeekPicks],
     picks: &Map<String, Value>,
-    _pickid: i64,
+    pickid: i64,
     poolerid: i64) -> u32 {
 
     let total = matches.iter().fold(0, |acc, m| {
@@ -165,19 +165,16 @@ fn calc_results(
     //TODO: If all matches are played, update score cache
     let now = Local::now().date_naive();
     if matches.iter().all(|m| {
-        println!("[{}] -> {} ; {}", m.id_event, m.date, now);
         match m.date.cmp(&now) {
             Ordering::Less => {
-                println!("Match date less then today");
                 true
             },
             Ordering::Equal | Ordering::Greater => {
-                println!("Match date greater or equal then today");
                 false
             },
         }
-    }) {
-        println!("*Cache result here*");
+    }){
+        println!("Cache result {} for pickid {}", total, pickid);
     }
     total
 }
