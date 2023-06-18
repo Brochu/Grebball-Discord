@@ -120,7 +120,7 @@ impl DB {
         }
     }
 
-    pub async fn cache_results(&self) -> Result<bool> {
+    pub async fn cache_results(&self, _pickid: &i64) -> Result<bool> {
         Ok(true)
     }
 }

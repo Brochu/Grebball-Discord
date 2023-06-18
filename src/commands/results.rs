@@ -114,20 +114,22 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             });
 
             //TODO: Complete message formatting
-            let message = results.iter()
-                .fold(String::new(), |mut m, (pickid, name, score, from_cache, icons)| {
-                    if !from_cache && cache_score {
-                        //TODO: Should update score in DB
-                        println!("[results] Should cache result {} for pickid {}", score, pickid);
+            //TODO: Convert to for loop with async call in there?
+            let mut message = String::new();
+            for (pickid, name, score, from_cache, icons) in results.iter() {
+
+                if !from_cache && cache_score {
+                    if let Err(e) = db.cache_results(pickid).await {
+                        println!("[results] Error while trying to cache score: {e}")
                     }
+                }
 
-                    let width = 10 - name.len();
-                    m.push_str(format!("`{name}{}`->", " ".repeat(width)).as_str());
+                let width = 10 - name.len();
+                message.push_str(format!("`{name}{}`->", " ".repeat(width)).as_str());
 
-                    m.push_str(format!("{icons} |").as_str());
-                    m.push_str(format!(" {score}\n").as_str());
-                    m
-                });
+                message.push_str(format!("{icons} |").as_str());
+                message.push_str(format!(" {score}\n").as_str());
+            }
 
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                 res
