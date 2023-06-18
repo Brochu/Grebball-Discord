@@ -66,17 +66,18 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             let matches: Vec<Match> = get_week(&season, &week).await
                 .expect("[results] Could not fetch week data")
                 .collect();
-            let results: Vec<(i64, String, u32, String)> = picks.iter()
+            let results: Vec<(i64, String, u32, bool, String)> = picks.iter()
                 .map(|p| {
-                    let (name, score) = match p.cached {
-                        Some(cached) => (p.name.to_owned(), cached),
+                    let (name, score, from_cache) = match p.cached {
+                        Some(cached) => (p.name.to_owned(), cached, true),
                         None => {
                             match &p.picks {
                                 Some(poolerpicks) => (
                                     p.name.to_owned(),
-                                    calc_results(&matches, &week, &picks, &poolerpicks, p.poolerid)
+                                    calc_results(&matches, &week, &picks, &poolerpicks, p.poolerid),
+                                    false
                                 ),
-                                None => (p.name.to_owned(), 0),
+                                None => (p.name.to_owned(), 0, false),
                             }
                         }
                     };
@@ -96,7 +97,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                         None => String::new(),
                     };
 
-                    (p.pickid, name, score, icons)
+                    (p.pickid, name, score, from_cache, icons)
                 })
                 .collect();
 
@@ -114,9 +115,10 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
             //TODO: Complete message formatting
             let message = results.iter()
-                .fold(String::new(), |mut m, (_pickid, name, score, icons)| {
-                    if cache_score {
+                .fold(String::new(), |mut m, (pickid, name, score, from_cache, icons)| {
+                    if !from_cache && cache_score {
                         //TODO: Should update score in DB
+                        println!("[results] Should cache result {} for pickid {}", score, pickid);
                     }
 
                     let width = 10 - name.len();
