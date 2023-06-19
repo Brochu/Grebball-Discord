@@ -77,7 +77,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                                     calc_results(&matches, &week, &picks, &poolerpicks, p.poolerid),
                                     false
                                 ),
-                                None => (p.name.to_owned(), 0, false),
+                                None => (p.name.to_owned(), 0, true),
                             }
                         }
                     };
