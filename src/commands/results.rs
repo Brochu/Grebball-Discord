@@ -113,7 +113,6 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 }
             });
 
-            //TODO: Complete message formatting
             let mut message = String::new();
             for (pickid, name, score, from_cache, icons) in results.iter() {
 
