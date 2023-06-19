@@ -120,8 +120,26 @@ impl DB {
         }
     }
 
-    pub async fn cache_results(&self, _pickid: &i64, _score: &u32) -> Result<bool> {
-        println!("[DB] Cache result {} for pick {}", _score, _pickid);
-        Ok(true)
+    pub async fn cache_results(&self, pickid: &i64, score: &u32) -> Result<bool> {
+        println!("[DB] Cache result {} for pick {}", score, pickid);
+
+        match sqlx::query("
+                UPDATE picks
+                SET scorecache = ?
+                WHERE id = ?
+                ")
+            .bind(score)
+            .bind(pickid)
+            .execute(&self.pool)
+            .await {
+                Ok(r) => {
+                    println!("[DB] Successful score cache updated: rows affected {}", r.rows_affected());
+                    Ok(true)
+                },
+                Err(e) => {
+                    println!("[DB] Could not update score cache: {}", e);
+                    Ok(false)
+                }
+        }
     }
 }
