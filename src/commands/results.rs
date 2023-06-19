@@ -56,7 +56,6 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[results] No argument provided").value.as_ref()
         .unwrap().as_str().unwrap().parse::<i64>()
         .expect("[results] Could not parse week arg to u64");
-
     let discordid = command.user.id.as_u64()
         .to_string().parse::<i64>()
         .unwrap();
@@ -68,41 +67,40 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 .collect();
             let results: Vec<(i64, String, u32, bool, String)> = picks.iter()
                 .map(|p| {
-                    let (name, score, from_cache) = match p.cached {
-                        Some(cached) => (p.name.to_owned(), cached, true),
-                        None => {
-                            match &p.picks {
-                                Some(poolerpicks) => (
-                                    p.name.to_owned(),
-                                    calc_results(&matches, &week, &picks, &poolerpicks, p.poolerid),
-                                    false
-                                ),
-                                None => (p.name.to_owned(), 0, true),
-                            }
+                    let name = p.name.to_owned();
+                    let (score, should_cache) = if let Some(cached) = p.cached {
+                        (cached, false)
+                    }
+                    else {
+                        if let Some(poolerpicks) = &p.picks {
+                            (calc_results(&matches, &week, &picks, &poolerpicks, p.poolerid), true)
+                        }
+                        else {
+                            (0, false)
                         }
                     };
 
-                    let icons = match &p.picks {
-                        Some(poolerpicks) => {
-                            matches.iter().fold(String::new(), |mut str, m| {
-                                let choice = poolerpicks.get(&m.id_event)
-                                    .unwrap().as_str()
-                                    .unwrap();
-                                str.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
+                    let icons = if let Some(poolerpicks) = &p.picks {
+                        matches.iter().fold(String::new(), |mut str, m| {
+                            let choice = poolerpicks.get(&m.id_event)
+                                .unwrap().as_str()
+                                .unwrap();
+                            str.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
 
-                                str.push(' ');
-                                str
-                            })
-                        },
-                        None => String::new(),
+                            str.push(' ');
+                            str
+                        })
+                    }
+                    else {
+                        String::new()
                     };
 
-                    (p.pickid, name, score, from_cache, icons)
+                    (p.pickid, name, score, should_cache, icons)
                 })
                 .collect();
 
             let now = Local::now().date_naive();
-            let cache_score = matches.iter().all(|m| {
+            let week_complete = matches.iter().all(|m| {
                 match m.date.cmp(&now) {
                     Ordering::Less => {
                         true
@@ -116,7 +114,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             let mut message = String::new();
             for (pickid, name, score, from_cache, icons) in results.iter() {
 
-                if !from_cache && cache_score {
+                if !from_cache && week_complete {
                     if let Err(e) = db.cache_results(pickid, &score).await {
                         println!("[results] Error while trying to cache score: {e}")
                     }
@@ -128,7 +126,6 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 message.push_str(format!("{icons} |").as_str());
                 message.push_str(format!(" {score}\n").as_str());
             }
-
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                 res
                     .kind(InteractionResponseType::ChannelMessageWithSource)
@@ -139,7 +136,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             .await {
                 println!("![results] Cannot respond to slash command : {:?}", reason);
             }
-        }
+        },
         Err(e) => println!("Query error: {:?}", e),
     };
 }
