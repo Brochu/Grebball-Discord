@@ -120,7 +120,8 @@ impl DB {
         }
     }
 
-    pub async fn cache_results(&self, _pickid: &i64) -> Result<bool> {
+    pub async fn cache_results(&self, _pickid: &i64, _score: &u32) -> Result<bool> {
+        println!("[DB] Cache result {} for pick {}", _score, _pickid);
         Ok(true)
     }
 }

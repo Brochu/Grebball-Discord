@@ -114,12 +114,11 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             });
 
             //TODO: Complete message formatting
-            //TODO: Convert to for loop with async call in there?
             let mut message = String::new();
             for (pickid, name, score, from_cache, icons) in results.iter() {
 
                 if !from_cache && cache_score {
-                    if let Err(e) = db.cache_results(pickid).await {
+                    if let Err(e) = db.cache_results(pickid, &score).await {
                         println!("[results] Error while trying to cache score: {e}")
                     }
                 }
