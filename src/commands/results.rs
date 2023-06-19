@@ -112,9 +112,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             });
 
             let mut message = String::new();
-            for (pickid, name, score, from_cache, icons) in results.iter() {
+            for (pickid, name, score, should_cache, icons) in results.iter() {
 
-                if !from_cache && week_complete {
+                if *should_cache && week_complete {
                     if let Err(e) = db.cache_results(pickid, &score).await {
                         println!("[results] Error while trying to cache score: {e}")
                     }
