@@ -1,16 +1,13 @@
 use std::env;
-use std::cmp::Ordering;
 
-use chrono::Local;
-use serde_json::{Value, Map};
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::command::{CommandType, CommandOptionType};
 use serenity::prelude::*;
 
-use library::database::{ DB, WeekPicks };
-use library::football::{ Match, get_week, get_team_emoji, MatchOutcome, calculate_score };
+use library::database::DB;
+use library::football::check_matches;
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -60,72 +57,12 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .to_string().parse::<i64>()
         .unwrap();
 
+    //TODO: Find a way to work with poolid instead of discordid
     match db.fetch_picks(&discordid, &season, &week).await {
         Ok(picks) => {
-            let matches: Vec<Match> = get_week(&season, &week).await
-                .expect("[results] Could not fetch week data")
-                .collect();
-            let results: Vec<(i64, String, u32, bool, String)> = picks.iter()
-                .map(|p| {
-                    let name = p.name.to_owned();
-                    let (score, should_cache) = if let Some(cached) = p.cached {
-                        (cached, false)
-                    }
-                    else {
-                        if let Some(poolerpicks) = &p.picks {
-                            (calc_results(&matches, &week, &picks, &poolerpicks, p.poolerid), true)
-                        }
-                        else {
-                            (0, false)
-                        }
-                    };
+            //TODO: Remove DB parameter, take care of DB requests here?
+            let message = check_matches(&season, &week, &picks, db).await;
 
-                    let icons = if let Some(poolerpicks) = &p.picks {
-                        matches.iter().fold(String::new(), |mut str, m| {
-                            let choice = poolerpicks.get(&m.id_event)
-                                .unwrap().as_str()
-                                .unwrap();
-                            str.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
-
-                            str.push(' ');
-                            str
-                        })
-                    }
-                    else {
-                        String::new()
-                    };
-
-                    (p.pickid, name, score, should_cache, icons)
-                })
-                .collect();
-
-            let now = Local::now().date_naive();
-            let week_complete = matches.iter().all(|m| {
-                match m.date.cmp(&now) {
-                    Ordering::Less => {
-                        true
-                    },
-                    Ordering::Equal | Ordering::Greater => {
-                        false
-                    },
-                }
-            });
-
-            let mut message = String::new();
-            for (pickid, name, score, should_cache, icons) in results.iter() {
-
-                if *should_cache && week_complete {
-                    if let Err(e) = db.cache_results(pickid, &score).await {
-                        println!("[results] Error while trying to cache score: {e}")
-                    }
-                }
-
-                let width = 10 - name.len();
-                message.push_str(format!("`{name}{}`->", " ".repeat(width)).as_str());
-
-                message.push_str(format!("{icons} |").as_str());
-                message.push_str(format!(" {score}\n").as_str());
-            }
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                 res
                     .kind(InteractionResponseType::ChannelMessageWithSource)
@@ -141,39 +78,3 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     };
 }
 
-fn calc_results(
-    matches: &[Match],
-    week: &i64,
-    poolpicks: &[WeekPicks],
-    picks: &Map<String, Value>,
-    poolerid: i64) -> u32 {
-
-    let total = matches.iter().fold(0, |acc, m| {
-        if let Some(pick) = picks.get(&m.id_event) {
-            let pick = pick.as_str()
-                .expect("[results] Could not get match pick as str");
-
-            let unique = poolpicks.iter()
-                .filter(|&pp| pp.poolerid != poolerid)
-                .map(|pp| { 
-                    match &pp.picks {
-                        Some(p) => p.get(&m.id_event).unwrap().as_str().unwrap(),
-                        None => "",
-                    }
-                })
-                .all(|pp| pp != pick);
-
-            let outcome = match m.away_score.cmp(&m.home_score) {
-                Ordering::Less => if pick == m.away_team { MatchOutcome::Loss } else { MatchOutcome::Win },
-                Ordering::Greater => if pick == m.away_team { MatchOutcome::Win } else { MatchOutcome::Loss },
-                Ordering::Equal => MatchOutcome::Tied,
-            };
-
-            acc + calculate_score(&outcome, unique, &week)
-        }
-        else {
-            acc
-        }
-    });
-    total
-}
