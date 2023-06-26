@@ -32,7 +32,7 @@ impl DB {
         DB { pool: SqlitePool::connect(db_url.as_str()).await.unwrap() }
     }
 
-    pub async fn fetch_picks(&self, discordid: &i64, season: &u16, week: &i64) -> Result<Vec<WeekPicks>> {
+    pub async fn find_poolid(&self, discordid: &i64) -> Result<i64> {
         let poolid: i64 = sqlx::query("
                 SELECT p.poolid FROM users AS u
                 JOIN poolers AS p
@@ -44,6 +44,10 @@ impl DB {
             .await?
             .get("poolid");
 
+        Ok(poolid)
+    }
+
+    pub async fn fetch_picks(&self, poolid: &i64, season: &u16, week: &i64) -> Result<Vec<WeekPicks>> {
         let results: Vec<WeekPicks> = sqlx::query("
                 SELECT pk.id, pl.id, name, pickstring, scorecache FROM picks AS pk
                 JOIN poolers AS pl ON pl.id = pk.poolerid

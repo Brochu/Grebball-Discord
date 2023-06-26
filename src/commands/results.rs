@@ -53,12 +53,14 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[results] No argument provided").value.as_ref()
         .unwrap().as_str().unwrap().parse::<i64>()
         .expect("[results] Could not parse week arg to u64");
+
     let discordid = command.user.id.as_u64()
         .to_string().parse::<i64>()
         .unwrap();
+    let poolid = db.find_poolid(&discordid).await
+        .expect("![results] Could not find valid poolid based on discordid");
 
-    //TODO: Find a way to work with poolid instead of discordid
-    match db.fetch_picks(&discordid, &season, &week).await {
+    match db.fetch_picks(&poolid, &season, &week).await {
         Ok(picks) => {
             //TODO: Remove DB parameter, take care of DB requests here?
             let message = calc_results(&season, &week, &picks, db).await;
