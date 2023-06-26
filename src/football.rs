@@ -5,7 +5,7 @@ use chrono::{ Local, NaiveDate };
 use serde_json::{Value, Map};
 use serenity::model::id::EmojiId;
 
-use crate::database::{ DB, WeekPicks };
+use crate::database::WeekPicks;
 
 pub fn get_short_name(name: &str) -> String {
     match name {
@@ -150,46 +150,30 @@ pub struct PickResults {
 
 impl Display for PickResults {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}] {} - {} (should cache? {})", self.pickid, self.name, self.score, self.cache)
+        write!(f, "[{}] {} - {} (should cache? {})",
+            self.pickid, self.name, self.score, self.cache)
     }
 }
 
-pub async fn calc_results(season: &u16, week: &i64, picks: &[WeekPicks], db: &DB) -> String {
+pub async fn calc_results(season: &u16, week: &i64, picks: &[WeekPicks]) -> Vec<PickResults> {
     let matches: Vec<Match> = get_week(&season, &week).await
         .expect("[results] Could not fetch week data")
         .collect();
-    let results: Vec<(i64, String, u32, bool, String)> = picks.iter()
+    let results: Vec<PickResults> = picks.iter()
         .map(|p| {
             let name = p.name.to_owned();
-            let (score, should_cache) = if let Some(cached) = p.cached {
-                (cached, false)
+            if let Some(cached) = p.cached {
+                PickResults { pickid: p.pickid, name, score: cached, cache: false }
             }
             else {
-                if let Some(poolerpicks) = &p.picks {
-                    (calc_results_internal(&matches, &week, &picks, &poolerpicks, p.poolerid), true)
-                }
-                else {
-                    (0, false)
-                }
-            };
-
-            //TODO: Check if this works with NULL picks
-            let icons = if let Some(poolerpicks) = &p.picks {
-                matches.iter().fold(String::new(), |mut str, m| {
-                    let choice = poolerpicks.get(&m.id_event)
-                        .unwrap().as_str()
-                        .unwrap();
-                    str.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
-
-                    str.push(' ');
-                    str
-                })
+                let (score, cache) = match &p.picks {
+                    Some(poolerpicks) => (
+                        calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid),
+                        true),
+                    None => (0, false),
+                };
+                PickResults { pickid: p.pickid, name, score, cache }
             }
-            else {
-                String::new()
-            };
-
-            (p.pickid, name, score, should_cache, icons)
         })
         .collect();
 
@@ -205,22 +189,16 @@ pub async fn calc_results(season: &u16, week: &i64, picks: &[WeekPicks], db: &DB
         }
     });
 
-    let mut message = String::new();
-    for (pickid, name, score, should_cache, icons) in results.iter() {
-
-        if *should_cache && week_complete {
-            if let Err(e) = db.cache_results(pickid, &score).await {
-                println!("[results] Error while trying to cache score: {e}")
+    results.iter()
+        .map(|r| {
+            PickResults {
+                pickid: r.pickid,
+                name: r.name.clone(),
+                score: r.score,
+                cache: r.cache && week_complete
             }
-        }
-
-        let width = 10 - name.len();
-        message.push_str(format!("`{name}{}`->", " ".repeat(width)).as_str());
-
-        message.push_str(format!("{icons} |").as_str());
-        message.push_str(format!(" {score}\n").as_str());
-    }
-    message
+        })
+        .collect()
 }
 
 #[derive(Debug)]
