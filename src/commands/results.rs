@@ -63,6 +63,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     match db.fetch_picks(&poolid, &season, &week).await {
         Ok(picks) => {
             //TODO: Remove DB parameter, take care of DB requests here?
+            //TODO: Return results and wether or not we need to cache
+            //TODO: Build string based off of results
             let message = calc_results(&season, &week, &picks, db).await;
 
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
@@ -76,7 +78,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 println!("![results] Cannot respond to slash command : {:?}", reason);
             }
         },
-        Err(e) => println!("Query error: {:?}", e),
-    };
+        Err(e) => {
+            println!("![results] Could not fetch picks for poolid: {}; season: {}, week: {}\nerror: {}",
+                poolid, season, week, e);
+        },
+    }
 }
-
