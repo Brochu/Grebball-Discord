@@ -141,7 +141,19 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
     }
 }
 
-//TODO: Make a version to check for a full season for a given poolid
+pub struct PickResults {
+    pickid: i64,
+    name: String,
+    score: u32,
+    cache: bool,
+}
+
+impl Display for PickResults {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}] {} - {} (should cache? {})", self.pickid, self.name, self.score, self.cache)
+    }
+}
+
 pub async fn calc_results(season: &u16, week: &i64, picks: &[WeekPicks], db: &DB) -> String {
     let matches: Vec<Match> = get_week(&season, &week).await
         .expect("[results] Could not fetch week data")
