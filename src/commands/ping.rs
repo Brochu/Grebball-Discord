@@ -19,7 +19,6 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
             .kind(InteractionResponseType::ChannelMessageWithSource)
             .interaction_response_data(|m| m
                 .content("Ping response!")
-                //TODO: Look for more options here
             )
     })
     .await {
