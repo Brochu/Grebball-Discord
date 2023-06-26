@@ -161,6 +161,7 @@ pub async fn check_matches(season: &u16, week: &i64, picks: &[WeekPicks], db: &D
                 }
             };
 
+            //TODO: Check if this works with NULL picks
             let icons = if let Some(poolerpicks) = &p.picks {
                 matches.iter().fold(String::new(), |mut str, m| {
                     let choice = poolerpicks.get(&m.id_event)
