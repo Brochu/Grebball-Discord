@@ -154,7 +154,7 @@ pub async fn calc_results(season: &u16, week: &i64, picks: &[WeekPicks], db: &DB
             }
             else {
                 if let Some(poolerpicks) = &p.picks {
-                    (calc_results_impl(&matches, &week, &picks, &poolerpicks, p.poolerid), true)
+                    (calc_results_internal(&matches, &week, &picks, &poolerpicks, p.poolerid), true)
                 }
                 else {
                     (0, false)
@@ -218,7 +218,7 @@ enum MatchOutcome {
     Tied,
 }
 
-fn calc_results_impl(
+fn calc_results_internal(
     matches: &[Match],
     week: &i64,
     poolpicks: &[WeekPicks],
