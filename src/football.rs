@@ -142,7 +142,7 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
 }
 
 //TODO: Make a version to check for a full season for a given poolid
-pub async fn check_matches(season: &u16, week: &i64, picks: &[WeekPicks], db: &DB) -> String {
+pub async fn calc_results(season: &u16, week: &i64, picks: &[WeekPicks], db: &DB) -> String {
     let matches: Vec<Match> = get_week(&season, &week).await
         .expect("[results] Could not fetch week data")
         .collect();
@@ -154,7 +154,7 @@ pub async fn check_matches(season: &u16, week: &i64, picks: &[WeekPicks], db: &D
             }
             else {
                 if let Some(poolerpicks) = &p.picks {
-                    (calc_results(&matches, &week, &picks, &poolerpicks, p.poolerid), true)
+                    (calc_results_impl(&matches, &week, &picks, &poolerpicks, p.poolerid), true)
                 }
                 else {
                     (0, false)
@@ -211,7 +211,14 @@ pub async fn check_matches(season: &u16, week: &i64, picks: &[WeekPicks], db: &D
     message
 }
 
-fn calc_results(
+#[derive(Debug)]
+enum MatchOutcome {
+    Win,
+    Loss,
+    Tied,
+}
+
+fn calc_results_impl(
     matches: &[Match],
     week: &i64,
     poolpicks: &[WeekPicks],
@@ -239,7 +246,7 @@ fn calc_results(
                 Ordering::Equal => MatchOutcome::Tied,
             };
 
-            acc + calculate_score(&outcome, unique, &week)
+            acc + get_score(&outcome, unique, &week)
         }
         else {
             acc
@@ -248,14 +255,7 @@ fn calc_results(
     total
 }
 
-#[derive(Debug)]
-enum MatchOutcome {
-    Win,
-    Loss,
-    Tied,
-}
-
-fn calculate_score(outcome: &MatchOutcome, unique: bool, week: &i64) -> u32 {
+fn get_score(outcome: &MatchOutcome, unique: bool, week: &i64) -> u32 {
     match outcome {
         MatchOutcome::Win => {
             match week {
