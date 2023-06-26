@@ -7,7 +7,7 @@ use serenity::model::prelude::command::{CommandType, CommandOptionType};
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::check_matches;
+use library::football::calc_results;
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -61,7 +61,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     match db.fetch_picks(&discordid, &season, &week).await {
         Ok(picks) => {
             //TODO: Remove DB parameter, take care of DB requests here?
-            let message = check_matches(&season, &week, &picks, db).await;
+            let message = calc_results(&season, &week, &picks, db).await;
 
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                 res
