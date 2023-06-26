@@ -67,8 +67,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
             let aemoji = get_team_emoji(m.away_team.as_str());
             let hemoji = get_team_emoji(m.home_team.as_str());
 
-            out.push_str(format!("{} : <:{}:{}> {} <:{}:{}>\n",
-                m.id_event,
+            out.push_str(format!("<:{}:{}> {} <:{}:{}>\n",
                 m.away_team, aemoji,
                 VS_EMOJI,
                 m.home_team, hemoji
@@ -80,11 +79,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
             res
                 .kind(InteractionResponseType::ChannelMessageWithSource)
                 .interaction_response_data(|m|
-                    m.content(format!("{season}-{week}\n{output}"))
-                    //TODO: Find a better way to send metadata
-                    // - Season num
-                    // - Week num
-                    // - Matches Ids
+                    m.content(output)
                 )
         })
         .await {
