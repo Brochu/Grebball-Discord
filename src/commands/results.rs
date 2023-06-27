@@ -65,7 +65,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             //TODO: Remove DB parameter, take care of DB requests here?
             //TODO: Return results and wether or not we need to cache
             //TODO: Build string based off of results
-            let _results = calc_results(&season, &week, &picks).await;
+            let results = calc_results(&season, &week, &picks).await;
 
             //TODO: How are we building the icons list
             //TODO: Check if this works with NULL picks
@@ -86,28 +86,23 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
             //(p.pickid, name, score, should_cache, icons)
 
-            //let mut message = String::new();
-            //for (pickid, name, score, should_cache, icons) in results.iter() {
+            let mut message = String::new();
+            for r in results {
+                if r.cache {
+                    if let Err(e) = db.cache_results(&r.pickid, &r.score).await {
+                        println!("[results] Error while trying to cache score: {e}")
+                    }
+                }
 
-            //    if *should_cache && week_complete {
-            //        if let Err(e) = db.cache_results(pickid, &score).await {
-            //            println!("[results] Error while trying to cache score: {e}")
-            //        }
-            //    }
-
-            //    let width = 10 - name.len();
-            //    message.push_str(format!("`{name}{}`->", " ".repeat(width)).as_str());
-
-            //    message.push_str(format!("{icons} |").as_str());
-            //    message.push_str(format!(" {score}\n").as_str());
-            //}
-            //message
+                let width = 10 - r.name.len();
+                message.push_str(format!("`{}{}` -> {}\n", r.name, " ".repeat(width), r.score).as_str());
+            }
 
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                 res
                     .kind(InteractionResponseType::ChannelMessageWithSource)
                     .interaction_response_data(|m| m
-                        .content(format!("Results:\n{}", "RESULTS HERE"))
+                        .content(format!("Results:\n{message}"))
                     )
             })
             .await {

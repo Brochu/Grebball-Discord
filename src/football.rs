@@ -142,10 +142,10 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
 }
 
 pub struct PickResults {
-    pickid: i64,
-    name: String,
-    score: u32,
-    cache: bool,
+    pub pickid: i64,
+    pub name: String,
+    pub score: u32,
+    pub cache: bool,
 }
 
 impl Display for PickResults {
