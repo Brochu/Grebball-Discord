@@ -155,11 +155,7 @@ impl Display for PickResults {
     }
 }
 
-pub async fn calc_results(season: &u16, week: &i64, picks: &[WeekPicks]) -> Vec<PickResults> {
-    let matches: Vec<Match> = get_week(&season, &week).await
-        .expect("[results] Could not fetch week data")
-        .collect();
-
+pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) -> Vec<PickResults> {
     let now = Local::now().date_naive();
     let week_complete = matches.iter().all(|m| {
         match m.date.cmp(&now) {

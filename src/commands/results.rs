@@ -7,7 +7,7 @@ use serenity::model::prelude::command::{CommandType, CommandOptionType};
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::calc_results;
+use library::football::{ calc_results, get_week, get_team_emoji, Match };
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -62,29 +62,11 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
     match db.fetch_picks(&poolid, &season, &week).await {
         Ok(picks) => {
-            //TODO: Remove DB parameter, take care of DB requests here?
-            //TODO: Return results and wether or not we need to cache
-            //TODO: Build string based off of results
-            let results = calc_results(&season, &week, &picks).await;
+            let matches: Vec<Match> = get_week(&season, &week).await
+                .expect("[results] Could not fetch week data")
+                .collect();
 
-            //TODO: How are we building the icons list
-            //TODO: Check if this works with NULL picks
-            //let icons = if let Some(poolerpicks) = &p.picks {
-            //    matches.iter().fold(String::new(), |mut str, m| {
-            //        let choice = poolerpicks.get(&m.id_event)
-            //            .unwrap().as_str()
-            //            .unwrap();
-            //        str.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
-
-            //        str.push(' ');
-            //        str
-            //    })
-            //}
-            //else {
-            //    String::new()
-            //};
-
-            //(p.pickid, name, score, should_cache, icons)
+            let results = calc_results(&week, &matches, &picks).await;
 
             let mut message = String::new();
             for r in results {
@@ -94,8 +76,25 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     }
                 }
 
+                let pick = picks.iter().find(|p| p.pickid == r.pickid)
+                    .expect("![results] Could not find pooler picks to fill icons");
+
+                let icons = if let Some(poolerpicks) = &pick.picks {
+                    matches.iter().fold(String::new(), |mut acc, m| {
+                        let choice = poolerpicks.get(&m.id_event).unwrap()
+                            .as_str().unwrap();
+
+                        acc.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
+                        acc
+                    })
+                }
+                else {
+                    String::new()
+                };
+
                 let width = 10 - r.name.len();
-                message.push_str(format!("`{}{}` -> {}\n", r.name, " ".repeat(width), r.score).as_str());
+                message.push_str(format!("`{}{}` -> {} : {}\n",
+                    r.name, " ".repeat(width), icons, r.score).as_str());
             }
 
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
