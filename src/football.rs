@@ -159,23 +159,6 @@ pub async fn calc_results(season: &u16, week: &i64, picks: &[WeekPicks]) -> Vec<
     let matches: Vec<Match> = get_week(&season, &week).await
         .expect("[results] Could not fetch week data")
         .collect();
-    let results: Vec<PickResults> = picks.iter()
-        .map(|p| {
-            let name = p.name.to_owned();
-            if let Some(cached) = p.cached {
-                PickResults { pickid: p.pickid, name, score: cached, cache: false }
-            }
-            else {
-                let (score, cache) = match &p.picks {
-                    Some(poolerpicks) => (
-                        calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid),
-                        true),
-                    None => (0, false),
-                };
-                PickResults { pickid: p.pickid, name, score, cache }
-            }
-        })
-        .collect();
 
     let now = Local::now().date_naive();
     let week_complete = matches.iter().all(|m| {
@@ -189,13 +172,20 @@ pub async fn calc_results(season: &u16, week: &i64, picks: &[WeekPicks]) -> Vec<
         }
     });
 
-    results.iter()
-        .map(|r| {
-            PickResults {
-                pickid: r.pickid,
-                name: r.name.clone(),
-                score: r.score,
-                cache: r.cache && week_complete
+    picks.iter()
+        .map(|p| {
+            let name = p.name.to_owned();
+            if let Some(cached) = p.cached {
+                PickResults { pickid: p.pickid, name, score: cached, cache: false && week_complete }
+            }
+            else {
+                let (score, cache) = match &p.picks {
+                    Some(poolerpicks) => (
+                        calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid),
+                        true && week_complete),
+                    None => (0, false && week_complete),
+                };
+                PickResults { pickid: p.pickid, name, score, cache }
             }
         })
         .collect()
