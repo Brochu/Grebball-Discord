@@ -47,6 +47,11 @@ impl DB {
         Ok(poolid)
     }
 
+    pub async fn find_week(&self, _poolid: &i64) -> Result<i64> {
+        //TODO: Implement finding max week to show results for
+        Ok(0)
+    }
+
     pub async fn fetch_picks(&self, poolid: &i64, season: &u16, week: &i64) -> Result<Vec<WeekPicks>> {
         let results: Vec<WeekPicks> = sqlx::query("
                 SELECT pk.id, pl.id, name, pickstring, scorecache FROM picks AS pk

@@ -73,6 +73,7 @@ impl EventHandler for Bot {
         spawn(async move {
             let mut timer = interval(Duration::from_secs_f64(5.0));
             timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
+            let db = DB::new().await;
 
             if let Ok(hook_url) = env::var("RESULTS_WEBHOOK") {
                 let hook = Webhook::from_url(&ctx.http, hook_url.as_str()).await.unwrap();
@@ -81,14 +82,32 @@ impl EventHandler for Bot {
                 loop {
                     timer.tick().await;
 
-                    //TODO: Create right message here with database results
+                    let message = weekly_message(&db).await;
                     hook.execute(&ctx.http, false, |m| {
-                        m.content("Separate job message")
+                        m.content(message)
                     }).await.unwrap();
+
                 }
             }
         });
     }
+}
+
+async fn weekly_message(db: &DB) -> String {
+    let pool_id = env::var("POOL_ID")
+        .expect("![Handler] Could not find env var 'POOL_ID'").parse()
+        .expect("![Handler] Could not parse pool_id to int");
+    let season = env::var("CONF_SEASON")
+        .expect("![Handler] Cannot find 'CONF_SEASON' in env").parse()
+        .expect("![Handler] Could not parse 'CONF_SEASON' to u16");
+
+    let week = db.find_week(&pool_id).await
+        .expect("![Handler] Could not find current week from DB");
+
+    let _picks = db.fetch_picks(&pool_id, &season, &week);
+
+    //TODO: Create right message here with database results
+    format!("Building results message for current week {}", week)
 }
 
 #[tokio::main]
