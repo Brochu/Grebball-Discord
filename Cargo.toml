@@ -3,6 +3,8 @@ name = "grebball-discord"
 version = "0.1.0"
 authors = ["Alex B. <alexbrochu1@gmail.com>"]
 edition = "2021"
+description = "A Discord bot implementation that will keep track of a NFL prediction group"
+readme = "README.md"
 
 [lib]
 name = "library"
