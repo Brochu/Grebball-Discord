@@ -1,4 +1,4 @@
-use std::env;
+use std::{ cmp, env };
 use std::fmt::Display;
 
 use anyhow::{Result, anyhow};
@@ -47,9 +47,19 @@ impl DB {
         Ok(poolid)
     }
 
-    pub async fn find_week(&self, _poolid: &i64) -> Result<i64> {
-        //TODO: Implement finding max week to show results for
-        Ok(0)
+    pub async fn find_week(&self, poolid: &i64, season: &u16) -> Result<i64> {
+        let week = sqlx::query("
+                SELECT max(pk.week) as maxweek FROM picks as pk
+                LEFT JOIN poolers as pl ON pk.poolerid = pl.id
+                WHERE pl.poolid = ? AND season = ?
+                GROUP BY pk.poolerid
+                ")
+            .bind(poolid)
+            .bind(season)
+            .fetch_all(&self.pool).await?
+        .iter().fold( 0, |week, row| std::cmp::max(week, row.get("maxweek")) );
+
+        Ok(week)
     }
 
     pub async fn fetch_picks(&self, poolid: &i64, season: &u16, week: &i64) -> Result<Vec<WeekPicks>> {

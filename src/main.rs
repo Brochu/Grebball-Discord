@@ -101,7 +101,7 @@ async fn weekly_message(db: &DB) -> String {
         .expect("![Handler] Cannot find 'CONF_SEASON' in env").parse()
         .expect("![Handler] Could not parse 'CONF_SEASON' to u16");
 
-    let week = db.find_week(&pool_id).await
+    let week = db.find_week(&pool_id, &season).await
         .expect("![Handler] Could not find current week from DB");
 
     let _picks = db.fetch_picks(&pool_id, &season, &week);
