@@ -1,4 +1,4 @@
-use std::{ cmp, env };
+use std::env;
 use std::fmt::Display;
 
 use anyhow::{Result, anyhow};
