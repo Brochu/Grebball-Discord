@@ -13,6 +13,7 @@ use tokio::spawn;
 use tokio::time::{ interval, MissedTickBehavior };
 
 use library::database::DB;
+use library::football::{ get_week, Match };
 
 mod commands;
 
@@ -105,6 +106,10 @@ async fn weekly_message(db: &DB) -> String {
         .expect("![Handler] Could not find current week from DB");
 
     let _picks = db.fetch_picks(&pool_id, &season, &week);
+
+    let _matches: Vec<Match> = get_week(&season, &week).await
+        .expect("![Main] Could not fetch matches for for automated message.")
+        .collect();
 
     //TODO: Create right message here with database results
     format!("Building results message for current week {}", week)
