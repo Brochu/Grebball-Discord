@@ -13,7 +13,7 @@ use tokio::spawn;
 use tokio::time::{ interval, MissedTickBehavior };
 
 use library::database::DB;
-use library::football::{ get_week, Match };
+use library::football::{ calc_results, get_week, Match };
 
 mod commands;
 
@@ -101,15 +101,22 @@ async fn weekly_message(db: &DB) -> String {
     let season = env::var("CONF_SEASON")
         .expect("![Handler] Cannot find 'CONF_SEASON' in env").parse()
         .expect("![Handler] Could not parse 'CONF_SEASON' to u16");
-
     let week = db.find_week(&pool_id, &season).await
         .expect("![Handler] Could not find current week from DB");
 
-    let _picks = db.fetch_picks(&pool_id, &season, &week);
+    match db.fetch_picks(&pool_id, &season, &week).await {
+        Ok(picks) => {
+            let matches: Vec<Match> = get_week(&season, &week).await
+                .expect("![Main] Could not fetch matches for for automated message.")
+                .collect();
 
-    let _matches: Vec<Match> = get_week(&season, &week).await
-        .expect("![Main] Could not fetch matches for for automated message.")
-        .collect();
+            let _results = calc_results(&week,&matches,&picks).await;
+        },
+        Err(e) => {
+            println!("![Handler] Could not fetch picks for poolid: {}; season: {}, week: {}\nerror: {}",
+                pool_id, season, week, e);
+        },
+    }
 
     //TODO: Create right message here with database results
     format!("Building results message for current week {}", week)
