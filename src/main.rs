@@ -95,16 +95,16 @@ impl EventHandler for Bot {
 }
 
 async fn weekly_message(db: &DB) -> String {
-    let pool_id = env::var("POOL_ID")
+    let poolid = env::var("POOL_ID")
         .expect("![Handler] Could not find env var 'POOL_ID'").parse()
         .expect("![Handler] Could not parse pool_id to int");
     let season = env::var("CONF_SEASON")
         .expect("![Handler] Cannot find 'CONF_SEASON' in env").parse()
         .expect("![Handler] Could not parse 'CONF_SEASON' to u16");
-    let week = db.find_week(&pool_id, &season).await
+    let week = db.find_week(&poolid, &season).await
         .expect("![Handler] Could not find current week from DB");
 
-    match db.fetch_picks(&pool_id, &season, &week).await {
+    match db.fetch_picks(&poolid, &season, &week).await {
         Ok(picks) => {
             let matches: Vec<Match> = get_week(&season, &week).await
                 .expect("![Main] Could not fetch matches for for automated message.")
@@ -114,7 +114,7 @@ async fn weekly_message(db: &DB) -> String {
         },
         Err(e) => {
             println!("![Handler] Could not fetch picks for poolid: {}; season: {}, week: {}\nerror: {}",
-                pool_id, season, week, e);
+                poolid, season, week, e);
         },
     }
 
