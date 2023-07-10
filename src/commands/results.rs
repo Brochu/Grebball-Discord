@@ -81,7 +81,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     }
                 }
             })
-            .fold(String::new(), |header, _winner| {
+            .fold(String::new(), |mut header, winner| {
+                header.push_str(format!("<:{}:{}>", winner, get_team_emoji(winner)).as_str());
                 header
             });
 
