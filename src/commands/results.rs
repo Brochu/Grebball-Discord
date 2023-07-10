@@ -1,4 +1,4 @@
-use std::{ env, cmp::Ordering };
+use std::env;
 
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
