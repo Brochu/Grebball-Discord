@@ -16,16 +16,13 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
         .kind(CommandType::ChatInput)
 }
 
-pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
+pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, _db: &DB) {
+    let _poolid = env::var("POOL_ID")
+        .expect("![Handler] Could not find env var 'POOL_ID'").parse::<i64>()
+        .expect("![Handler] Could not parse pool_id to int");
     let _season = env::var("CONF_SEASON")
         .expect("[results] Cannot find 'CONF_SEASON' in env").parse::<u16>()
         .expect("[results] Could not parse 'CONF_SEASON' to u16");
-
-    let discordid = command.user.id.as_u64()
-        .to_string().parse::<i64>()
-        .unwrap();
-    let _poolid = db.find_poolid(&discordid).await
-        .expect("![results] Could not find valid poolid based on discordid");
 
     let _weeks = vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 160, 125, 150, 200);
 

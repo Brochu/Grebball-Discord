@@ -32,21 +32,6 @@ impl DB {
         DB { pool: SqlitePool::connect(db_url.as_str()).await.unwrap() }
     }
 
-    pub async fn find_poolid(&self, discordid: &i64) -> Result<i64> {
-        let poolid: i64 = sqlx::query("
-                SELECT p.poolid FROM users AS u
-                JOIN poolers AS p
-                ON u.id = p.userid
-                WHERE u.discordid = ?
-                ")
-            .bind(discordid)
-            .fetch_one(&self.pool)
-            .await?
-            .get("poolid");
-
-        Ok(poolid)
-    }
-
     pub async fn find_week(&self, poolid: &i64, season: &u16) -> Result<i64> {
         let week = sqlx::query("
                 SELECT max(pk.week) as maxweek FROM picks as pk

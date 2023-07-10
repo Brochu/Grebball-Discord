@@ -46,6 +46,9 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
 }
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
+    let poolid = env::var("POOL_ID")
+        .expect("![results] Could not find env var 'POOL_ID'").parse()
+        .expect("![results] Could not parse pool_id to int");
     let season = env::var("CONF_SEASON")
         .expect("[results] Cannot find 'CONF_SEASON' in env").parse::<u16>()
         .expect("[results] Could not parse 'CONF_SEASON' to u16");
@@ -53,12 +56,6 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[results] No argument provided").value.as_ref()
         .unwrap().as_str().unwrap().parse::<i64>()
         .expect("[results] Could not parse week arg to u64");
-
-    let discordid = command.user.id.as_u64()
-        .to_string().parse::<i64>()
-        .unwrap();
-    let poolid = db.find_poolid(&discordid).await
-        .expect("![results] Could not find valid poolid based on discordid");
 
     match db.fetch_picks(&poolid, &season, &week).await {
         Ok(picks) => {
