@@ -1,4 +1,4 @@
-use std::env;
+use std::{ env, cmp::Ordering };
 
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
@@ -66,6 +66,25 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             let results = calc_results(&week, &matches, &picks).await;
 
             let mut message = String::new();
+
+            let _header = matches.iter().map(|m| {
+                match (m.away_score, m.home_score) {
+                    (Some(a), Some(h)) => {
+                        match a.cmp(&h) {
+                            Ordering::Less => m.home_team.as_str(),
+                            Ordering::Greater => m.away_team.as_str(),
+                            Ordering::Equal => "",
+                        }
+                    }
+                    _ => {
+                        ""
+                    }
+                }
+            })
+            .fold(String::new(), |header, _winner| {
+                header
+            });
+
             for r in results {
                 if r.cache {
                     if let Err(e) = db.cache_results(&r.pickid, &r.score).await {
