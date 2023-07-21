@@ -64,12 +64,20 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
             .expect("![Week] Could not fetch match data");
 
         let output = matches.fold(String::new(), |mut out, m| {
+            //TODO: Add checks if the match is over, highlight winner
             let aemoji = get_team_emoji(m.away_team.as_str());
             let hemoji = get_team_emoji(m.home_team.as_str());
 
-            out.push_str(format!("<:{}:{}> {} <:{}:{}>\n",
+            let ascore = m.away_score.unwrap_or(0);
+            let hscore = m.home_score.unwrap_or(0);
+            let boldaway = ascore > hscore;
+            let boldhome = ascore < hscore;
+
+            out.push_str(format!("<:{}:{}> {} {} {} <:{}:{}>\n",
                 m.away_team, aemoji,
+                if boldaway { format!("__`{:02}`__", ascore) } else { format!("`{:02}`", ascore) },
                 VS_EMOJI,
+                if boldhome { format!("__`{:02}`__", hscore) } else { format!("`{:02}`", hscore) },
                 m.home_team, hemoji
             ).as_str());
             out
