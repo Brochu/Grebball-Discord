@@ -83,18 +83,37 @@ impl EventHandler for Bot {
                 loop {
                     timer.tick().await;
 
-                    let message = weekly_message(&db).await;
+                    let matches = weekly_matches_message(&db).await;
+                    let results = weekly_results_message(&db).await;
+
                     hook.execute(&ctx.http, false, |m| {
-                        m.content(message)
+                        m.content(matches)
                     }).await.unwrap();
 
+                    hook.execute(&ctx.http, false, |m| {
+                        m.content(results)
+                    }).await.unwrap();
                 }
             }
         });
     }
 }
 
-async fn weekly_message(db: &DB) -> String {
+async fn weekly_matches_message(db: &DB) -> String {
+    let poolid = env::var("POOL_ID")
+        .expect("![Handler] Could not find env var 'POOL_ID'").parse()
+        .expect("![Handler] Could not parse pool_id to int");
+    let season = env::var("CONF_SEASON")
+        .expect("![Handler] Cannot find 'CONF_SEASON' in env").parse()
+        .expect("![Handler] Could not parse 'CONF_SEASON' to u16");
+    let week = db.find_week(&poolid, &season).await
+        .expect("![Handler] Could not find current week from DB");
+
+    //TODO: Create right message here with database results
+    format!("Building results message for current week {}", week)
+}
+
+async fn weekly_results_message(db: &DB) -> String {
     let poolid = env::var("POOL_ID")
         .expect("![Handler] Could not find env var 'POOL_ID'").parse()
         .expect("![Handler] Could not parse pool_id to int");
