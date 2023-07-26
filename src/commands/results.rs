@@ -78,6 +78,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
                 let icons = if let Some(poolerpicks) = &pick.picks {
                     matches.iter().fold(String::new(), |mut acc, m| {
+                        //TODO: Look into this with a incomplete week, some poolers without picks
                         let choice = poolerpicks.get(&m.id_event).unwrap()
                             .as_str().unwrap();
 

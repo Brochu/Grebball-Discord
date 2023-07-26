@@ -157,6 +157,7 @@ async fn weekly_results_message(db: &DB, poolid: &i64, season: &u16, week: &i64)
 
                 let icons = if let Some(poolerpicks) = &pick.picks {
                     matches.iter().fold(String::new(), |mut acc, m| {
+                        //TODO: Look into this with a incomplete week, some poolers without picks
                         let choice = poolerpicks.get(&m.id_event).unwrap()
                             .as_str().unwrap();
 
