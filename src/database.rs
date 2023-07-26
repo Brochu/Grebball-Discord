@@ -49,17 +49,20 @@ impl DB {
 
     pub async fn fetch_picks(&self, poolid: &i64, season: &u16, week: &i64) -> Result<Vec<WeekPicks>> {
         let results: Vec<WeekPicks> = sqlx::query("
-                SELECT pk.id, pl.id, name, pickstring, scorecache FROM picks AS pk
-                JOIN poolers AS pl ON pl.id = pk.poolerid
-                WHERE season = ? AND week = ? AND pl.poolid = ?
+                SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.pickstring, pk.scorecache FROM poolers AS pl
+                LEFT JOIN (
+                    SELECT id, poolerid, pickstring, scorecache FROM picks
+                    WHERE season = 2022 AND week = 5
+                ) AS pk ON pk.poolerid = pl.id
+                WHERE pl.poolid = 1
                 ")
             .bind(season)
             .bind(week)
             .bind(poolid)
             .fetch_all(&self.pool).await?
             .iter().map(|row| {
-                let pickid: i64 = row.get(0);
-                let poolerid: i64 = row.get(1);
+                let pickid: i64 = row.get("pickid");
+                let poolerid: i64 = row.get("poolerid");
                 let name: String = row.get("name");
                 let picks: Option<Map<String, Value>> = serde_json::from_str(row.get("pickstring")).ok();
                 let cached: Option<u32> = row.get("scorecache");
