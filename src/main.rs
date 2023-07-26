@@ -135,13 +135,43 @@ async fn weekly_matches_message(season: &u16, week: &i64) -> String {
 }
 
 async fn weekly_results_message(db: &DB, poolid: &i64, season: &u16, week: &i64) -> String {
+    let mut message = String::new();
+
     match db.fetch_picks(&poolid, &season, &week).await {
         Ok(picks) => {
             let matches: Vec<Match> = get_week(&season, &week).await
                 .expect("![Main] Could not fetch matches for for automated message.")
                 .collect();
 
-            let _results = calc_results(&week,&matches,&picks).await;
+            let results = calc_results(&week,&matches,&picks).await;
+
+            for r in results {
+                if r.cache {
+                    if let Err(e) = db.cache_results(&r.pickid, &r.score).await {
+                        println!("[results] Error while trying to cache score: {e}")
+                    }
+                }
+
+                let pick = picks.iter().find(|p| p.pickid == r.pickid)
+                    .expect("![results] Could not find pooler picks to fill icons");
+
+                let icons = if let Some(poolerpicks) = &pick.picks {
+                    matches.iter().fold(String::new(), |mut acc, m| {
+                        let choice = poolerpicks.get(&m.id_event).unwrap()
+                            .as_str().unwrap();
+
+                        acc.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
+                        acc
+                    })
+                }
+                else {
+                    String::new()
+                };
+
+                let width = 10 - r.name.len();
+                message.push_str(format!("`{}{}` -> {} : {}\n",
+                    r.name, " ".repeat(width), icons, r.score).as_str());
+            }
         },
         Err(e) => {
             println!("![Handler] Could not fetch picks for poolid: {}; season: {}, week: {}\nerror: {}",
@@ -149,8 +179,7 @@ async fn weekly_results_message(db: &DB, poolid: &i64, season: &u16, week: &i64)
         },
     }
 
-    //TODO: Create right message here with database results
-    format!("Building results message for current week {}", week)
+    message
 }
 
 #[tokio::main]
