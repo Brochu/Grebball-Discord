@@ -52,9 +52,9 @@ impl DB {
                 SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.pickstring, pk.scorecache FROM poolers AS pl
                 LEFT JOIN (
                     SELECT id, poolerid, pickstring, scorecache FROM picks
-                    WHERE season = 2022 AND week = 5
+                    WHERE season = ? AND week = ?
                 ) AS pk ON pk.poolerid = pl.id
-                WHERE pl.poolid = 1
+                WHERE pl.poolid = ?
                 ")
             .bind(season)
             .bind(week)
