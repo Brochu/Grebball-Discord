@@ -13,9 +13,11 @@ use tokio::spawn;
 use tokio::time::{ interval, MissedTickBehavior };
 
 use library::database::DB;
-use library::football::{ calc_results, get_week, Match };
+use library::football::{ calc_results, get_week, get_team_emoji, Match };
 
 mod commands;
+
+const VS_EMOJI: &str = "<:VS:1102123108187525130>";
 
 struct Bot {
     database: DB,
@@ -83,8 +85,17 @@ impl EventHandler for Bot {
                 loop {
                     timer.tick().await;
 
-                    let matches = weekly_matches_message(&db).await;
-                    let results = weekly_results_message(&db).await;
+                    let poolid = env::var("POOL_ID")
+                        .expect("![Handler] Could not find env var 'POOL_ID'").parse()
+                        .expect("![Handler] Could not parse pool_id to int");
+                    let season = env::var("CONF_SEASON")
+                        .expect("![Handler] Cannot find 'CONF_SEASON' in env").parse()
+                        .expect("![Handler] Could not parse 'CONF_SEASON' to u16");
+                    let week = db.find_week(&poolid, &season).await
+                        .expect("![Handler] Could not find current week from DB");
+
+                    let matches = weekly_matches_message(&season, &week).await;
+                    let results = weekly_results_message(&db, &poolid, &season, &week).await;
 
                     hook.execute(&ctx.http, false, |m| {
                         m.content(matches)
@@ -99,30 +110,31 @@ impl EventHandler for Bot {
     }
 }
 
-async fn weekly_matches_message(db: &DB) -> String {
-    let poolid = env::var("POOL_ID")
-        .expect("![Handler] Could not find env var 'POOL_ID'").parse()
-        .expect("![Handler] Could not parse pool_id to int");
-    let season = env::var("CONF_SEASON")
-        .expect("![Handler] Cannot find 'CONF_SEASON' in env").parse()
-        .expect("![Handler] Could not parse 'CONF_SEASON' to u16");
-    let week = db.find_week(&poolid, &season).await
-        .expect("![Handler] Could not find current week from DB");
+async fn weekly_matches_message(season: &u16, week: &i64) -> String {
+    let matches = get_week(&season, &week).await
+        .expect("![Week] Could not fetch match data");
 
-    //TODO: Create right message here with database results
-    format!("Building results message for current week {}", week)
+    matches.fold(String::new(), |mut out, m| {
+        let aemoji = get_team_emoji(m.away_team.as_str());
+        let hemoji = get_team_emoji(m.home_team.as_str());
+
+        let ascore = m.away_score.unwrap_or(0);
+        let hscore = m.home_score.unwrap_or(0);
+        let boldaway = ascore > hscore;
+        let boldhome = ascore < hscore;
+
+        out.push_str(format!("<:{}:{}> {} {} {} <:{}:{}>\n",
+            m.away_team, aemoji,
+            if boldaway { format!("__`{:02}`__", ascore) } else { format!("`{:02}`", ascore) },
+            VS_EMOJI,
+            if boldhome { format!("__`{:02}`__", hscore) } else { format!("`{:02}`", hscore) },
+            m.home_team, hemoji
+        ).as_str());
+        out
+    })
 }
 
-async fn weekly_results_message(db: &DB) -> String {
-    let poolid = env::var("POOL_ID")
-        .expect("![Handler] Could not find env var 'POOL_ID'").parse()
-        .expect("![Handler] Could not parse pool_id to int");
-    let season = env::var("CONF_SEASON")
-        .expect("![Handler] Cannot find 'CONF_SEASON' in env").parse()
-        .expect("![Handler] Could not parse 'CONF_SEASON' to u16");
-    let week = db.find_week(&poolid, &season).await
-        .expect("![Handler] Could not find current week from DB");
-
+async fn weekly_results_message(db: &DB, poolid: &i64, season: &u16, week: &i64) -> String {
     match db.fetch_picks(&poolid, &season, &week).await {
         Ok(picks) => {
             let matches: Vec<Match> = get_week(&season, &week).await
