@@ -78,9 +78,10 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
                 let icons = if let Some(poolerpicks) = &pick.picks {
                     matches.iter().fold(String::new(), |mut acc, m| {
-                        //TODO: Look into this with a incomplete week, some poolers without picks
-                        let choice = poolerpicks.get(&m.id_event).unwrap()
-                            .as_str().unwrap();
+                        let choice = match poolerpicks.get(&m.id_event) {
+                            Some(p) => p.as_str().unwrap(),
+                            None => "NA",
+                        };
 
                         acc.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
                         acc
@@ -95,11 +96,13 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     r.name, " ".repeat(width), icons, r.score).as_str());
             }
 
+            println!("[{}] - {message}", message.len());
+            //TODO: Message too long, find a way to shorten
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                 res
                     .kind(InteractionResponseType::ChannelMessageWithSource)
                     .interaction_response_data(|m| m
-                        .content(format!("Results:\n{message}"))
+                        .content(format!("{message}"))
                     )
             })
             .await {
