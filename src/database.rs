@@ -11,7 +11,7 @@ pub struct DB {
 }
 
 pub struct WeekPicks {
-    pub pickid: i64,
+    pub pickid: Option<i64>,
     pub poolerid: i64,
     pub name: String,
     pub picks: Option<Map<String, Value>>,
@@ -20,7 +20,10 @@ pub struct WeekPicks {
 
 impl Display for WeekPicks {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "[{}] ({:?}) -> {:?}", self.name, self.cached, self.picks)
+        writeln!(f, "(pickid: {:?}, poolerid: {})[{}] ({:?}) -> {:?}",
+            self.pickid, self.poolerid,
+            self.name,
+            self.cached, self.picks)
     }
 }
 
@@ -61,7 +64,7 @@ impl DB {
             .bind(poolid)
             .fetch_all(&self.pool).await?
             .iter().map(|row| {
-                let pickid: i64 = row.get("pickid");
+                let pickid: Option<i64> = row.get("pickid");
                 let poolerid: i64 = row.get("poolerid");
                 let name: String = row.get("name");
                 let picks: Option<Map<String, Value>> = serde_json::from_str(row.get("pickstring")).ok();
@@ -69,6 +72,7 @@ impl DB {
 
                 WeekPicks { pickid, poolerid, name, picks, cached }
             })
+            .inspect(|wp| println!("WEEK PICKS : {}", wp))
             .collect();
         
         Ok(results)

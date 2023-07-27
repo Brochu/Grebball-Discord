@@ -142,7 +142,7 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
 }
 
 pub struct PickResults {
-    pub pickid: i64,
+    pub pickid: Option<i64>,
     pub name: String,
     pub score: u32,
     pub cache: bool,
@@ -150,7 +150,7 @@ pub struct PickResults {
 
 impl Display for PickResults {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}] {} - {} (should cache? {})",
+        write!(f, "[{:?}] {} - {} (should cache? {})",
             self.pickid, self.name, self.score, self.cache)
     }
 }

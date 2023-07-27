@@ -146,32 +146,34 @@ async fn weekly_results_message(db: &DB, poolid: &i64, season: &u16, week: &i64)
             let results = calc_results(&week,&matches,&picks).await;
 
             for r in results {
-                if r.cache {
-                    if let Err(e) = db.cache_results(&r.pickid, &r.score).await {
+                if r.cache && r.pickid.is_some() {
+                    if let Err(e) = db.cache_results(&r.pickid.unwrap(), &r.score).await {
                         println!("[results] Error while trying to cache score: {e}")
                     }
                 }
 
-                let pick = picks.iter().find(|p| p.pickid == r.pickid)
-                    .expect("![results] Could not find pooler picks to fill icons");
+                //TODO: Need to organize this part of the logic better, this is a mess
+                //TODO: COPY AGAIN FROM RESULTS.RS
+                let pick = picks.iter().find(|p| r.pickid.is_some() && p.pickid == r.pickid);
 
-                let icons = if let Some(poolerpicks) = &pick.picks {
-                    matches.iter().fold(String::new(), |mut acc, m| {
-                        //TODO: Look into this with a incomplete week, some poolers without picks
-                        let choice = poolerpicks.get(&m.id_event).unwrap()
-                            .as_str().unwrap();
+                if let Some(pick) = pick {
+                    let icons = if let Some(poolerpicks) = &pick.picks {
+                        matches.iter().fold(String::new(), |mut acc, m| {
+                            let choice = poolerpicks.get(&m.id_event).unwrap()
+                                .as_str().unwrap();
 
-                        acc.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
-                        acc
-                    })
+                            acc.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
+                            acc
+                        })
+                    }
+                    else {
+                        String::new()
+                    };
+
+                    let width = 10 - r.name.len();
+                    message.push_str(format!("`{}{}` -> {} : {}\n",
+                        r.name, " ".repeat(width), icons, r.score).as_str());
                 }
-                else {
-                    String::new()
-                };
-
-                let width = 10 - r.name.len();
-                message.push_str(format!("`{}{}` -> {} : {}\n",
-                    r.name, " ".repeat(width), icons, r.score).as_str());
             }
         },
         Err(e) => {
