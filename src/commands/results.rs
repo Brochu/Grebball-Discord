@@ -64,8 +64,6 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 .collect();
 
             let results = calc_results(&week, &matches, &picks).await;
-            results.iter().for_each(|r| println!("RESULTS: {}", r));
-
             let mut message = String::new();
             for r in results {
                 if r.cache && r.pickid.is_some() {
@@ -78,7 +76,6 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 let pick = picks.iter().find(|p| r.pickid.is_some() && p.pickid == r.pickid);
 
                 let icons = if let Some(pick) = pick {
-                    println!("[{}] - {:?}", pick.poolerid, pick.picks);
                     if let Some(poolerpicks) = &pick.picks {
                         matches.iter().fold(String::new(), |mut acc, m| {
                             let choice = match poolerpicks.get(&m.id_event) {

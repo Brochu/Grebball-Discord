@@ -72,7 +72,6 @@ impl DB {
 
                 WeekPicks { pickid, poolerid, name, picks, cached }
             })
-            .inspect(|wp| println!("WEEK PICKS : {}", wp))
             .collect();
         
         Ok(results)
