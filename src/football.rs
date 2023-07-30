@@ -145,6 +145,7 @@ pub struct PickResults {
     pub pickid: Option<i64>,
     pub name: String,
     pub score: u32,
+    pub icons: String,
     pub cache: bool,
 }
 
@@ -173,18 +174,19 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) ->
             let name = p.name.to_owned();
             if let Some(cached) = p.cached {
                 PickResults {
-                    pickid: p.pickid, name, score: cached,
+                    pickid: p.pickid, name, score: cached, icons: String::new(),
                     cache: false && week_complete && p.pickid.is_some()
                 }
             }
             else {
-                let (score, cache) = match &p.picks {
+                let (score, icons, cache) = match &p.picks {
                     Some(poolerpicks) => (
                         calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid),
+                        String::new(),
                         true && week_complete && p.pickid.is_some()),
-                    None => (0, false && week_complete && p.pickid.is_some()),
+                    None => (0, String::new(), false && week_complete && p.pickid.is_some()),
                 };
-                PickResults { pickid: p.pickid, name, score, cache }
+                PickResults { pickid: p.pickid, name, score, icons, cache }
             }
         })
         .collect()
