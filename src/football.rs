@@ -173,42 +173,33 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) ->
         .map(|p| {
             let name = p.name.to_owned();
 
-            //TODO: Need to organize this part of the logic better, this is a mess
-            //let pick = picks.iter().find(|p| r.pickid.is_some() && p.pickid == r.pickid);
+            let icons = if let Some(picks) = &p.picks {
+                matches.iter().fold(String::new(), |mut acc, m| {
+                    let choice = match picks.get(&m.id_event) {
+                        Some(p) => p.as_str().unwrap(),
+                        None => "NA",
+                    };
 
-            //let icons = if let Some(pick) = pick {
-            //    if let Some(poolerpicks) = &pick.picks {
-            //        matches.iter().fold(String::new(), |mut acc, m| {
-            //            let choice = match poolerpicks.get(&m.id_event) {
-            //                Some(p) => p.as_str().unwrap(),
-            //                None => "NA",
-            //            };
-
-            //            acc.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
-            //            acc
-            //        })
-            //    }
-            //    else {
-            //        String::new()
-            //    }
-            //} else {
-            //    String::new()
-            //};
-            //-------------------------
+                    acc.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
+                    acc
+                })
+            }
+            else {
+                String::new()
+            };
 
             if let Some(cached) = p.cached {
                 PickResults {
-                    pickid: p.pickid, name, score: cached, icons: String::new(),
+                    pickid: p.pickid, name, score: cached, icons,
                     cache: false && week_complete && p.pickid.is_some()
                 }
             }
             else {
-                let (score, icons, cache) = match &p.picks {
+                let (score, cache) = match &p.picks {
                     Some(poolerpicks) => (
                         calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid),
-                        String::new(),
                         true && week_complete && p.pickid.is_some()),
-                    None => (0, String::new(), false && week_complete && p.pickid.is_some()),
+                    None => (0, false && week_complete && p.pickid.is_some()),
                 };
                 PickResults { pickid: p.pickid, name, score, icons, cache }
             }
