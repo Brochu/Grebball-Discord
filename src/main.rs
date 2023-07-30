@@ -134,55 +134,9 @@ async fn weekly_matches_message(season: &u16, week: &i64) -> String {
     })
 }
 
-async fn weekly_results_message(db: &DB, poolid: &i64, season: &u16, week: &i64) -> String {
-    let mut message = String::new();
-
-    match db.fetch_picks(&poolid, &season, &week).await {
-        Ok(picks) => {
-            let matches: Vec<Match> = get_week(&season, &week).await
-                .expect("![Main] Could not fetch matches for for automated message.")
-                .collect();
-
-            let results = calc_results(&week,&matches,&picks).await;
-
-            for r in results {
-                if r.cache && r.pickid.is_some() {
-                    if let Err(e) = db.cache_results(&r.pickid.unwrap(), &r.score).await {
-                        println!("[results] Error while trying to cache score: {e}")
-                    }
-                }
-
-                //TODO: Need to organize this part of the logic better, this is a mess
-                //TODO: COPY AGAIN FROM RESULTS.RS
-                let pick = picks.iter().find(|p| r.pickid.is_some() && p.pickid == r.pickid);
-
-                if let Some(pick) = pick {
-                    let icons = if let Some(poolerpicks) = &pick.picks {
-                        matches.iter().fold(String::new(), |mut acc, m| {
-                            let choice = poolerpicks.get(&m.id_event).unwrap()
-                                .as_str().unwrap();
-
-                            acc.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
-                            acc
-                        })
-                    }
-                    else {
-                        String::new()
-                    };
-
-                    let width = 10 - r.name.len();
-                    message.push_str(format!("`{}{}` -> {} : {}\n",
-                        r.name, " ".repeat(width), icons, r.score).as_str());
-                }
-            }
-        },
-        Err(e) => {
-            println!("![Handler] Could not fetch picks for poolid: {}; season: {}, week: {}\nerror: {}",
-                poolid, season, week, e);
-        },
-    }
-
-    message
+async fn weekly_results_message(_db: &DB, _poolid: &i64, _season: &u16, _week: &i64) -> String {
+    //TODO: Bring changes from results.rs
+    String::new()
 }
 
 #[tokio::main]
