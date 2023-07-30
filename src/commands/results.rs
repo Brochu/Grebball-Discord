@@ -63,13 +63,12 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 .expect("[results] Could not fetch week data")
                 .collect();
 
-            let results = calc_results(&week, &matches, &picks).await;
             let mut message = String::new();
+            let results = calc_results(&week, &matches, &picks).await;
+
             for r in results {
-                if r.cache && r.pickid.is_some() {
-                    if let Err(e) = db.cache_results(&r.pickid.unwrap(), &r.score).await {
-                        println!("[results] Error while trying to cache score: {e}")
-                    }
+                if r.cache {
+                    db.cache_results(&r.pickid.unwrap(), &r.score).await.unwrap();
                 }
 
                 //TODO: Need to organize this part of the logic better, this is a mess

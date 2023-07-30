@@ -172,14 +172,17 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) ->
         .map(|p| {
             let name = p.name.to_owned();
             if let Some(cached) = p.cached {
-                PickResults { pickid: p.pickid, name, score: cached, cache: false && week_complete }
+                PickResults {
+                    pickid: p.pickid, name, score: cached,
+                    cache: false && week_complete && p.pickid.is_some()
+                }
             }
             else {
                 let (score, cache) = match &p.picks {
                     Some(poolerpicks) => (
                         calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid),
-                        true && week_complete),
-                    None => (0, false && week_complete),
+                        true && week_complete && p.pickid.is_some()),
+                    None => (0, false && week_complete && p.pickid.is_some()),
                 };
                 PickResults { pickid: p.pickid, name, score, cache }
             }
