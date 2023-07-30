@@ -172,6 +172,30 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) ->
     picks.iter()
         .map(|p| {
             let name = p.name.to_owned();
+
+            //TODO: Need to organize this part of the logic better, this is a mess
+            //let pick = picks.iter().find(|p| r.pickid.is_some() && p.pickid == r.pickid);
+
+            //let icons = if let Some(pick) = pick {
+            //    if let Some(poolerpicks) = &pick.picks {
+            //        matches.iter().fold(String::new(), |mut acc, m| {
+            //            let choice = match poolerpicks.get(&m.id_event) {
+            //                Some(p) => p.as_str().unwrap(),
+            //                None => "NA",
+            //            };
+
+            //            acc.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
+            //            acc
+            //        })
+            //    }
+            //    else {
+            //        String::new()
+            //    }
+            //} else {
+            //    String::new()
+            //};
+            //-------------------------
+
             if let Some(cached) = p.cached {
                 PickResults {
                     pickid: p.pickid, name, score: cached, icons: String::new(),

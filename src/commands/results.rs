@@ -71,31 +71,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     db.cache_results(&r.pickid.unwrap(), &r.score).await.unwrap();
                 }
 
-                //TODO: Need to organize this part of the logic better, this is a mess
-                let pick = picks.iter().find(|p| r.pickid.is_some() && p.pickid == r.pickid);
-
-                let icons = if let Some(pick) = pick {
-                    if let Some(poolerpicks) = &pick.picks {
-                        matches.iter().fold(String::new(), |mut acc, m| {
-                            let choice = match poolerpicks.get(&m.id_event) {
-                                Some(p) => p.as_str().unwrap(),
-                                None => "NA",
-                            };
-
-                            acc.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
-                            acc
-                        })
-                    }
-                    else {
-                        String::new()
-                    }
-                } else {
-                    String::new()
-                };
-                //TODO: Ark this sucks
                 let width = 10 - r.name.len();
                 message.push_str(format!("`{}{}` -> {} : {}\n",
-                    r.name, " ".repeat(width), icons, r.score).as_str());
+                    r.name, " ".repeat(width), r.icons, r.score).as_str());
             }
 
             println!("[{}] - {message}", message.len());
