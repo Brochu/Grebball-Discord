@@ -13,7 +13,7 @@ use tokio::spawn;
 use tokio::time::{ interval, MissedTickBehavior };
 
 use library::database::DB;
-use library::football::{ calc_results, get_week, get_team_emoji, Match };
+use library::football::{ get_week, get_team_emoji };
 
 mod commands;
 

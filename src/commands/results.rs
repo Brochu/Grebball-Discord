@@ -7,7 +7,7 @@ use serenity::model::prelude::command::{CommandType, CommandOptionType};
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::{ calc_results, get_week, get_team_emoji, Match };
+use library::football::{ calc_results, get_week, Match };
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
