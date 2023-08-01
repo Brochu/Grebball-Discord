@@ -23,10 +23,10 @@ app.get('/:discordid/:pickid', async (req, res) => {
         const sql = `
             SELECT u.avatar, po.name, po.favteam, pi.season, pi.week
             FROM users AS u
-            JOIN poolers as po
-            ON u.id = po.userid
-            JOIN picks as pi
-            ON po.id = pi.poolerid
+                JOIN poolers as po
+                ON u.id = po.userid
+                JOIN picks as pi
+                ON po.id = pi.poolerid
             WHERE u.discordid = ? AND pi.id = ?
         `;
         db.get(sql, discordid, pickid, async (err, row) => {
@@ -70,18 +70,22 @@ app.post('/submit', (req, res) => {
     const pickid = req.body['pickid'];
     const matchids = req.body['matchids'];
     const favteam = req.body['favteam'];
-    console.log(favteam);
-    //TODO: Add the favorite team pick in the picks dict
 
     var picks = {};
     matchids.split(',').forEach((i) => {
-        picks[i] = req.body[i];
+        var pick = req.body[i];
+
+        if (pick) {
+            picks[i] = pick;
+        } else {
+            picks[i] = favteam;
+        }
     });
 
     LoadDB((db) => {
         const sql = `
             UPDATE picks
-            SET pickstring = ?
+                SET pickstring = ?
             WHERE id = ?
         `;
         db.run(sql, JSON.stringify(picks), pickid, (err) => {
