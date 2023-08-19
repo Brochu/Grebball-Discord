@@ -1,3 +1,5 @@
+use std::env;
+
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
@@ -53,9 +55,12 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .to_string().parse::<i64>()
         .unwrap();
 
+    let picks_url = env::var("PICKS_URL")
+        .expect("![Picks] Could not find 'PICKS_URL' env var");
+
     match db.prime_picks(&discordid, &week).await {
         Ok(row_id) => {
-            let url = format!("http://localhost:8080/{}/{}", discordid, row_id);
+            let url = format!("{}/{}/{}", picks_url, discordid, row_id);
 
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                 res
