@@ -100,7 +100,7 @@ app.post('/submit', (req, res) => {
     });
 });
 
-const port = 8080;
+const port = 3000;
 
 app.listen(port, () => {
     console.log(`Picks page application, listening on port ${port}`);
