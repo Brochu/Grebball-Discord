@@ -1,4 +1,4 @@
-use std::{env, str::FromStr, cmp::Ordering};
+use std::{env, str::FromStr, cmp::Ordering, collections::HashMap};
 use core::fmt::Display;
 
 use chrono::{ Local, NaiveDate };
@@ -146,7 +146,7 @@ pub struct PickResults {
     pub pickid: Option<i64>,
     pub name: String,
     pub score: u32,
-    pub icons: String,
+    pub icons: HashMap<String, String>,
     pub cache: bool,
 }
 
@@ -175,18 +175,18 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) ->
             let name = p.name.to_owned();
 
             let icons = if let Some(picks) = &p.picks {
-                matches.iter().fold(String::new(), |mut acc, m| {
+                matches.iter().fold(HashMap::new(), |mut acc, m| {
                     let choice = match picks.get(&m.id_event) {
                         Some(p) => p.as_str().unwrap(),
                         None => "NA",
                     };
 
-                    acc.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
+                    acc.insert(m.id_event.to_owned(), format!("<:{}:{}>", choice, get_team_emoji(choice)));
                     acc
                 })
             }
             else {
-                String::new()
+                HashMap::new()
             };
 
             if let Some(cached) = p.cached {
