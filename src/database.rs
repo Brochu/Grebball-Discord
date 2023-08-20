@@ -131,8 +131,6 @@ impl DB {
     }
 
     pub async fn cache_results(&self, pickid: &i64, score: &u32) -> Result<bool> {
-        println!("[DB] Cache result {} for pick {}", score, pickid);
-
         match sqlx::query("
                 UPDATE picks
                 SET scorecache = ?

@@ -10,10 +10,6 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
 }
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
-    println!("[ping] User: {:?}", command.user);
-    println!("[ping] Avatar: {:?}", command.user.avatar);
-    println!("[ping] Avatar URL: {:?}", command.user.avatar_url());
-
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res
             .kind(InteractionResponseType::ChannelMessageWithSource)

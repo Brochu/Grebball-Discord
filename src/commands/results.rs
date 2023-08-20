@@ -76,7 +76,6 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     r.name, " ".repeat(width), r.icons, r.score).as_str());
             }
 
-            println!("[{}] - {message}", message.len());
             //TODO: Message too long, find a way to shorten
             //TODO: Maybe only return the current pooler's results w/ +2 and +3 to show unique picks
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
