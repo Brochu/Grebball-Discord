@@ -10,7 +10,7 @@ use serenity::prelude::*;
 
 use library::football::{ get_week, get_team_emoji };
 
-const VS_EMOJI: &str = "<:VS:1102123108187525130>";
+const VS_EMOJI: &str = "<:VS:1144451849571794997>";
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
