@@ -21,7 +21,7 @@ app.get('/:discordid/:pickid', async (req, res) => {
 
     LoadDB((db) => {
         const sql = `
-            SELECT u.avatar, po.name, po.favteam, pi.season, pi.week
+            SELECT u.avatar, po.name, po.favteam, pi.season, pi.week, pi.pickstring
             FROM users AS u
                 JOIN poolers as po
                 ON u.id = po.userid
@@ -38,6 +38,12 @@ app.get('/:discordid/:pickid', async (req, res) => {
                 return;
             }
             else {
+                // Picks are already in the DB
+                if (row['pickstring'] != null) {
+                    res.render('error.html');
+                    return;
+                }
+
                 const avatar = row['avatar'];
                 const username = row['name'];
                 const favteam = row['favteam']
