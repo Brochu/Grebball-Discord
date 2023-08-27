@@ -26,8 +26,8 @@ struct Bot {
 #[async_trait]
 impl EventHandler for Bot {
     async fn message(&self, ctx: Context, msg: Message) {
-        if msg.content == "!hello" {
-            let reply = format!("Hi, {}!", msg.author.name);
+        if msg.content == "!allo" {
+            let reply = format!("Salut, {}!", msg.author.name);
             if let Err(reason) = msg.channel_id.say(&ctx.http, reply).await {
                 println!("![Handler] Handler message error : {:?}", reason);
             }
@@ -37,11 +37,11 @@ impl EventHandler for Bot {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(cmd) = interaction {
             match cmd.data.name.as_str() {
-                "matches" => commands::matches::run(ctx, &cmd).await,
-                "picks"   => commands::picks::run(ctx, &cmd, &self.database).await,
+                "semaine" => commands::matches::run(ctx, &cmd).await,
+                "choix"   => commands::picks::run(ctx, &cmd, &self.database).await,
                 //"ping"    => commands::ping::run(ctx, &cmd).await,
-                "results" => commands::results::run(ctx, &cmd, &self.database).await,
-                "season" => commands::season::run(ctx, &cmd, &self.database).await,
+                "resultat" => commands::results::run(ctx, &cmd, &self.database).await,
+                "saison" => commands::season::run(ctx, &cmd, &self.database).await,
                 _         => println!("![Handler] Command not implemented!"),
             };
         }

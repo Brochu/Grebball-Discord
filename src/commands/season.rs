@@ -11,8 +11,8 @@ use library::database::DB;
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
-        .name("season")
-        .description("Request the results all current pool members for the current season")
+        .name("saison")
+        .description("Montre les résultats de toutes les semaines de la saison courante")
         .kind(CommandType::ChatInput)
 }
 
