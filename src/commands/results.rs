@@ -72,20 +72,14 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 }
 
                 let width = 10 - r.name.len();
-                message.push_str(format!("`{}{}`:`{:02}`\n", r.name, " ".repeat(width), r.score).as_str());
+                message.push_str(format!("`{}{}` -> `{:02}`\n", r.name, " ".repeat(width), r.score).as_str());
             }
 
-            for m in matches {
-                for r in results.iter() {
-                    let icon = match r.icons.get(&m.id_event) {
-                        Some(choice) => choice,
-                        None => " ",
-                    };
-                    message.push_str(format!("{} ", icon).as_str());
-                }
-
-                message.push_str("\n");
-            }
+            //TODO: Writing picks per pooler
+            //for m in matches {
+            //    for r in results.iter() {
+            //    }
+            //}
 
             //TODO: Message too long, find a way to shorten
             //TODO: Maybe only return the current pooler's results w/ +2 and +3 to show unique picks
