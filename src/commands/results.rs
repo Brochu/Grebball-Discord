@@ -66,20 +66,15 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             let mut message = String::new();
             let results = calc_results(&week, &matches, &picks).await;
 
-            for r in results.iter() {
+            for r in results {
                 if r.cache {
                     db.cache_results(&r.pickid.unwrap(), &r.score).await.unwrap();
                 }
 
                 let width = 10 - r.name.len();
-                message.push_str(format!("`{}{}` -> `{:02}`\n", r.name, " ".repeat(width), r.score).as_str());
+                message.push_str(format!("`{}{}` -> {} : {}\n",
+                    r.name, " ".repeat(width), r.icons, r.score).as_str());
             }
-
-            //TODO: Writing picks per pooler
-            //for m in matches {
-            //    for r in results.iter() {
-            //    }
-            //}
 
             //TODO: Message too long, find a way to shorten
             //TODO: Maybe only return the current pooler's results w/ +2 and +3 to show unique picks
