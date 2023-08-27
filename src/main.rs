@@ -78,7 +78,7 @@ impl EventHandler for Bot {
             timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
             let db = DB::new().await;
 
-            if let Ok(hook_url) = env::var("RESULTS_WEBHOOK") {
+            if let Ok(hook_url) = env::var("WEEKLY_WEBHOOK") {
                 let hook = Webhook::from_url(&ctx.http, hook_url.as_str()).await.unwrap();
                 println!("[Handler] Webhook created and ready to fire");
 
