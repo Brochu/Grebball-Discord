@@ -4,6 +4,7 @@ use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::command::{CommandType, CommandOptionType};
+use serenity::model::webhook::Webhook;
 use serenity::prelude::*;
 
 use library::database::DB;
@@ -66,7 +67,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             let mut message = String::new();
             let results = calc_results(&week, &matches, &picks).await;
 
-            for r in results {
+            for r in results.iter() {
                 if r.cache {
                     db.cache_results(&r.pickid.unwrap(), &r.score).await.unwrap();
                 }
@@ -76,8 +77,6 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     r.score, r.name, " ".repeat(width), r.icons).as_str());
             }
 
-            //TODO: Message too long, find a way to shorten
-            //TODO: Maybe only return the current pooler's results w/ +2 and +3 to show unique picks
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                 res
                     .kind(InteractionResponseType::ChannelMessageWithSource)
@@ -87,6 +86,18 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             })
             .await {
                 println!("![results] Cannot respond to slash command : {:?}", reason);
+            }
+
+            //TODO: Message too long, find a way to shorten
+            //TODO: Send multiple messages from the results hook after creating the interaction response
+            if let Ok(hook_url) = env::var("RESULTS_WEBHOOK") {
+                let hook = Webhook::from_url(&ctx.http, hook_url.as_str()).await.unwrap();
+
+                for _r in results.iter() {
+                    hook.execute(&ctx.http, false, |w| { w
+                        .content("Results here")
+                    }).await.unwrap();
+                }
             }
         },
         Err(e) => {
