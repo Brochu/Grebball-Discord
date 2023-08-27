@@ -72,8 +72,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 }
 
                 let width = 10 - r.name.len();
-                message.push_str(format!("`{}{}` -> {} : {}\n",
-                    r.name, " ".repeat(width), r.icons, r.score).as_str());
+                message.push_str(format!("`[{:02}] {}{}` : {}\n",
+                    r.score, r.name, " ".repeat(width), r.icons).as_str());
             }
 
             //TODO: Message too long, find a way to shorten
