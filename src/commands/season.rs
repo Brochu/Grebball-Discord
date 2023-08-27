@@ -26,6 +26,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, _db: &DB
 
     let _weeks = vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 160, 125, 150, 200);
 
+    //TODO: Fetch picks
+    //TODO: Calculate results
+
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res
             .kind(InteractionResponseType::ChannelMessageWithSource)
