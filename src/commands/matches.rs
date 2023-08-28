@@ -69,14 +69,14 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
 
             let ascore = m.away_score.unwrap_or(0);
             let hscore = m.home_score.unwrap_or(0);
-            let boldaway = ascore > hscore;
-            let boldhome = ascore < hscore;
+            let lineaway = ascore > hscore;
+            let linehome = ascore < hscore;
 
             out.push_str(format!("<:{}:{}> {} {} {} <:{}:{}>\n",
                 m.away_team, aemoji,
-                if boldaway { format!("__`{:02}`__", ascore) } else { format!("`{:02}`", ascore) },
+                if lineaway { format!("__`{:02}`__", ascore) } else { format!("`{:02}`", ascore) },
                 VS_EMOJI,
-                if boldhome { format!("__`{:02}`__", hscore) } else { format!("`{:02}`", hscore) },
+                if linehome { format!("__`{:02}`__", hscore) } else { format!("`{:02}`", hscore) },
                 m.home_team, hemoji
             ).as_str());
             out
