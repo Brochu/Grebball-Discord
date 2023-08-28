@@ -64,38 +64,32 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 .expect("[results] Could not fetch week data")
                 .collect();
 
-            let mut message = String::new();
-            let results = calc_results(&week, &matches, &picks).await;
-
-            for r in results.iter() {
-                if r.cache {
-                    db.cache_results(&r.pickid.unwrap(), &r.score).await.unwrap();
-                }
-
-                let width = 10 - r.name.len();
-                message.push_str(format!("`{}{} ({:02})`\n{}\n",
-                    r.name, " ".repeat(width), r.score, r.icons).as_str());
-            }
-
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                 res
                     .kind(InteractionResponseType::ChannelMessageWithSource)
                     .interaction_response_data(|m| m
-                        .content(format!("{message}"))
+                        .content(format!("Résultats pour la semaine {}, {} ->", week, season))
                     )
             })
             .await {
                 println!("![results] Cannot respond to slash command : {:?}", reason);
             }
 
-            //TODO: Message too long, find a way to shorten
-            //TODO: Send multiple messages from the results hook after creating the interaction response
-            if let Ok(hook_url) = env::var("RESULTS_WEBHOOK") {
-                let hook = Webhook::from_url(&ctx.http, hook_url.as_str()).await.unwrap();
+            let webhook = match env::var("RESULTS_WEBHOOK") {
+                Ok(url) => Some(Webhook::from_url(&ctx.http, url.as_str()).await.unwrap()),
+                Err(_) => None,
+            };
 
-                for _r in results.iter() {
-                    hook.execute(&ctx.http, false, |w| { w
-                        .content("Results here")
+            for r in calc_results(&week, &matches, &picks).await.iter() {
+                if r.cache {
+                    db.cache_results(&r.pickid.unwrap(), &r.score).await.unwrap();
+                }
+
+                let width = 10 - r.name.len();
+                if let Some(hook) = &webhook {
+                    hook.execute(&ctx.http, false, |h| {
+                        h.content(format!("`{}{} ({:02})` {}\n",
+                            r.name, " ".repeat(width), r.score, r.icons).as_str())
                     }).await.unwrap();
                 }
             }
