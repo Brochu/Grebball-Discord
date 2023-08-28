@@ -73,8 +73,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 }
 
                 let width = 10 - r.name.len();
-                message.push_str(format!("`[{:02}] {}{}` : {}\n",
-                    r.score, r.name, " ".repeat(width), r.icons).as_str());
+                message.push_str(format!("`{}{} ({:02})`\n{}\n",
+                    r.name, " ".repeat(width), r.score, r.icons).as_str());
             }
 
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
