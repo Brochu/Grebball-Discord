@@ -1,7 +1,7 @@
 use std::env;
 use std::fmt::Display;
 
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use serde_json::{Value, Map};
 use sqlx::{ Pool, Sqlite, Row };
 use sqlx::sqlite::SqlitePool;
@@ -16,6 +16,11 @@ pub struct WeekPicks {
     pub name: String,
     pub picks: Option<Map<String, Value>>,
     pub cached: Option<u32>,
+}
+
+pub enum PicksStatus {
+    Primed(i64),
+    Filled(String),
 }
 
 impl Display for WeekPicks {
@@ -77,7 +82,7 @@ impl DB {
         Ok(results)
     }
 
-    pub async fn prime_picks(&self, discordid: &i64, week: &i64) -> Result<i64> {
+    pub async fn prime_picks(&self, discordid: &i64, week: &i64) -> Result<PicksStatus> {
         let season = env::var("CONF_SEASON")
             .expect("[DB] Cannot find 'CONF_SEASON' in env").parse::<u16>()
             .expect("[DB] Could not parse 'CONF_SEASON' to u16");
@@ -103,13 +108,13 @@ impl DB {
             .fetch_one(&self.pool)
             .await {
                 Ok(row) => {
-                    if let Some(_) = row.get::<Option<String>, &str>("pickstring") {
-                        return Err(anyhow!("[DB] Picks for given pooler, season and week already entered!"));
+                    if let Some(pickstring) = row.get::<Option<String>, &str>("pickstring") {
+                        Ok(PicksStatus::Filled(pickstring))
                     }
                     else {
                         // Picks are already primed and not filled
                         let id: i64 = row.get("id");
-                        return Ok(id);
+                        Ok(PicksStatus::Primed(id))
                     }
                 },
                 Err(_) => {
@@ -125,7 +130,7 @@ impl DB {
                         .await?;
 
                     let id: i64 = new_row.get(0);
-                    Ok(id)
+                    Ok(PicksStatus::Primed(id))
                 }
         }
     }
