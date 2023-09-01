@@ -1,4 +1,5 @@
 use std::env;
+use serde_json::{Value, Map};
 
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
@@ -7,7 +8,7 @@ use serenity::model::prelude::command::{CommandOptionType, CommandType};
 use serenity::prelude::*;
 
 use library::database::{DB, PicksStatus};
-use library::football::get_week;
+use library::football::{get_week, get_team_emoji};
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -79,14 +80,26 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 }
             },
             PicksStatus::Filled(pickstring) => {
-                let _icons = get_week(&season, &week).await;
+                let picks: Map<String, Value> = serde_json::from_str(&pickstring)
+                    .expect("![picks] Could not parse picks properly");
+
+                let icons = get_week(&season, &week).await
+                    .expect("![picks] Could not fetch week data")
+                    .fold(String::new(), |mut acc, m| {
+                        let team = picks.get(&m.id_event).unwrap()
+                            .as_str().unwrap();
+                        let emoji = get_team_emoji(team);
+
+                        acc.push_str(format!("<:{}:{}> ", team, emoji).as_str());
+                        acc
+                    });
 
                 if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                     res
                         .kind(InteractionResponseType::ChannelMessageWithSource)
                         .interaction_response_data(|m| m
                             .ephemeral(true)
-                            .content(format!("Montrer les choix: {}", pickstring))
+                            .content(format!("Choix pour la semaine {}, {}\n{}", week, season, icons))
                         )
                 })
                 .await {
