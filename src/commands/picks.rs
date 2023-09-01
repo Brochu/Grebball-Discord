@@ -6,7 +6,7 @@ use serenity::model::application::interaction::application_command::ApplicationC
 use serenity::model::prelude::command::{CommandOptionType, CommandType};
 use serenity::prelude::*;
 
-use library::database::DB;
+use library::database::{DB, PicksStatus};
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -55,39 +55,52 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .to_string().parse::<i64>()
         .unwrap();
 
-    let picks_url = env::var("PICKS_URL")
-        .expect("![Picks] Could not find 'PICKS_URL' env var");
+    if let Ok(status) = db.prime_picks(&discordid, &week).await {
+        match status {
+            PicksStatus::Primed(row_id) => {
+                let picks_url = env::var("PICKS_URL")
+                    .expect("![Picks] Could not find 'PICKS_URL' env var");
+                let url = format!("{}/{}/{}", picks_url, discordid, row_id);
 
-    match db.prime_picks(&discordid, &week).await {
-        Ok(row_id) => {
-            let url = format!("{}/{}/{}", picks_url, discordid, row_id);
+                if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+                    res
+                        .kind(InteractionResponseType::ChannelMessageWithSource)
+                        .interaction_response_data(|m| m
+                            .ephemeral(true)
+                            .content(format!("Prêt pour les choix de la {} à faire ici: {}", week_name, url))
+                        )
+                })
+                .await {
+                    println!("![picks] Cannot respond to slash command : {:?}", reason);
+                }
+            },
+            PicksStatus::Filled(pickstring) => {
+                if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+                    res
+                        .kind(InteractionResponseType::ChannelMessageWithSource)
+                        .interaction_response_data(|m| m
+                            .ephemeral(true)
+                            .content(format!("Montrer les choix: {}", pickstring))
+                        )
+                })
+                .await {
+                    println!("![picks] Cannot respond to slash command : {:?}", reason);
+                }
+            },
+        }
+    } else {
+        println!("[picks] Error while priming picks for week {}", week);
 
-            if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
-                res
-                    .kind(InteractionResponseType::ChannelMessageWithSource)
-                    .interaction_response_data(|m| m
-                        .ephemeral(true)
-                        .content(format!("Prêt pour les choix de la {} à faire ici: {}", week_name, url))
-                    )
-            })
-            .await {
-                println!("![picks] Cannot respond to slash command : {:?}", reason);
-            }
-        },
-        Err(_) => {
-            println!("[picks] Could not prime picks for week {}", week);
-
-            if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
-                res
-                    .kind(InteractionResponseType::ChannelMessageWithSource)
-                    .interaction_response_data(|m| m
-                        .ephemeral(true)
-                        .content(format!("Les choix de la semaine {} sont déjà dans la base données", week_name))
-                    )
-            })
-            .await {
-                println!("![picks] Cannot respond to slash command : {:?}", reason);
-            }
+        if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+            res
+                .kind(InteractionResponseType::ChannelMessageWithSource)
+                .interaction_response_data(|m| m
+                    .ephemeral(true)
+                    .content("Une erreur s'est produite avec la commande `/choix` .")
+                )
+        })
+        .await {
+            println!("![picks] Cannot respond to slash command : {:?}", reason);
         }
     }
 }
