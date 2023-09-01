@@ -7,6 +7,7 @@ use serenity::model::prelude::command::{CommandOptionType, CommandType};
 use serenity::prelude::*;
 
 use library::database::{DB, PicksStatus};
+use library::football::get_week;
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -45,6 +46,9 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
 }
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
+    let season = env::var("CONF_SEASON")
+        .expect("[picks] Cannot find 'CONF_SEASON' in env").parse::<u16>()
+        .expect("[picks] Could not parse 'CONF_SEASON' to u16");
     let week = command.data.options.first()
         .expect("[picks] No week arg given with the command").value.as_ref()
         .unwrap().as_str().unwrap().parse::<i64>()
@@ -55,7 +59,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .to_string().parse::<i64>()
         .unwrap();
 
-    if let Ok(status) = db.prime_picks(&discordid, &week).await {
+    if let Ok(status) = db.prime_picks(&discordid, &season, &week).await {
         match status {
             PicksStatus::Primed(row_id) => {
                 let picks_url = env::var("PICKS_URL")
@@ -75,6 +79,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 }
             },
             PicksStatus::Filled(pickstring) => {
+                let _icons = get_week(&season, &week).await;
+
                 if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                     res
                         .kind(InteractionResponseType::ChannelMessageWithSource)

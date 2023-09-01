@@ -82,11 +82,7 @@ impl DB {
         Ok(results)
     }
 
-    pub async fn prime_picks(&self, discordid: &i64, week: &i64) -> Result<PicksStatus> {
-        let season = env::var("CONF_SEASON")
-            .expect("[DB] Cannot find 'CONF_SEASON' in env").parse::<u16>()
-            .expect("[DB] Could not parse 'CONF_SEASON' to u16");
-
+    pub async fn prime_picks(&self, discordid: &i64, season: &u16, week: &i64) -> Result<PicksStatus> {
         let poolerid: i64 = sqlx::query("
                 SELECT p.id FROM users AS u
                 JOIN poolers AS p
