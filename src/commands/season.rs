@@ -7,7 +7,7 @@ use serenity::model::prelude::command::CommandType;
 use serenity::prelude::*;
 
 use library::database::DB;
-//use library::football::calc_results;
+use library::football::{calc_results, get_week, Match};
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -16,18 +16,21 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
         .kind(CommandType::ChatInput)
 }
 
-pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, _db: &DB) {
-    let _poolid = env::var("POOL_ID")
+pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
+    let poolid = env::var("POOL_ID")
         .expect("![Handler] Could not find env var 'POOL_ID'").parse::<i64>()
         .expect("![Handler] Could not parse pool_id to int");
-    let _season = env::var("CONF_SEASON")
+    let season = env::var("CONF_SEASON")
         .expect("[results] Cannot find 'CONF_SEASON' in env").parse::<u16>()
         .expect("[results] Could not parse 'CONF_SEASON' to u16");
 
     let _weeks = vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 160, 125, 150, 200);
 
-    //TODO: Fetch picks
-    //TODO: Calculate results
+    //TODO: Can we make this better? Like bulk operations?
+    let matches: Vec<Match> = get_week(&season, &1).await.unwrap().collect();
+    let picks = db.fetch_picks(&poolid, &season, &1).await
+        .expect("![season] Could not fetch picks to complete season command");
+    let _results = calc_results(&1, &matches, &picks).await;
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res
