@@ -19,7 +19,10 @@
             </ul>
 
             <div class="d-flex" role="user" style="padding-right: 1em">
-            <span style="color: white"> <%= username %> (<%= favteam %>) </span>
+            <span style="color: white">
+                <img src="/teams/<%= favteam %>.png" width=60 height=60 />
+                <%= username %>
+            </span>
             </div>
             <div class="d-flex" role="user">
                 <img class="img-fluid rounded-circle" src="<%= avatar %>" width=64 height=64 />
