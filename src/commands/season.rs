@@ -1,4 +1,5 @@
-use std::env;
+use std::collections::HashMap;
+use std::{env, vec};
 
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
@@ -24,13 +25,39 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[results] Cannot find 'CONF_SEASON' in env").parse::<u16>()
         .expect("[results] Could not parse 'CONF_SEASON' to u16");
 
-    let _weeks = vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 160, 125, 150, 200);
+    let mut season_data: HashMap<String, (Vec<u32>, u64)> = HashMap::new();
 
-    //TODO: Can we make this better? Like bulk operations?
-    let matches: Vec<Match> = get_week(&season, &1).await.unwrap().collect();
-    let picks = db.fetch_picks(&poolid, &season, &1).await
-        .expect("![season] Could not fetch picks to complete season command");
-    let _results = calc_results(&1, &matches, &picks).await;
+    for week in vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 160, 125, 150, 200) {
+        //TODO: Can we make this better? Like bulk operations?
+        let matches: Vec<Match> = get_week(&season, &week).await
+            .unwrap().collect();
+        let picks = db.fetch_picks(&poolid, &season, &week).await
+            .expect("![season] Could not fetch picks to complete season command");
+
+        let results = calc_results(&week, &matches, &picks).await;
+        if results.iter().all(|res| res.score == 0) {
+            break;
+        }
+
+        //TODO: Can we access the poolerid in any way here?
+        results.iter().for_each(|res| {
+            if let Some(entry) = season_data.get_mut(&res.name) {
+                entry.0.extend(vec![res.score]);
+
+                let newscore: u64 = res.score.into();
+                entry.1 += newscore;
+            }
+            else {
+                season_data.insert(format!("{}", res.name), (
+                    vec![res.score],
+                    res.score.into()
+                ));
+            }
+        });
+    }
+    season_data.iter().for_each(|(k, v)| {
+        println!("[{}] -> {:?}", k, v);
+    });
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res
