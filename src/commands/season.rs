@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::{env, vec};
 
 use serenity::builder::CreateApplicationCommand;
@@ -17,6 +16,13 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
         .kind(CommandType::ChatInput)
 }
 
+struct SeasonResult {
+    poolerid: i64,
+    name: String,
+    scores: Vec<u32>,
+    total: u64,
+}
+
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
     let poolid = env::var("POOL_ID")
         .expect("![Handler] Could not find env var 'POOL_ID'").parse::<i64>()
@@ -25,7 +31,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[results] Cannot find 'CONF_SEASON' in env").parse::<u16>()
         .expect("[results] Could not parse 'CONF_SEASON' to u16");
 
-    let mut season_data: HashMap<i64, (String, Vec<u32>, u64)> = HashMap::new();
+    let mut season_data: Vec<SeasonResult> = Vec::new();
 
     for week in vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 160, 125, 150, 200) {
         //TODO: Can we make this better? Like bulk operations?
@@ -41,28 +47,31 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
         results.iter().enumerate().for_each(|(i, res)| {
             let poolerid = picks.get(i).unwrap().poolerid;
-            if let Some(entry) = season_data.get_mut(&poolerid) {
-                entry.1.push(res.score);
+
+            if let Some(entry) = season_data.iter_mut().find(|d| d.poolerid == poolerid) {
+                entry.scores.push(res.score);
 
                 let newscore: u64 = res.score.into();
-                entry.2 += newscore;
+                entry.total += newscore;
             }
             else {
-                season_data.insert(poolerid, (
-                    format!("{}", res.name),
-                    vec![res.score],
-                    res.score.into()
-                ));
+                season_data.push(SeasonResult {
+                    poolerid,
+                    name: format!("{}", res.name),
+                    scores: vec![res.score],
+                    total: res.score.into(),
+                });
             }
         });
     }
 
+    season_data.sort_unstable_by(|l, r| { r.total.cmp(&l.total) });
     let message = season_data.iter()
-        .fold(String::new(), |m, (_, value)| {
-            let width = 10 - value.0.len();
-            let grid = value.1.iter().fold(String::new(), |g, s| { format!("{}| `{:02}` ", g, s) });
+        .fold(String::new(), |m, entry| {
+            let width = 10 - entry.name.len();
+            let grid = entry.scores.iter().fold(String::new(), |g, s| { format!("{}| `{:02}` ", g, s) });
 
-            format!("{}\n`{}{}[{:03}]`: {}", m, value.0, " ".repeat(width), value.2, grid)
+            format!("{}\n`{}{}[{:03}]`: {}", m, entry.name, " ".repeat(width), entry.total, grid)
         });
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
