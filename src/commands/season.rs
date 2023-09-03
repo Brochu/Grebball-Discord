@@ -56,15 +56,20 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             }
         });
     }
-    season_data.iter().for_each(|(k, v)| {
-        println!("[{}] -> {:?}", k, v);
-    });
+
+    let message = season_data.iter()
+        .fold(String::new(), |m, (_, value)| {
+            let width = 10 - value.0.len();
+            let grid = value.1.iter().fold(String::new(), |g, s| { format!("{}| `{:02}` ", g, s) });
+
+            format!("{}\n`{}{}[{:03}]`: {}", m, value.0, " ".repeat(width), value.2, grid)
+        });
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res
             .kind(InteractionResponseType::ChannelMessageWithSource)
             .interaction_response_data(|m| m
-                .content("Here are the results for the current season ...")
+                .content(format!("Saison {}{}", season, message))
             )
     })
     .await {
