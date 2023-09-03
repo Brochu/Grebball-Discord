@@ -25,7 +25,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[results] Cannot find 'CONF_SEASON' in env").parse::<u16>()
         .expect("[results] Could not parse 'CONF_SEASON' to u16");
 
-    let mut season_data: HashMap<String, (Vec<u32>, u64)> = HashMap::new();
+    let mut season_data: HashMap<i64, (String, Vec<u32>, u64)> = HashMap::new();
 
     for week in vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 160, 125, 150, 200) {
         //TODO: Can we make this better? Like bulk operations?
@@ -39,16 +39,17 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             break;
         }
 
-        //TODO: Can we access the poolerid in any way here?
-        results.iter().for_each(|res| {
-            if let Some(entry) = season_data.get_mut(&res.name) {
-                entry.0.extend(vec![res.score]);
+        results.iter().enumerate().for_each(|(i, res)| {
+            let poolerid = picks.get(i).unwrap().poolerid;
+            if let Some(entry) = season_data.get_mut(&poolerid) {
+                entry.1.push(res.score);
 
                 let newscore: u64 = res.score.into();
-                entry.1 += newscore;
+                entry.2 += newscore;
             }
             else {
-                season_data.insert(format!("{}", res.name), (
+                season_data.insert(poolerid, (
+                    format!("{}", res.name),
                     vec![res.score],
                     res.score.into()
                 ));
