@@ -180,7 +180,7 @@ impl DB {
             .execute(&self.pool)
             .await {
                 Ok(r) => {
-                    println!("[DB] Successful score cache updated: rows affected {}", r.rows_affected());
+                    println!("[DB] Successful favorite team updated: rows affected {}", r.rows_affected());
                     Ok(true)
                 },
                 Err(e) => {
