@@ -165,4 +165,28 @@ impl DB {
 
         Ok((row.get(0), row.get(1)))
     }
+
+    pub async fn update_favteam(&self, discordid: &i64, team: &str) -> Result<bool> {
+        match sqlx::query("
+                UPDATE poolers
+                SET favteam = ?
+                WHERE userid IN (
+                    SELECT id from users
+                    WHERE discordid = ?
+                )
+                ")
+            .bind(team)
+            .bind(discordid)
+            .execute(&self.pool)
+            .await {
+                Ok(r) => {
+                    println!("[DB] Successful score cache updated: rows affected {}", r.rows_affected());
+                    Ok(true)
+                },
+                Err(e) => {
+                    println!("[DB] Could not update score cache: {}", e);
+                    Ok(false)
+                }
+        }
+    }
 }
