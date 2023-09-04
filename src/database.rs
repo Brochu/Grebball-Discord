@@ -151,4 +151,18 @@ impl DB {
                 }
         }
     }
+
+    pub async fn fetch_favteam(&self, discordid: &i64) -> Result<(String, String)> {
+        let row = sqlx::query("
+                SELECT p.name, p.favteam FROM users AS u
+                JOIN poolers AS p
+                ON p.userid = u.id
+                WHERE discordid = ?
+                ")
+            .bind(discordid)
+            .fetch_one(&self.pool)
+            .await?;
+
+        Ok((row.get(0), row.get(1)))
+    }
 }
