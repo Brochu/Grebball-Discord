@@ -1,3 +1,4 @@
+use chrono::{Local, Datelike, Timelike, Weekday};
 use dotenv::dotenv;
 use std::{env, time::Duration};
 
@@ -10,7 +11,6 @@ use serenity::model::webhook::Webhook;
 use serenity::prelude::*;
 
 use tokio::spawn;
-use tokio::time::{ interval, MissedTickBehavior };
 
 use library::database::DB;
 use library::football::{ get_week, get_team_emoji };
@@ -76,8 +76,6 @@ impl EventHandler for Bot {
             .for_each(|c| println!("\t-{}", c.name));
 
         spawn(async move {
-            let mut timer = interval(Duration::from_secs_f64(5.0));
-            timer.set_missed_tick_behavior(MissedTickBehavior::Skip);
             let db = DB::new().await;
 
             if let Ok(hook_url) = env::var("WEEKLY_WEBHOOK") {
@@ -85,27 +83,34 @@ impl EventHandler for Bot {
                 println!("[Handler] Webhook created and ready to fire");
 
                 loop {
-                    timer.tick().await;
+                    let now = Local::now();
 
-                    let poolid = env::var("POOL_ID")
-                        .expect("![Handler] Could not find env var 'POOL_ID'").parse()
-                        .expect("![Handler] Could not parse pool_id to int");
-                    let season = env::var("CONF_SEASON")
-                        .expect("![Handler] Cannot find 'CONF_SEASON' in env").parse()
-                        .expect("![Handler] Could not parse 'CONF_SEASON' to u16");
-                    let week = db.find_week(&poolid, &season).await
-                        .expect("![Handler] Could not find current week from DB");
+                    if now.weekday() == Weekday::Tue && now.hour() == 13 {
+                        let poolid = env::var("POOL_ID")
+                            .expect("![Handler] Could not find env var 'POOL_ID'").parse()
+                            .expect("![Handler] Could not parse pool_id to int");
+                        let season = env::var("CONF_SEASON")
+                            .expect("![Handler] Cannot find 'CONF_SEASON' in env").parse()
+                            .expect("![Handler] Could not parse 'CONF_SEASON' to u16");
+                        let week = db.find_week(&poolid, &season).await
+                            .expect("![Handler] Could not find current week from DB");
 
-                    let matches = weekly_matches_message(&season, &week).await;
-                    let results = weekly_results_message(&db, &poolid, &season, &week).await;
+                        let matches = weekly_matches_message(&season, &week).await;
+                        let results = weekly_results_message(&db, &poolid, &season, &week).await;
 
-                    hook.execute(&ctx.http, false, |m| {
-                        m.content(matches)
-                    }).await.unwrap();
+                        hook.execute(&ctx.http, false, |m| {
+                            m.content(matches)
+                        }).await.unwrap();
 
-                    hook.execute(&ctx.http, false, |m| {
-                        m.content(results)
-                    }).await.unwrap();
+                        hook.execute(&ctx.http, false, |m| {
+                            m.content(results)
+                        }).await.unwrap();
+
+                        tokio::time::sleep(Duration::from_secs(3600)).await;
+                    }
+                    else {
+                        tokio::time::sleep(Duration::from_secs(600)).await;
+                    }
                 }
             }
         });
