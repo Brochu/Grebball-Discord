@@ -170,7 +170,7 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) ->
         }
     });
 
-    picks.iter()
+    let mut output: Vec<PickResults> = picks.iter()
         .map(|p| {
             let name = p.name.to_owned();
 
@@ -205,7 +205,10 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) ->
                 PickResults { pickid: p.pickid, name, score, icons, cache }
             }
         })
-        .collect()
+        .collect();
+
+    output.sort_unstable_by(|l, r| { l.score.cmp(&r.score) });
+    output
 }
 
 #[derive(Debug)]
