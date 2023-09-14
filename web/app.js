@@ -56,17 +56,31 @@ app.get('/:discordid/:pickid', async (req, res) => {
 
                 let matches = [];
                 let matchids = [];
+                let forcedid = 0;
                 if (json['events']) {
                     matches = json['events'].map((m) => {
                         m['awayTeam'] = GetTeamShortName(m['strAwayTeam']);
                         m['homeTeam'] = GetTeamShortName(m['strHomeTeam']);
 
+                        if (m['awayTeam'] === favteam || m['homeTeam'] === favteam) {
+                            forcedid = m['idEvent'];
+                        }
                         matchids.push(m['idEvent']);
                         return m;
                     });
                 }
 
-                res.render('picks.html', { season, week, pickid, username, favteam, avatar, matches, matchids });
+                res.render('picks.html', {
+                    season,
+                    week,
+                    pickid,
+                    username,
+                    favteam,
+                    avatar,
+                    matches,
+                    matchids,
+                    forcedid
+                });
             }
         });
     });
@@ -76,6 +90,7 @@ app.post('/submit', (req, res) => {
     const pickid = req.body['pickid'];
     const matchids = req.body['matchids'];
     const favteam = req.body['favteam'];
+    const forcedid = req.body['forcedid'];
 
     var picks = {};
     matchids.split(',').forEach((i) => {
@@ -83,8 +98,10 @@ app.post('/submit', (req, res) => {
 
         if (pick) {
             picks[i] = pick;
-        } else {
+        } else if (forcedid === i) {
             picks[i] = favteam;
+        } else {
+            picks[i] = "N/A";
         }
     });
 
