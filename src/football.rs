@@ -210,7 +210,7 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) ->
         })
         .collect();
 
-    output.sort_unstable_by(|l, r| { l.score.cmp(&r.score) });
+    output.sort_unstable_by(|l, r| { r.score.cmp(&l.score) });
     output
 }
 
