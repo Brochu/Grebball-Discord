@@ -1,7 +1,7 @@
 use std::{env, str::FromStr, cmp::Ordering};
 use core::fmt::Display;
 
-use chrono::{ Local, NaiveDate, Timelike };
+use chrono::{ Local, NaiveDate };
 use serde_json::{Value, Map};
 use serenity::model::id::EmojiId;
 
@@ -159,10 +159,7 @@ impl Display for PickResults {
 }
 
 pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) -> Vec<PickResults> {
-    let now = Local::now();
-    now.with_hour(now.hour() - 5);
-
-    let now = now.date_naive();
+    let now = Local::now().date_naive();
     let week_complete = matches.iter().all(|m| {
         match m.date.cmp(&now) {
             Ordering::Less => {
