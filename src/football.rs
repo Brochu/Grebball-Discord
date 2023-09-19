@@ -144,6 +144,7 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
 
 pub struct PickResults {
     pub pickid: Option<i64>,
+    pub poolerid: i64,
     pub name: String,
     pub score: u32,
     pub icons: String,
@@ -194,7 +195,7 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) ->
 
             if let Some(cached) = p.cached {
                 PickResults {
-                    pickid: p.pickid, name, score: cached, icons,
+                    pickid: p.pickid, poolerid: p.poolerid, name, score: cached, icons,
                     cache: false && week_complete && p.pickid.is_some()
                 }
             }
@@ -205,7 +206,7 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) ->
                         true && week_complete && p.pickid.is_some()),
                     None => (0, false && week_complete && p.pickid.is_some()),
                 };
-                PickResults { pickid: p.pickid, name, score, icons, cache }
+                PickResults { pickid: p.pickid, poolerid: p.poolerid, name, score, icons, cache }
             }
         })
         .collect();

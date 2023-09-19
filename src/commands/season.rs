@@ -45,8 +45,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             break;
         }
 
-        results.iter().enumerate().for_each(|(i, res)| {
-            let poolerid = picks.get(i).unwrap().poolerid;
+        results.iter().for_each(|res| {
+            let poolerid = res.poolerid;
 
             if let Some(entry) = season_data.iter_mut().find(|d| d.poolerid == poolerid) {
                 entry.scores.push(res.score);
