@@ -217,6 +217,7 @@ enum MatchOutcome {
     Win,
     Loss,
     Tied,
+    NotPlayed,
 }
 
 fn calc_results_internal(
@@ -241,10 +242,15 @@ fn calc_results_internal(
                 })
                 .all(|pp| pp != pick);
 
-            let outcome = match m.away_score.cmp(&m.home_score) {
-                Ordering::Less => if pick == m.away_team { MatchOutcome::Loss } else { MatchOutcome::Win },
-                Ordering::Greater => if pick == m.away_team { MatchOutcome::Win } else { MatchOutcome::Loss },
-                Ordering::Equal => MatchOutcome::Tied,
+            let outcome = if let (Some(a), Some(h)) = (m.away_score, m.home_score) {
+                match a.cmp(&h) {
+                    Ordering::Less => if pick == m.away_team { MatchOutcome::Loss } else { MatchOutcome::Win },
+                    Ordering::Greater => if pick == m.away_team { MatchOutcome::Win } else { MatchOutcome::Loss },
+                    Ordering::Equal => MatchOutcome::Tied,
+                }
+            }
+            else {
+                MatchOutcome::NotPlayed
             };
 
             acc + get_score(&outcome, unique, &week)
@@ -268,7 +274,7 @@ fn get_score(outcome: &MatchOutcome, unique: bool, week: &i64) -> u32 {
                 _ => 2,
             }
         },
-        MatchOutcome::Loss => 0,
+        MatchOutcome::Loss | MatchOutcome::NotPlayed => 0,
         MatchOutcome::Tied => 1,
     }
 }
