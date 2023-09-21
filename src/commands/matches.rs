@@ -67,16 +67,20 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
             let aemoji = get_team_emoji(m.away_team.as_str());
             let hemoji = get_team_emoji(m.home_team.as_str());
 
-            let ascore = m.away_score.unwrap_or(0);
-            let hscore = m.home_score.unwrap_or(0);
-            let lineaway = ascore > hscore;
-            let linehome = ascore < hscore;
+            let (ascore, hscore, aline, hline) = if let (Some(a), Some(h)) = (m.away_score, m.home_score) {
+                (a.to_string(), h.to_string(),
+                    a > h, h > a)
+            }
+            else {
+                ("--".to_string(), "--".to_string(),
+                    false, false)
+            };
 
             out.push_str(format!("<:{}:{}> {} {} {} <:{}:{}>\n",
                 m.away_team, aemoji,
-                if lineaway { format!("__`{:02}`__", ascore) } else { format!("`{:02}`", ascore) },
+                if aline { format!("__`{:02}`__", ascore) } else { format!("`{:02}`", ascore) },
                 VS_EMOJI,
-                if linehome { format!("__`{:02}`__", hscore) } else { format!("`{:02}`", hscore) },
+                if hline { format!("__`{:02}`__", hscore) } else { format!("`{:02}`", hscore) },
                 m.home_team, hemoji
             ).as_str());
             out

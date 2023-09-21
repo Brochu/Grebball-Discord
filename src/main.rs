@@ -125,16 +125,20 @@ async fn weekly_matches_message(season: &u16, week: &i64) -> String {
         let aemoji = get_team_emoji(m.away_team.as_str());
         let hemoji = get_team_emoji(m.home_team.as_str());
 
-        let ascore = m.away_score.unwrap_or(0);
-        let hscore = m.home_score.unwrap_or(0);
-        let boldaway = ascore > hscore;
-        let boldhome = ascore < hscore;
+            let (ascore, hscore, aline, hline) = if let (Some(a), Some(h)) = (m.away_score, m.home_score) {
+                (a.to_string(), h.to_string(),
+                    a > h, h > a)
+            }
+            else {
+                ("--".to_string(), "--".to_string(),
+                    false, false)
+            };
 
         out.push_str(format!("<:{}:{}> {} {} {} <:{}:{}>\n",
             m.away_team, aemoji,
-            if boldaway { format!("__`{:02}`__", ascore) } else { format!("`{:02}`", ascore) },
+            if aline { format!("__`{:02}`__", ascore) } else { format!("`{:02}`", ascore) },
             VS_EMOJI,
-            if boldhome { format!("__`{:02}`__", hscore) } else { format!("`{:02}`", hscore) },
+            if hline { format!("__`{:02}`__", hscore) } else { format!("`{:02}`", hscore) },
             m.home_team, hemoji
         ).as_str());
         out
