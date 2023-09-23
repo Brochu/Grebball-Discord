@@ -45,7 +45,11 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             break;
         }
 
-        results.iter().for_each(|res| {
+        for res in results {
+            if res.cache {
+                db.cache_results(&res.pickid.unwrap(), &res.score).await.unwrap();
+            }
+
             let poolerid = res.poolerid;
 
             if let Some(entry) = season_data.iter_mut().find(|d| d.poolerid == poolerid) {
@@ -62,7 +66,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     total: res.score.into(),
                 });
             }
-        });
+        }
     }
 
     season_data.sort_unstable_by(|l, r| { r.total.cmp(&l.total) });
