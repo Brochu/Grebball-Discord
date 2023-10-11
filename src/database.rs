@@ -1,5 +1,5 @@
 use std::env;
-use std::fmt::Display;
+use std::fmt::{ Display, Debug };
 
 use anyhow::Result;
 use serde_json::{Value, Map};
@@ -24,6 +24,15 @@ pub enum PicksStatus {
 }
 
 impl Display for WeekPicks {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "(pickid: {:?}, poolerid: {})[{}] ({:?}) -> {:?}",
+            self.pickid, self.poolerid,
+            self.name,
+            self.cached, self.picks)
+    }
+}
+
+impl Debug for WeekPicks {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "(pickid: {:?}, poolerid: {})[{}] ({:?}) -> {:?}",
             self.pickid, self.poolerid,
@@ -82,7 +91,30 @@ impl DB {
         Ok(results)
     }
 
-    pub async fn fetch_season(&self, _poolid: &i64, _season: &u16) -> Result<Vec<Vec<WeekPicks>>> {
+    pub async fn fetch_season(&self, poolid: &i64, season: &u16) -> Result<Vec<Vec<WeekPicks>>> {
+        let season: Vec<WeekPicks> = sqlx::query("
+                SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.week, pk.scorecache, pk.pickstring FROM poolers AS pl
+                LEFT JOIN (
+                    SELECT id, poolerid, week, scorecache, pickstring FROM picks
+                    WHERE season = ?
+                ) AS pk ON pk.poolerid = pl.id
+                WHERE pl.poolid = ?
+                ")
+            .bind(season)
+            .bind(poolid)
+            .fetch_all(&self.pool).await?
+            .iter().map(|row| {
+                let pickid: Option<i64> = row.get("pickid");
+                let poolerid: i64 = row.get("poolerid");
+                let name: String = row.get("name");
+                let picks: Option<Map<String, Value>> = serde_json::from_str(row.get("pickstring")).ok();
+                let cached: Option<u32> = row.get("scorecache");
+
+                WeekPicks { pickid, poolerid, name, picks, cached }
+            })
+            .collect();
+        
+        season.iter().for_each(|row| println!("{}", row));
         Ok(vec![])
     }
 
