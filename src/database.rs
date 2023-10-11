@@ -82,6 +82,10 @@ impl DB {
         Ok(results)
     }
 
+    pub async fn fetch_season(&self, _poolid: &i64, _season: &u16) -> Result<Vec<Vec<WeekPicks>>> {
+        Ok(vec![])
+    }
+
     pub async fn prime_picks(&self, discordid: &i64, season: &u16, week: &i64) -> Result<PicksStatus> {
         let poolerid: i64 = sqlx::query("
                 SELECT p.id FROM users AS u
