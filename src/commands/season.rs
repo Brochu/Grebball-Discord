@@ -31,6 +31,10 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[results] Cannot find 'CONF_SEASON' in env").parse::<u16>()
         .expect("[results] Could not parse 'CONF_SEASON' to u16");
 
+    if let Ok(s) = db.fetch_season(&poolid, &season).await {
+        println!("{:?}", s);
+    }
+
     let mut season_data: Vec<SeasonResult> = Vec::new();
 
     for week in vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 160, 125, 150, 200) {
