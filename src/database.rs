@@ -115,6 +115,7 @@ impl DB {
             .collect();
         
         season.iter().for_each(|row| println!("{}", row));
+        //TODO: Group by pooler
         Ok(vec![])
     }
 
