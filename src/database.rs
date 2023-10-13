@@ -18,6 +18,8 @@ pub struct WeekPicks {
     pub cached: Option<u32>,
 }
 
+type SeasonPicks = Vec<(i64, Vec<WeekPicks>)>;
+
 pub enum PicksStatus {
     Primed(i64),
     Filled(String),
@@ -91,7 +93,7 @@ impl DB {
         Ok(results)
     }
 
-    pub async fn fetch_season(&self, poolid: &i64, season: &u16) -> Result<Vec<Vec<WeekPicks>>> {
+    pub async fn fetch_season(&self, poolid: &i64, season: &u16) -> Result<SeasonPicks> {
         let season: Vec<WeekPicks> = sqlx::query("
                 SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.week, pk.scorecache, pk.pickstring FROM poolers AS pl
                 LEFT JOIN (
@@ -114,9 +116,11 @@ impl DB {
             })
             .collect();
         
-        season.iter().for_each(|row| println!("{}", row));
-        //TODO: Group by pooler
-        Ok(vec![])
+        let results = season.iter().fold(SeasonPicks::new(), |acc, e| {
+            //TODO: Group
+            acc
+        });
+        Ok(results)
     }
 
     pub async fn prime_picks(&self, discordid: &i64, season: &u16, week: &i64) -> Result<PicksStatus> {
