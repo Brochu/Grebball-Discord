@@ -94,7 +94,7 @@ impl DB {
     }
 
     pub async fn fetch_season(&self, poolid: &i64, season: &u16) -> Result<SeasonPicks> {
-        let season: Vec<WeekPicks> = sqlx::query("
+        let season = sqlx::query("
                 SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.week, pk.scorecache, pk.pickstring FROM poolers AS pl
                 LEFT JOIN (
                     SELECT id, poolerid, week, scorecache, pickstring FROM picks
@@ -114,13 +114,19 @@ impl DB {
 
                 WeekPicks { pickid, poolerid, name, picks, cached }
             })
-            .collect();
-        
-        let results = season.iter().fold(SeasonPicks::new(), |acc, e| {
-            //TODO: Group
-            acc
-        });
-        Ok(results)
+            .fold(SeasonPicks::new(), |mut acc, e| {
+                if let Some(pooler) = acc.iter_mut().find(|a| a.0 == e.poolerid) {
+                    // Add week results to pooler's group
+                    pooler.1.push(e);
+                }
+                else {
+                    // Add new pooler group
+                    acc.push( (e.poolerid, vec![e]) );
+                }
+                acc
+            });
+
+        Ok(season)
     }
 
     pub async fn prime_picks(&self, discordid: &i64, season: &u16, week: &i64) -> Result<PicksStatus> {
