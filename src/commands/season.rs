@@ -7,7 +7,7 @@ use serenity::model::prelude::command::CommandType;
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::{calc_results, get_week, Match};
+//use library::football::{calc_results, get_week, Match};
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -17,7 +17,7 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
 }
 
 struct SeasonResult {
-    poolerid: i64,
+    //poolerid: i64,
     name: String,
     scores: Vec<u32>,
     total: u64,
@@ -31,47 +31,53 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[results] Cannot find 'CONF_SEASON' in env").parse::<u16>()
         .expect("[results] Could not parse 'CONF_SEASON' to u16");
 
-    if let Ok(s) = db.fetch_season(&poolid, &season).await {
-        println!("{:?}", s);
-    }
+    let mut season_data = db.fetch_season(&poolid, &season).await.unwrap()
+        .iter().fold(Vec::<SeasonResult>::new(), |mut season, (_, data)| {
+            season.push(SeasonResult {
+                //poolerid: *poolerid,
+                name: data[0].name.to_owned(),
+                scores: vec![],
+                total: 0
+            });
 
-    let mut season_data: Vec<SeasonResult> = Vec::new();
+            season
+        });
 
-    for week in vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 160, 125, 150, 200) {
-        //TODO: Can we make this better? Like bulk operations?
-        let matches: Vec<Match> = get_week(&season, &week).await
-            .unwrap().collect();
-        let picks = db.fetch_picks(&poolid, &season, &week).await
-            .expect("![season] Could not fetch picks to complete season command");
+    //for week in vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 160, 125, 150, 200) {
+    //    //TODO: Can we make this better? Like bulk operations?
+    //    let matches: Vec<Match> = get_week(&season, &week).await
+    //        .unwrap().collect();
+    //    let picks = db.fetch_picks(&poolid, &season, &week).await
+    //        .expect("![season] Could not fetch picks to complete season command");
 
-        let results = calc_results(&week, &matches, &picks).await;
-        if results.iter().all(|res| res.score == 0) {
-            break;
-        }
+    //    let results = calc_results(&week, &matches, &picks).await;
+    //    if results.iter().all(|res| res.score == 0) {
+    //        break;
+    //    }
 
-        for res in results {
-            if res.cache {
-                db.cache_results(&res.pickid.unwrap(), &res.score).await.unwrap();
-            }
+    //    for res in results {
+    //        if res.cache {
+    //            db.cache_results(&res.pickid.unwrap(), &res.score).await.unwrap();
+    //        }
 
-            let poolerid = res.poolerid;
+    //        let poolerid = res.poolerid;
 
-            if let Some(entry) = season_data.iter_mut().find(|d| d.poolerid == poolerid) {
-                entry.scores.push(res.score);
+    //        if let Some(entry) = season_data.iter_mut().find(|d| d.poolerid == poolerid) {
+    //            entry.scores.push(res.score);
 
-                let newscore: u64 = res.score.into();
-                entry.total += newscore;
-            }
-            else {
-                season_data.push(SeasonResult {
-                    poolerid,
-                    name: format!("{}", res.name),
-                    scores: vec![res.score],
-                    total: res.score.into(),
-                });
-            }
-        }
-    }
+    //            let newscore: u64 = res.score.into();
+    //            entry.total += newscore;
+    //        }
+    //        else {
+    //            season_data.push(SeasonResult {
+    //                poolerid,
+    //                name: format!("{}", res.name),
+    //                scores: vec![res.score],
+    //                total: res.score.into(),
+    //            });
+    //        }
+    //    }
+    //}
 
     season_data.sort_unstable_by(|l, r| { r.total.cmp(&l.total) });
     let message = season_data.iter()
