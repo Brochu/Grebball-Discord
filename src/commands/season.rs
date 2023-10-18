@@ -33,6 +33,15 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
     let mut season_data = db.fetch_season(&poolid, &season).await.unwrap()
         .iter().fold(Vec::<SeasonResult>::new(), |mut season, (_, data)| {
+            let _scores = data.iter().enumerate().map(|(_i, wp)| {
+                if let Some(score) = wp.cached {
+                    score
+                }
+                else {
+                    0
+                }
+            });
+
             season.push(SeasonResult {
                 //poolerid: *poolerid,
                 name: data[0].name.to_owned(),
