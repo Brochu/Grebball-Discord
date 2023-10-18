@@ -1,4 +1,4 @@
-use std::{env, vec};
+use std::env;
 
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
@@ -20,7 +20,7 @@ struct SeasonResult {
     //poolerid: i64,
     name: String,
     scores: Vec<u32>,
-    total: u64,
+    total: u32,
 }
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
@@ -32,21 +32,27 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[results] Could not parse 'CONF_SEASON' to u16");
 
     let mut season_data = db.fetch_season(&poolid, &season).await.unwrap()
-        .iter().fold(Vec::<SeasonResult>::new(), |mut season, (_, data)| {
-            let _scores = data.iter().enumerate().map(|(_i, wp)| {
+        .iter()
+        .fold(Vec::<SeasonResult>::new(), |mut season, (_, data)| {
+            let name = data[0].name.to_owned();
+
+            let scores: Vec<u32> = data.iter().enumerate().map(|(_i, wp)| {
                 if let Some(score) = wp.cached {
                     score
                 }
                 else {
                     0
                 }
-            });
+            })
+            .collect();
+
+            let total = scores.iter().sum();
 
             season.push(SeasonResult {
                 //poolerid: *poolerid,
-                name: data[0].name.to_owned(),
-                scores: vec![],
-                total: 0
+                name,
+                scores,
+                total
             });
 
             season
