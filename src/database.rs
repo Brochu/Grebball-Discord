@@ -93,7 +93,7 @@ impl DB {
         Ok(results)
     }
 
-    pub async fn fetch_season(&self, poolid: &i64, season: &u16) -> Result<SeasonPicks> {
+    pub async fn fetch_season(&self, poolid: &i64, season: &u16) -> Result<(SeasonPicks, usize)> {
         let season = sqlx::query("
                 SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.week, pk.scorecache, pk.pickstring FROM poolers AS pl
                 LEFT JOIN (
@@ -126,7 +126,11 @@ impl DB {
                 acc
             });
 
-        Ok(season)
+        let week_count = season.iter().fold(0, |acc, (_, wps)| {
+            acc.max(wps.len())
+        });
+
+        Ok((season, week_count))
     }
 
     pub async fn prime_picks(&self, discordid: &i64, season: &u16, week: &i64) -> Result<PicksStatus> {

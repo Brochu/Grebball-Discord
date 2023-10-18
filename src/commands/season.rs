@@ -31,22 +31,30 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[results] Cannot find 'CONF_SEASON' in env").parse::<u16>()
         .expect("[results] Could not parse 'CONF_SEASON' to u16");
 
-    let mut season_data = db.fetch_season(&poolid, &season).await.unwrap()
-        .iter()
+    let (season_data, week_count) = db.fetch_season(&poolid, &season).await.unwrap();
+
+    let mut season_data = season_data.iter()
         .fold(Vec::<SeasonResult>::new(), |mut season, (_, data)| {
             let name = data[0].name.to_owned();
+            let mut scores = Vec::<u32>::new();
+            let mut total = 0;
 
-            let scores: Vec<u32> = data.iter().enumerate().map(|(_i, wp)| {
-                if let Some(score) = wp.cached {
-                    score
-                }
-                else {
-                    0
-                }
-            })
-            .collect();
-
-            let total = scores.iter().sum();
+            for i in 0..week_count {
+                match data.get(i) {
+                    Some(wp) => {
+                        if let Some(score) = wp.cached {
+                            scores.push(score);
+                            total += score;
+                        } else {
+                            //TODO: Calc actual scores, cache if needed
+                            scores.push(0);
+                        }
+                    },
+                    None => {
+                        scores.push(0);
+                    },
+                };
+            };
 
             season.push(SeasonResult {
                 //poolerid: *poolerid,
@@ -93,6 +101,10 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     //        }
     //    }
     //}
+
+    season_data.iter().for_each(|data| {
+        println!("[{}]: {:?} = {}", data.name, data.scores, data.total);
+    });
 
     season_data.sort_unstable_by(|l, r| { r.total.cmp(&l.total) });
     let message = season_data.iter()
