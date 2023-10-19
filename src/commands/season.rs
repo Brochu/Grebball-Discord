@@ -7,7 +7,7 @@ use serenity::model::prelude::command::CommandType;
 use serenity::prelude::*;
 
 use library::database::DB;
-//use library::football::{calc_results, get_week, Match};
+use library::football::{Match, get_week};
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -31,41 +31,38 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[results] Cannot find 'CONF_SEASON' in env").parse::<u16>()
         .expect("[results] Could not parse 'CONF_SEASON' to u16");
 
-    let (season_data, week_count) = db.fetch_season(&poolid, &season).await.unwrap();
+    let (poolers, week_count) = db.fetch_season(&poolid, &season).await.unwrap();
+    let mut season_data = Vec::<SeasonResult>::new();
 
-    let mut season_data = season_data.iter()
-        .fold(Vec::<SeasonResult>::new(), |mut season, (_, data)| {
-            let name = data[0].name.to_owned();
-            let mut scores = Vec::<u32>::new();
-            let mut total = 0;
+    for (_, weeks) in poolers.iter() {
+        let name = weeks[0].name.to_owned();
+        let mut scores = Vec::<u32>::new();
+        let mut total = 0;
 
-            for i in 0..week_count {
-                match data.get(i) {
-                    Some(wp) => {
-                        if let Some(score) = wp.cached {
-                            scores.push(score);
-                            total += score;
-                        } else {
-                            //TODO: Calc actual scores, cache if needed
-                            scores.push(0);
-                        }
-                    },
-                    None => {
-                        scores.push(0);
-                    },
-                };
-            };
+        for i in 0..week_count {
+            if let Some(w) = weeks.get(i) {
+                if let Some(score) = w.cached {
+                    scores.push(score);
+                    total += score;
+                }
+                else {
+                    let week: i64 = (i + 1).try_into().unwrap();
+                    let matches: Vec<Match> = get_week(&season, &week).await.unwrap().collect();
+                    //TODO: Calc actual scores, cache if needed
+                    scores.push(0);
+                }
+            }
+            else {
+                scores.push(0);
+            }
+        }
 
-            season.push(SeasonResult {
-                //poolerid: *poolerid,
-                name,
-                scores,
-                total
-            });
-
-            season
+        season_data.push(SeasonResult {
+            name,
+            scores,
+            total
         });
-
+    }
     //for week in vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 160, 125, 150, 200) {
     //    //TODO: Can we make this better? Like bulk operations?
     //    let matches: Vec<Match> = get_week(&season, &week).await
