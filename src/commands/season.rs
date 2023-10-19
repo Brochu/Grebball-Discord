@@ -34,7 +34,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     let (poolers, week_count) = db.fetch_season(&poolid, &season).await.unwrap();
     let mut season_data = Vec::<SeasonResult>::new();
 
-    for (_, weeks) in poolers.iter() {
+    for (poolerid, weeks) in poolers.iter() {
         let name = weeks[0].name.to_owned();
         let mut scores = Vec::<u32>::new();
         let mut total = 0;
@@ -48,8 +48,10 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 else {
                     let week: i64 = (i + 1).try_into().unwrap();
                     let matches: Vec<Match> = get_week(&season, &week).await.unwrap().collect();
-                    let picks = db.fetch_picks(&poolid, &season, &week).await.unwrap();
-                    let results = calc_results(&week, &matches, &picks).await;
+                    let picks = db.fetch_pick(&poolid, &season, &week, &poolerid).await.unwrap();
+
+                    let results = calc_results(&week, &matches, &[picks]).await;
+                    println!("{}", results.len());
                     //TODO: Calc actual scores, cache if needed
                     scores.push(0);
                 }
