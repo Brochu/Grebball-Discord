@@ -95,7 +95,7 @@ impl DB {
 
     pub async fn fetch_pick(&self, season: &u16, week: &i64, poolerid: &i64) -> Result<WeekPicks> {
         let pickrow = sqlx::query("
-                SELECT id, poolerid, pickstring, scorecache FROM picks AS pk
+                SELECT pk.id AS 'pickid', pl.id AS 'poolerid', pl.name, pk.pickstring, pk.scorecache FROM picks AS pk
                 JOIN poolers AS pl ON pl.id = pk.poolerid
                 WHERE season = ? AND week = ? AND poolerid = ?
                 ")
