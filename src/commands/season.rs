@@ -7,7 +7,7 @@ use serenity::model::prelude::command::CommandType;
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::{Match, get_week};
+use library::football::{Match, get_week, calc_results};
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -48,6 +48,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 else {
                     let week: i64 = (i + 1).try_into().unwrap();
                     let matches: Vec<Match> = get_week(&season, &week).await.unwrap().collect();
+                    let picks = db.fetch_picks(&poolid, &season, &week).await.unwrap();
+                    let results = calc_results(&week, &matches, &picks).await;
                     //TODO: Calc actual scores, cache if needed
                     scores.push(0);
                 }
