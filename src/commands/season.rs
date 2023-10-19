@@ -50,10 +50,13 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     let matches: Vec<Match> = get_week(&season, &week).await.unwrap().collect();
                     let picks = db.fetch_pick(&poolid, &season, &week, &poolerid).await.unwrap();
 
-                    let results = calc_results(&week, &matches, &[picks]).await;
-                    println!("{}", results.len());
-                    //TODO: Calc actual scores, cache if needed
-                    scores.push(0);
+                    let result = &calc_results(&week, &matches, &[picks]).await[0];
+                    if result.cache {
+                        db.cache_results(&result.pickid.unwrap(), &result.score).await.unwrap();
+                    }
+
+                    scores.push(result.score);
+                    total += result.score;
                 }
             }
             else {
@@ -67,42 +70,6 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             total
         });
     }
-    //for week in vec!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 160, 125, 150, 200) {
-    //    //TODO: Can we make this better? Like bulk operations?
-    //    let matches: Vec<Match> = get_week(&season, &week).await
-    //        .unwrap().collect();
-    //    let picks = db.fetch_picks(&poolid, &season, &week).await
-    //        .expect("![season] Could not fetch picks to complete season command");
-
-    //    let results = calc_results(&week, &matches, &picks).await;
-    //    if results.iter().all(|res| res.score == 0) {
-    //        break;
-    //    }
-
-    //    for res in results {
-    //        if res.cache {
-    //            db.cache_results(&res.pickid.unwrap(), &res.score).await.unwrap();
-    //        }
-
-    //        let poolerid = res.poolerid;
-
-    //        if let Some(entry) = season_data.iter_mut().find(|d| d.poolerid == poolerid) {
-    //            entry.scores.push(res.score);
-
-    //            let newscore: u64 = res.score.into();
-    //            entry.total += newscore;
-    //        }
-    //        else {
-    //            season_data.push(SeasonResult {
-    //                poolerid,
-    //                name: format!("{}", res.name),
-    //                scores: vec![res.score],
-    //                total: res.score.into(),
-    //            });
-    //        }
-    //    }
-    //}
-
     season_data.iter().for_each(|data| {
         println!("[{}]: {:?} = {}", data.name, data.scores, data.total);
     });
