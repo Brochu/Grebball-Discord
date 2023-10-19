@@ -93,6 +93,30 @@ impl DB {
         Ok(results)
     }
 
+    pub async fn fetch_pick(&self, poolid: &i64, season: &u16, week: &i64, poolerid: &i64) -> Result<WeekPicks> {
+        let pickrow = sqlx::query("
+                SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.pickstring, pk.scorecache FROM poolers AS pl
+                LEFT JOIN (
+                    SELECT id, poolerid, pickstring, scorecache FROM picks
+                    WHERE season = ? AND week = ? AND poolerid = ?
+                ) AS pk ON pk.poolerid = pl.id
+                WHERE pl.poolid = ?
+                ")
+            .bind(season)
+            .bind(week)
+            .bind(poolerid)
+            .bind(poolid)
+            .fetch_one(&self.pool).await?;
+
+        Ok(WeekPicks {
+            pickid: pickrow.get("pickid"),
+            poolerid: pickrow.get("poolerid"),
+            name: pickrow.get("name"),
+            picks: serde_json::from_str(pickrow.get("pickstring")).ok(),
+            cached: pickrow.get("scorecache")
+        })
+    }
+
     pub async fn fetch_season(&self, poolid: &i64, season: &u16) -> Result<(SeasonPicks, usize)> {
         let season = sqlx::query("
                 SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.week, pk.scorecache, pk.pickstring FROM poolers AS pl
