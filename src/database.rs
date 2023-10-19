@@ -93,19 +93,15 @@ impl DB {
         Ok(results)
     }
 
-    pub async fn fetch_pick(&self, poolid: &i64, season: &u16, week: &i64, poolerid: &i64) -> Result<WeekPicks> {
+    pub async fn fetch_pick(&self, season: &u16, week: &i64, poolerid: &i64) -> Result<WeekPicks> {
         let pickrow = sqlx::query("
-                SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.pickstring, pk.scorecache FROM poolers AS pl
-                LEFT JOIN (
-                    SELECT id, poolerid, pickstring, scorecache FROM picks
-                    WHERE season = ? AND week = ? AND poolerid = ?
-                ) AS pk ON pk.poolerid = pl.id
-                WHERE pl.poolid = ?
+                SELECT id, poolerid, pickstring, scorecache FROM picks AS pk
+                JOIN poolers AS pl ON pl.id = pk.poolerid
+                WHERE season = ? AND week = ? AND poolerid = ?
                 ")
             .bind(season)
             .bind(week)
             .bind(poolerid)
-            .bind(poolid)
             .fetch_one(&self.pool).await?;
 
         Ok(WeekPicks {
