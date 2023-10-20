@@ -55,9 +55,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                         .find(|res| res.poolerid == *poolerid)
                         .unwrap();
 
-                    //if result.cache {
-                    //    db.cache_results(&result.pickid.unwrap(), &result.score).await.unwrap();
-                    //}
+                    if result.cache {
+                        db.cache_results(&result.pickid.unwrap(), &result.score).await.unwrap();
+                    }
                     scores.push(result.score);
                     total += result.score;
                 }
