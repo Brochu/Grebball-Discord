@@ -48,12 +48,14 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 else {
                     let week: i64 = (i + 1).try_into().unwrap();
                     let matches: Vec<Match> = get_week(&season, &week).await.unwrap().collect();
-                    let picks = db.fetch_pick(&poolid, &season, &week, &poolerid).await.unwrap();
+                    println!("{}", poolerid);
+                    let picks = db.fetch_pick(&season, &week, &poolerid).await.unwrap();
+                    println!("{}, {}", picks.poolerid, picks.name);
 
                     let result = &calc_results(&week, &matches, &[picks]).await[0];
-                    if result.cache {
-                        db.cache_results(&result.pickid.unwrap(), &result.score).await.unwrap();
-                    }
+                    //if result.cache {
+                    //    db.cache_results(&result.pickid.unwrap(), &result.score).await.unwrap();
+                    //}
 
                     scores.push(result.score);
                     total += result.score;
@@ -64,12 +66,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             }
         }
 
-        season_data.push(SeasonResult {
-            name,
-            scores,
-            total
-        });
+        season_data.push(SeasonResult { name, scores, total });
     }
+
     season_data.iter().for_each(|data| {
         println!("[{}]: {:?} = {}", data.name, data.scores, data.total);
     });
