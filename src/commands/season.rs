@@ -48,15 +48,16 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 else {
                     let week: i64 = (i + 1).try_into().unwrap();
                     let matches: Vec<Match> = get_week(&season, &week).await.unwrap().collect();
-                    println!("{}", poolerid);
-                    let picks = db.fetch_pick(&season, &week, &poolerid).await.unwrap();
-                    println!("{}, {}", picks.poolerid, picks.name);
+                    let picks = db.fetch_picks(&poolid, &season, &week).await.unwrap();
 
-                    let result = &calc_results(&week, &matches, &[picks]).await[0];
+                    let results= &calc_results(&week, &matches, &picks).await;
+                    let result = results.iter()
+                        .find(|res| res.poolerid == *poolerid)
+                        .unwrap();
+
                     //if result.cache {
                     //    db.cache_results(&result.pickid.unwrap(), &result.score).await.unwrap();
                     //}
-
                     scores.push(result.score);
                     total += result.score;
                 }
