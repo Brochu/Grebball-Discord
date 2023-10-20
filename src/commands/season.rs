@@ -70,10 +70,6 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         season_data.push(SeasonResult { name, scores, total });
     }
 
-    season_data.iter().for_each(|data| {
-        println!("[{}]: {:?} = {}", data.name, data.scores, data.total);
-    });
-
     season_data.sort_unstable_by(|l, r| { r.total.cmp(&l.total) });
     let message = season_data.iter()
         .fold(String::new(), |m, entry| {
