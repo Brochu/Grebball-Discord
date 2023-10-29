@@ -89,6 +89,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
         if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
             res
                 .kind(InteractionResponseType::ChannelMessageWithSource)
+                //.kind(InteractionResponseType::DeferredChannelMessageWithSource)
                 .interaction_response_data(|m|
                     m.content(output)
                 )
@@ -96,5 +97,13 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
         .await {
             println!("![week] Cannot respond to slash command : {:?}", reason);
         }
+
+        //TODO: Send a delayed response, so we can load the resuts properly
+        //if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
+        //    res.content("")
+        //})
+        //.await {
+        //    println!("![week] Cannot respond to slash command : {:?}", reason);
+        //}
     }
 }
