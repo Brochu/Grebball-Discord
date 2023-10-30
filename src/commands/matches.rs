@@ -54,6 +54,17 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
         .value.as_ref()
         .expect("![Week] Could not get value of the week arg")
     {
+        if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+            res
+                .kind(InteractionResponseType::DeferredChannelMessageWithSource)
+                .interaction_response_data(|m|
+                    m.content("Calcul ...")
+                )
+        })
+        .await {
+            println!("![week] Cannot respond to slash command : {:?}", reason);
+        }
+
         let season = env::var("CONF_SEASON")
             .expect("![Week] Could not find 'CONF_SEASON' env var")
             .parse::<u16>()
@@ -68,12 +79,10 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
             let hemoji = get_team_emoji(m.home_team.as_str());
 
             let (ascore, hscore, aline, hline) = if let (Some(a), Some(h)) = (m.away_score, m.home_score) {
-                (a.to_string(), h.to_string(),
-                    a > h, h > a)
+                (a.to_string(), h.to_string(), a > h, h > a)
             }
             else {
-                ("--".to_string(), "--".to_string(),
-                    false, false)
+                ("--".to_string(), "--".to_string(), false, false)
             };
 
             out.push_str(format!("<:{}:{}> {} {} {} <:{}:{}>\n",
@@ -86,24 +95,11 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
             out
         });
 
-        if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
-            res
-                .kind(InteractionResponseType::ChannelMessageWithSource)
-                //.kind(InteractionResponseType::DeferredChannelMessageWithSource)
-                .interaction_response_data(|m|
-                    m.content(output)
-                )
+        if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
+            res.content(output)
         })
         .await {
             println!("![week] Cannot respond to slash command : {:?}", reason);
         }
-
-        //TODO: Send a delayed response, so we can load the resuts properly
-        //if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
-        //    res.content("")
-        //})
-        //.await {
-        //    println!("![week] Cannot respond to slash command : {:?}", reason);
-        //}
     }
 }
