@@ -31,6 +31,17 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[results] Cannot find 'CONF_SEASON' in env").parse::<u16>()
         .expect("[results] Could not parse 'CONF_SEASON' to u16");
 
+    if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+        res
+            .kind(InteractionResponseType::DeferredChannelMessageWithSource)
+            .interaction_response_data(|m| m
+                .content("Calcul ...")
+            )
+    })
+    .await {
+        println!("![results] Cannot respond to slash command : {:?}", reason);
+    }
+
     let (poolers, week_count) = db.fetch_season(&poolid, &season).await.unwrap();
     let mut season_data = Vec::<SeasonResult>::new();
 
@@ -79,12 +90,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             format!("{}\n`{}{}[{:03}]`: {}", m, entry.name, " ".repeat(width), entry.total, grid)
         });
 
-    if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
-        res
-            .kind(InteractionResponseType::ChannelMessageWithSource)
-            .interaction_response_data(|m| m
-                .content(format!("Saison {}{}", season, message))
-            )
+    if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
+        res.content(format!("Saison {}{}", season, message))
     })
     .await {
         println!("![results] Cannot respond to slash command : {:?}", reason);
