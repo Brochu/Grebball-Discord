@@ -57,7 +57,12 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     total += score;
                 }
                 else {
-                    let week: i64 = (i + 1).try_into().unwrap();
+                    let mut week: i64 = (i + 1).try_into().unwrap();
+                    if week == 19 { week = 160 ; }
+                    else if week == 20 { week = 125 ; }
+                    else if week == 21 { week = 150 ; }
+                    else if week == 22 { week = 200 ; }
+
                     let matches: Vec<Match> = get_week(&season, &week).await.unwrap().collect();
                     let picks = db.fetch_picks(&poolid, &season, &week).await.unwrap();
 
