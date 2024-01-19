@@ -41,10 +41,10 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
                 .add_string_choice("semaine 16", 16)
                 .add_string_choice("semaine 17", 17)
                 .add_string_choice("semaine 18", 18)
-                .add_string_choice("WildCards", 160)
-                .add_string_choice("Divisional", 125)
-                .add_string_choice("Championship", 150)
-                .add_string_choice("Super Bowl", 200)
+                .add_string_choice("WildCards", 19)
+                .add_string_choice("Divisional", 20)
+                .add_string_choice("Championship", 21)
+                .add_string_choice("Super Bowl", 22)
         })
 }
 

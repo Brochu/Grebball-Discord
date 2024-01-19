@@ -113,7 +113,12 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
         .parse::<u16>()
         .expect("![Football] Could not parse 'CONF_LEAGUE' to int");
 
-    let url = format!("{}?id={}&s={}&r={}", partial_url, league, season, week);
+    let w = if *week == 19 { 160 }
+    else if *week == 20 { 125 }
+    else if *week == 21 { 150 }
+    else if *week == 22 { 200 }
+    else { *week };
+    let url = format!("{}?id={}&s={}&r={}", partial_url, league, season, w);
 
     let res = reqwest::get(url).await
         .expect("![Football] Could not get reply")
