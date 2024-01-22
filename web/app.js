@@ -63,7 +63,7 @@ app.get('/:discordid/:pickid', async (req, res) => {
                 else if (week == 22 || week == '22') {
                     w = 200;
                 }
-                const url = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4391&r=${week}&s=${season}`;
+                const url = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4391&r=${w}&s=${season}`;
                 const result = await fetch(url);
                 const json = await result.json();
 
