@@ -50,6 +50,19 @@ app.get('/:discordid/:pickid', async (req, res) => {
                 const season = row['season'];
                 const week = row['week'];
 
+                var w = week;
+                if (week == 19 || week == '19') {
+                    w = 160;
+                }
+                else if (week == 20 || week == '20') {
+                    w = 125;
+                }
+                else if (week == 21 || week == '21') {
+                    w = 150;
+                }
+                else if (week == 22 || week == '22') {
+                    w = 200;
+                }
                 const url = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4391&r=${week}&s=${season}`;
                 const result = await fetch(url);
                 const json = await result.json();
