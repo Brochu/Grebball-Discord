@@ -37,13 +37,14 @@ impl EventHandler for Bot {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(cmd) = interaction {
             match cmd.data.name.as_str() {
-                "semaine" => commands::matches::run(ctx, &cmd).await,
-                "choix"   => commands::picks::run(ctx, &cmd, &self.database).await,
-                //"ping"    => commands::ping::run(ctx, &cmd).await,
+                "semaine"  => commands::matches::run(ctx, &cmd).await,
+                "choix"    => commands::picks::run(ctx, &cmd, &self.database).await,
+                //"ping"   => commands::ping::run(ctx, &cmd).await,
                 "resultat" => commands::results::run(ctx, &cmd, &self.database).await,
-                "saison" => commands::season::run(ctx, &cmd, &self.database).await,
-                "equipe" => commands::team::run(ctx, &cmd, &self.database).await,
-                _         => println!("![Handler] Command not implemented!"),
+                "saison"   => commands::season::run(ctx, &cmd, &self.database).await,
+                "stats"    => commands::stats::run(ctx, &cmd, &self.database).await,
+                "equipe"   => commands::team::run(ctx, &cmd, &self.database).await,
+                _          => println!("![Handler] Command not implemented!"),
             };
         }
     }
@@ -68,6 +69,7 @@ impl EventHandler for Bot {
                 //.create_application_command(|cmd| commands::ping::register(cmd))
                 .create_application_command(|cmd| commands::results::register(cmd))
                 .create_application_command(|cmd| commands::season::register(cmd))
+                .create_application_command(|cmd| commands::stats::register(cmd))
                 .create_application_command(|cmd| commands::team::register(cmd))
         }).await.expect("![Handler] Could not set application commands in Discord Guild");
 
