@@ -15,7 +15,7 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
         .kind(CommandType::ChatInput)
 }
 
-pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, _db: &DB) {
+pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
     let poolid = env::var("POOL_ID")
         .expect("![Handler] Could not find env var 'POOL_ID'").parse::<i64>()
         .expect("![Handler] Could not parse pool_id to int");
@@ -33,6 +33,14 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, _db: &DB
     .await {
         println!("![results] Cannot respond to slash command : {:?}", reason);
     }
+
+    let (poolers, _week_count) = db.fetch_season(&poolid, &season).await.unwrap();
+    let _stats = poolers.iter()
+        .map(|(_id, _picks)| {
+            String::new()
+        })
+        .inspect(|s| println!("{}", s))
+        .collect::<Vec<String>>();
 
     if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
         res.content(format!("Statistiques {}-{}\n{}", season, poolid, "STATS HERE"))
