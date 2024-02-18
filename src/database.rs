@@ -14,6 +14,7 @@ pub struct WeekPicks {
     pub pickid: Option<i64>,
     pub poolerid: i64,
     pub name: String,
+    pub week: i64,
     pub picks: Option<Map<String, Value>>,
     pub cached: Option<u32>,
 }
@@ -86,7 +87,7 @@ impl DB {
                 let picks: Option<Map<String, Value>> = serde_json::from_str(row.get("pickstring")).ok();
                 let cached: Option<u32> = row.get("scorecache");
 
-                WeekPicks { pickid, poolerid, name, picks, cached }
+                WeekPicks { pickid, poolerid, name, week: *week, picks, cached }
             })
             .collect();
         
@@ -108,6 +109,7 @@ impl DB {
             pickid: pickrow.get("pickid"),
             poolerid: pickrow.get("poolerid"),
             name: pickrow.get("name"),
+            week: *week,
             picks: serde_json::from_str(pickrow.get("pickstring")).ok(),
             cached: pickrow.get("scorecache")
         })
@@ -121,6 +123,7 @@ impl DB {
                     WHERE season = ?
                 ) AS pk ON pk.poolerid = pl.id
                 WHERE pl.poolid = ?
+                ORDER BY week, poolerid
                 ")
             .bind(season)
             .bind(poolid)
@@ -129,27 +132,25 @@ impl DB {
                 let pickid: Option<i64> = row.get("pickid");
                 let poolerid: i64 = row.get("poolerid");
                 let name: String = row.get("name");
+                let week: i64 = row.get("week");
                 let picks: Option<Map<String, Value>> = serde_json::from_str(row.get("pickstring")).ok();
                 let cached: Option<u32> = row.get("scorecache");
 
-                WeekPicks { pickid, poolerid, name, picks, cached }
+                WeekPicks { pickid, poolerid, name, week, picks, cached }
             })
             .fold(SeasonPicks::new(), |mut acc, e| {
-                if let Some(pooler) = acc.iter_mut().find(|a| a.0 == e.poolerid) {
-                    // Add week results to pooler's group
-                    pooler.1.push(e);
+                if let Some(week) = acc.iter_mut().find(|a| a.0 == e.week) {
+                    // Add pooler's picks to week's group
+                    week.1.push(e);
                 }
                 else {
-                    // Add new pooler group
-                    acc.push( (e.poolerid, vec![e]) );
+                    // Add new week group
+                    acc.push( (e.week, vec![e]) );
                 }
                 acc
             });
 
-        let week_count = season.iter().fold(0, |acc, (_, wps)| {
-            acc.max(wps.len())
-        });
-
+        let week_count = season.len();
         Ok((season, week_count))
     }
 
