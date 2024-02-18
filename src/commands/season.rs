@@ -48,17 +48,23 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     for (w, picks) in weeks.iter() {
         println!("{}, picks {}", w, picks.len());
         for pick in picks {
-            let score = 0;
-            //TODO: Calculate score for pooler / week
+            let score = pick.cached.or_else(|| {
+                //TODO: Calculate score for pooler / week
+                Some(1)
+            }).unwrap();
+            println!("[{} - {}]: {:?}({})", pick.name, pick.week, pick.cached, score);
 
             if let Some(data) = season_data.iter_mut().find(|d| d.name.eq(&pick.name)) {
                 data.scores.push(score);
                 data.total += score;
             }
             else {
-                season_data = vec![SeasonResult{ name: pick.name.clone(), scores: vec![score], total: score }];
+                season_data.push(SeasonResult{ name: pick.name.clone(), scores: vec![score], total: score });
             }
         }
+    }
+    for s in season_data.iter() {
+        println!("[{}] -> {}", s.name, s.total);
     }
 
     //for (poolerid, weeks) in weeks.iter() {
