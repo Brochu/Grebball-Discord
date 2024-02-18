@@ -42,44 +42,60 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         println!("![results] Cannot respond to slash command : {:?}", reason);
     }
 
-    let (poolers, week_count) = db.fetch_season(&poolid, &season).await.unwrap();
+    let (weeks, _week_count) = db.fetch_season(&poolid, &season).await.unwrap();
     let mut season_data = Vec::<SeasonResult>::new();
 
-    for (poolerid, weeks) in poolers.iter() {
-        let name = weeks[0].name.to_owned();
-        let mut scores = Vec::<u32>::new();
-        let mut total = 0;
+    for (w, picks) in weeks.iter() {
+        println!("{}, picks {}", w, picks.len());
+        for pick in picks {
+            let score = 0;
+            //TODO: Calculate score for pooler / week
 
-        for i in 0..week_count {
-            if let Some(w) = weeks.get(i) {
-                if let Some(score) = w.cached {
-                    scores.push(score);
-                    total += score;
-                }
-                else {
-                    let week: i64 = (i + 1).try_into().unwrap();
-                    let matches: Vec<Match> = get_week(&season, &week).await.unwrap().collect();
-                    let picks = db.fetch_picks(&poolid, &season, &week).await.unwrap();
-
-                    let results= &calc_results(&week, &matches, &picks).await;
-                    let result = results.iter()
-                        .find(|res| res.poolerid == *poolerid)
-                        .unwrap();
-
-                    if result.cache {
-                        db.cache_results(&result.pickid.unwrap(), &result.score).await.unwrap();
-                    }
-                    scores.push(result.score);
-                    total += result.score;
-                }
+            if let Some(data) = season_data.iter_mut().find(|d| d.name.eq(&pick.name)) {
+                data.scores.push(score);
+                data.total += score;
             }
             else {
-                scores.push(0);
+                season_data = vec![SeasonResult{ name: pick.name.clone(), scores: vec![score], total: score }];
             }
         }
-
-        season_data.push(SeasonResult { name, scores, total });
     }
+
+    //for (poolerid, weeks) in weeks.iter() {
+    //    let name = weeks[0].name.to_owned();
+    //    let mut scores = Vec::<u32>::new();
+    //    let mut total = 0;
+
+    //    for i in 0..week_count {
+    //        if let Some(w) = weeks.get(i) {
+    //            if let Some(score) = w.cached {
+    //                scores.push(score);
+    //                total += score;
+    //            }
+    //            else {
+    //                let week: i64 = (i + 1).try_into().unwrap();
+    //                let matches: Vec<Match> = get_week(&season, &week).await.unwrap().collect();
+    //                let picks = db.fetch_picks(&poolid, &season, &week).await.unwrap();
+
+    //                let results= &calc_results(&week, &matches, &picks).await;
+    //                let result = results.iter()
+    //                    .find(|res| res.poolerid == *poolerid)
+    //                    .unwrap();
+
+    //                if result.cache {
+    //                    db.cache_results(&result.pickid.unwrap(), &result.score).await.unwrap();
+    //                }
+    //                scores.push(result.score);
+    //                total += result.score;
+    //            }
+    //        }
+    //        else {
+    //            scores.push(0);
+    //        }
+    //    }
+
+    //    season_data.push(SeasonResult { name, scores, total });
+    //}
 
     season_data.sort_unstable_by(|l, r| { r.total.cmp(&l.total) });
     let message = season_data.iter()
