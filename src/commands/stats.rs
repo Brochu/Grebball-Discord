@@ -20,10 +20,13 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
 struct PoolStats {
     uni_count: u32,
     uni_hits: u32,
+    unique_count: u32,
+    unique_hits: u32,
 }
 impl Display for PoolStats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "[POOL] unilateral rate: {} / {}", self.uni_hits, self.uni_count)
+        writeln!(f, "[POOL] unilateral rate: {} / {}; unique rate: {} / {}",
+            self.uni_hits, self.uni_count, self.unique_hits, self.unique_count)
     }
 }
 
@@ -60,21 +63,14 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         println!("![results] Cannot respond to slash command : {:?}", reason);
     }
 
-    let mut _pool = PoolStats{ uni_count: 0, uni_hits: 0 };
+    let mut _pool = PoolStats{ uni_count: 0, uni_hits: 0, unique_count: 0, unique_hits: 0 };
     let mut _poolers = Vec::<PoolerStats>::new();
 
     let (weeks, _) = db.fetch_season(&poolid, &season).await.unwrap();
-    for (w, week) in &weeks[0..1] {
-        let matches: Vec<Match> = get_week(&season, &w).await.unwrap().collect();
-        let _pickstring: Vec<String> = matches.iter().map(|m| {
-            week.iter().fold(String::new(), |mut acc, pooler| {
-                acc.push_str(pooler.picks.as_ref().unwrap().get(&m.id_event).unwrap().as_str().unwrap());
-                acc.push_str(", ");
-                acc
-            })
-        })
-        .inspect(|s| println!(" - {}", s))
-        .collect();
+    for (w, _poolers) in &weeks[0..1] {
+        for m in get_week(&season, &w).await.unwrap() {
+            println!("[{}] -> '{}' VS. '{}'", m.id_event, m.away_team, m.home_team);
+        }
     }
 
     if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
