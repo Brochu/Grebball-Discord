@@ -63,20 +63,44 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         println!("![results] Cannot respond to slash command : {:?}", reason);
     }
 
-    let mut _pool = PoolStats{ uni_count: 0, uni_hits: 0, unique_count: 0, unique_hits: 0 };
+    let mut pool = PoolStats{ uni_count: 0, uni_hits: 0, unique_count: 0, unique_hits: 0 };
     let mut _poolers = Vec::<PoolerStats>::new();
 
     let (weeks, _) = db.fetch_season(&poolid, &season).await.unwrap();
-    for (w, _poolers) in &weeks[0..1] {
+    for (w, poolers) in &weeks[..] {
         for m in get_week(&season, &w).await.unwrap() {
-            println!("[{}] -> '{}' VS. '{}'", m.id_event, m.away_team, m.home_team);
+            let picks: Vec<&str> = poolers.iter()
+                .map(|p| {
+                    match &p.picks {
+                        Some(pick) => pick.get(&m.id_event).unwrap().as_str(),
+                        None => "",
+                    }
+                })
+                .collect();
+            check_unanimous(&m, &picks, &mut pool.uni_hits, &mut pool.uni_count);
         }
     }
 
     if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
-        res.content(format!("Statistiques {}-{}\n{}", season, poolid, "STATS HERE"))
+        let uni = format!(" - Choix unanimes = {}/{} ({}%)",
+            pool.uni_hits, pool.uni_count, (pool.uni_hits as f32 / pool.uni_count as f32) * 100.0);
+
+        res.content(format!("Statistiques de la saison {}\n{}", season, uni))
     })
     .await {
         println!("![results] Cannot respond to slash command : {:?}", reason);
+    }
+}
+
+fn check_unanimous(m: &Match, picks: &Vec<&str>, uni_hit: &mut u32, uni_count: &mut u32) {
+    let all_away = picks.iter().all(|&p| p == m.away_team);
+    let all_home = picks.iter().all(|&p| p == m.home_team);
+
+    if all_away || all_home {
+        *uni_count += 1;
+
+        if all_away && m.away_score > m.home_score || all_home && m.home_score > m.away_score {
+            *uni_hit += 1;
+        }
     }
 }
