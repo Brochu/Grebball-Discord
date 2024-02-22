@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 use std::fmt::{ Display, Debug };
 
@@ -15,7 +16,7 @@ pub struct WeekPicks {
     pub poolerid: i64,
     pub name: String,
     pub week: i64,
-    pub picks: Option<Map<String, Value>>,
+    pub picks: Option<HashMap<String, String>>,
     pub cached: Option<u32>,
 }
 
@@ -85,6 +86,15 @@ impl DB {
                 let poolerid: i64 = row.get("poolerid");
                 let name: String = row.get("name");
                 let picks: Option<Map<String, Value>> = serde_json::from_str(row.get("pickstring")).ok();
+                let picks = if let Some(pickmap) = picks { 
+                    let m = pickmap.iter().fold(HashMap::new(), |mut map, (key, val)| {
+                        map.insert(key.to_owned(), val.as_str().unwrap().to_owned());
+                        map
+                    });
+                    Some(m)
+                } else {
+                    None
+                };
                 let cached: Option<u32> = row.get("scorecache");
 
                 WeekPicks { pickid, poolerid, name, week: *week, picks, cached }
@@ -133,7 +143,17 @@ impl DB {
                 let poolerid: i64 = row.get("poolerid");
                 let name: String = row.get("name");
                 let week: i64 = row.get("week");
+                //TODO: There has to be a better way
                 let picks: Option<Map<String, Value>> = serde_json::from_str(row.get("pickstring")).ok();
+                let picks = if let Some(pickmap) = picks { 
+                    let m = pickmap.iter().fold(HashMap::new(), |mut map, (key, val)| {
+                        map.insert(key.to_owned(), val.as_str().unwrap().to_owned());
+                        map
+                    });
+                    Some(m)
+                } else {
+                    None
+                };
                 let cached: Option<u32> = row.get("scorecache");
 
                 WeekPicks { pickid, poolerid, name, week, picks, cached }
