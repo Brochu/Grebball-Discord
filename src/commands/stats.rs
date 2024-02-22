@@ -64,20 +64,22 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     }
 
     let mut pool = PoolStats{ uni_count: 0, uni_hits: 0, unique_count: 0, unique_hits: 0 };
-    let mut _poolers = Vec::<PoolerStats>::new();
+    let mut stats = Vec::<PoolerStats>::new();
 
     let (weeks, _) = db.fetch_season(&poolid, &season).await.unwrap();
     for (w, poolers) in &weeks[..] {
         for m in get_week(&season, &w).await.unwrap() {
-            let picks: Vec<&str> = poolers.iter()
+            let picks: Vec<(_, _)> = poolers.iter()
                 .map(|p| {
-                    match &p.picks {
+                    let pick = match &p.picks {
                         Some(pick) => pick.get(&m.id_event).unwrap().as_str(),
                         None => "",
-                    }
+                    };
+                    (p.name.as_str(), pick)
                 })
                 .collect();
             check_unanimous(&m, &picks, &mut pool.uni_hits, &mut pool.uni_count);
+            check_unique(&m, &picks, &mut pool.unique_hits, &mut pool.unique_count, &mut stats);
         }
     }
 
@@ -92,9 +94,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     }
 }
 
-fn check_unanimous(m: &Match, picks: &Vec<&str>, uni_hit: &mut u32, uni_count: &mut u32) {
-    let all_away = picks.iter().all(|&p| p == m.away_team);
-    let all_home = picks.iter().all(|&p| p == m.home_team);
+fn check_unanimous(m: &Match, picks: &Vec<(&str, &str)>, uni_hit: &mut u32, uni_count: &mut u32) {
+    let all_away = picks.iter().all(|&(_, p)| p == m.away_team);
+    let all_home = picks.iter().all(|&(_, p)| p == m.home_team);
 
     if all_away || all_home {
         *uni_count += 1;
@@ -103,4 +105,13 @@ fn check_unanimous(m: &Match, picks: &Vec<&str>, uni_hit: &mut u32, uni_count: &
             *uni_hit += 1;
         }
     }
+}
+
+fn check_unique(
+    m: &Match,
+    picks: &Vec<(&str, &str)>,
+    uni_hit: &mut u32,
+    uni_count: &mut u32,
+    stats: &mut Vec<PoolerStats>)
+{
 }
