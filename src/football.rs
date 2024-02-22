@@ -1,8 +1,8 @@
-use std::{env, str::FromStr, cmp::Ordering};
+use std::{env, str::FromStr, cmp::Ordering, collections::HashMap};
 use core::fmt::Display;
 
 use chrono::{ Local, NaiveDate };
-use serde_json::{Value, Map};
+use serde_json::Value;
 use serenity::model::id::EmojiId;
 
 use crate::database::WeekPicks;
@@ -183,7 +183,7 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) ->
             let icons = if let Some(picks) = &p.picks {
                 matches.iter().fold(String::new(), |mut acc, m| {
                     let choice = match picks.get(&m.id_event) {
-                        Some(p) => p.as_str().unwrap(),
+                        Some(p) => p.as_str(),
                         None => "NA",
                     };
 
@@ -229,19 +229,17 @@ fn calc_results_internal(
     matches: &[Match],
     week: &i64,
     poolpicks: &[WeekPicks],
-    picks: &Map<String, Value>,
+    picks: &HashMap<String, String>,
     poolerid: i64) -> u32 {
 
     let total = matches.iter().fold(0, |acc, m| {
         if let Some(pick) = picks.get(&m.id_event) {
-            let pick = pick.as_str()
-                .expect("[results] Could not get match pick as str");
-
+            let pick = pick.as_str();
             let unique = poolpicks.iter()
                 .filter(|&pp| pp.poolerid != poolerid)
                 .map(|pp| { 
                     match &pp.picks {
-                        Some(p) => p.get(&m.id_event).unwrap().as_str().unwrap(),
+                        Some(p) => p.get(&m.id_event).unwrap().as_str(),
                         None => "",
                     }
                 })
