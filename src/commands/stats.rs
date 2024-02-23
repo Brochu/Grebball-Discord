@@ -114,4 +114,13 @@ fn check_unique(
     uni_count: &mut u32,
     stats: &mut Vec<PoolerStats>)
 {
+    //let unique = poolpicks.iter()
+    //    .filter(|&pp| pp.poolerid != poolerid)
+    //    .map(|pp| { 
+    //        match &pp.picks {
+    //            Some(p) => p.get(&m.id_event).unwrap().as_str(),
+    //            None => "",
+    //        }
+    //    })
+    //    .all(|pp| pp != pick);
 }
