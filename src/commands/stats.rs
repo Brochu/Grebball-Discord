@@ -86,8 +86,10 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
         let uni = format!(" - Choix unanimes = {}/{} ({}%)",
             pool.uni_hits, pool.uni_count, (pool.uni_hits as f32 / pool.uni_count as f32) * 100.0);
+        let unique = format!("- Choix uniques = {}/{} ({}%)",
+            pool.unique_hits, pool.unique_count, (pool.unique_hits as f32 / pool.unique_count as f32) * 100.0);
 
-        res.content(format!("Statistiques de la saison {}\n{}", season, uni))
+        res.content(format!("Statistiques de la saison {}\n{}\n{}", season, uni, unique))
     })
     .await {
         println!("![results] Cannot respond to slash command : {:?}", reason);
@@ -112,15 +114,16 @@ fn check_unique(
     picks: &Vec<(&str, &str)>,
     uni_hit: &mut u32,
     uni_count: &mut u32,
-    stats: &mut Vec<PoolerStats>)
+    _stats: &mut Vec<PoolerStats>)
 {
-    //let unique = poolpicks.iter()
-    //    .filter(|&pp| pp.poolerid != poolerid)
-    //    .map(|pp| { 
-    //        match &pp.picks {
-    //            Some(p) => p.get(&m.id_event).unwrap().as_str(),
-    //            None => "",
-    //        }
-    //    })
-    //    .all(|pp| pp != pick);
+    let away_count = picks.iter().filter(|(_, pick)| pick == &m.away_team).count();
+    let home_count = picks.iter().filter(|(_, pick)| pick == &m.home_team).count();
+
+    if away_count == 1 || home_count == 1 {
+        *uni_count += 1;
+
+        if away_count == 1 && m.away_score > m.home_score || home_count == 1 && m.home_score > m.away_score {
+            *uni_hit += 1;
+        }
+    }
 }
