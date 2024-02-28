@@ -67,7 +67,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     let mut stats = Vec::<PoolerStats>::new();
 
     let (weeks, _) = db.fetch_season(&poolid, &season).await.unwrap();
-    for (w, poolers) in &weeks[..] {
+    for (w, poolers) in &weeks[0..1] {
         for m in get_week(&season, &w).await.unwrap() {
             let picks: Vec<(_, _)> = poolers.iter()
                 .map(|p| {
@@ -121,6 +121,16 @@ fn check_unique(
 
     if away_count == 1 || home_count == 1 {
         *uni_count += 1;
+
+        //let name = if away_count < home_count {
+        //    picks.iter().find(|(_, pick)| pick == &m.away_team).unwrap().0
+        //} else {
+        //    picks.iter().find(|(_, pick)| pick == &m.home_team).unwrap().0
+        //};
+        //println!("{:?}, {}", picks, name);
+
+        //let mut stat = stats.iter_mut().find(|s| &s.name == name).unwrap();
+        //println!(" - {}", stat);
 
         if away_count == 1 && m.away_score > m.home_score || home_count == 1 && m.home_score > m.away_score {
             *uni_hit += 1;
