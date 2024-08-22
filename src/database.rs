@@ -127,16 +127,16 @@ impl DB {
 
     pub async fn fetch_season(&self, poolid: &i64, season: &u16) -> Result<(SeasonPicks, usize)> {
         let season = sqlx::query("
-                SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.week, pk.scorecache, pk.pickstring FROM poolers AS pl
-                LEFT JOIN (
-                    SELECT id, poolerid, week, scorecache, pickstring FROM picks
+                    SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.week, pk.scorecache, pk.pickstring FROM picks AS pk
+                    LEFT JOIN (
+                        SELECT id, name, poolid FROM poolers
+                        WHERE poolid = ?
+                    ) AS pl ON pk.poolerid = pl.id
                     WHERE season = ?
-                ) AS pk ON pk.poolerid = pl.id
-                WHERE pl.poolid = ?
-                ORDER BY week, poolerid
+                    ORDER BY week, poolerid
                 ")
-            .bind(season)
             .bind(poolid)
+            .bind(season)
             .fetch_all(&self.pool).await?
             .iter().map(|row| {
                 let pickid: Option<i64> = row.get("pickid");
