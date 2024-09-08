@@ -161,7 +161,7 @@ fn check_unique(
             picks.iter().find(|(_, pick)| pick == &m.home_team).unwrap().0
         };
 
-        let mut stat = stats.iter_mut().find(|s| &s.name == name).unwrap();
+        let stat = stats.iter_mut().find(|s| &s.name == name).unwrap();
         stat.unique_count += 1;
 
         if away_count == 1 && m.away_score > m.home_score || home_count == 1 && m.home_score > m.away_score {
