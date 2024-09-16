@@ -245,8 +245,6 @@ fn calc_results_internal(
                 })
                 .all(|pp| pp != pick);
 
-            //TODO: Count wins vs. loss, correct pick rate
-            //TODO: UNIQUE PICK RATE
             let outcome = if let (Some(a), Some(h)) = (m.away_score, m.home_score) {
                 match a.cmp(&h) {
                     Ordering::Less => if pick == m.away_team { MatchOutcome::Loss } else { MatchOutcome::Win },
