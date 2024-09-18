@@ -284,7 +284,7 @@ fn get_score(outcome: &MatchOutcome, unique: bool, week: &i64) -> u32 {
                 _ => 2,
             }
         },
-        MatchOutcome::Loss => 0,
-        MatchOutcome::Tied | MatchOutcome::NotPlayed => 1,
+        MatchOutcome::Loss | MatchOutcome::NotPlayed => 0,
+        MatchOutcome::Tied => 1,
     }
 }
