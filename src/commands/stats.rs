@@ -104,9 +104,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     }
 
     if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
-        let uni = format!(" - Choix unanimes = {}/{} ({:.2}%)",
+        let uni = format!(" - Choix unanimes: {}/{} ({:.2}%)",
             pool.uni_hits, pool.uni_count, (pool.uni_hits as f32 / pool.uni_count as f32) * 100.0);
-        let unique = format!("- Choix uniques = {}/{} ({:.2}%)",
+        let unique = format!("- Choix uniques: {}/{} ({:.2}%)",
             pool.unique_hits, pool.unique_count, (pool.unique_hits as f32 / pool.unique_count as f32) * 100.0);
         let list = stats.iter()
             .fold(String::new(), |message, stat| {
@@ -116,14 +116,14 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     0.0
                 };
 
-                let pooler = format!("{}\n - Choix: {}/{} ({:.2}%)\n- Uniques: {}/{} ({:.2}%)",
+                let pooler = format!("### {}\n - Choix: {}/{} ({:.2}%)\n- Uniques: {}/{} ({:.2}%)",
                     stat.name,
                     stat.hit_count, stat.pick_count, (stat.hit_count as f32 / stat.pick_count as f32) * 100.0,
                     stat.unique_hits, stat.unique_count, unique_percent);
                 format!("{}\n{}", message, pooler)
             });
 
-        res.content(format!("Statistiques de la saison {}\n{}\n{}\n{}", season, uni, unique, list))
+        res.content(format!("## Statistiques de la saison {}\n{}\n{}\n{}", season, uni, unique, list))
     })
     .await {
         println!("![results] Cannot respond to slash command : {:?}", reason);
