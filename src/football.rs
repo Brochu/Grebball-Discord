@@ -120,6 +120,12 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
     else { *week };
     let url = format!("{}?id={}&s={}&r={}", partial_url, league, season, w);
 
+    let res = test_get_week(season, week).await
+        .expect("ERROR!");
+    res.for_each(|m| {
+        println!(" - {}", m);
+    });
+
     let res = reqwest::get(url).await
         .expect("![Football] Could not get reply")
         .text().await
@@ -142,6 +148,53 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
                 date: NaiveDate::from_str(m["dateEvent"].as_str().unwrap()).unwrap(),
             }
         }));
+    } else {
+        None
+    }
+}
+
+pub async fn test_get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Match>> {
+    let data_url = env::var("DATA_URL")
+        .expect("![Football] Could not find 'DATA_URL' env var");
+
+    let w = if *week == 19 { 160 }
+    else if *week == 20 { 125 }
+    else if *week == 21 { 150 }
+    else if *week == 22 { 200 }
+    else { *week };
+    let stype = if w < 100 { 2 } else { 3 };
+
+    let newurl = format!("{}?dates={}&seasontype={}&week={}", data_url, season, stype, w);
+    println!("URL: {:?}", newurl);
+
+    let res = reqwest::get(newurl).await
+        .expect("![Football] Could not get reply")
+        .text().await
+        .expect("![Football] Could not retrieve text from response");
+    let json: Value = serde_json::from_str(res.as_str())
+        .expect("![Football] Could not parse response");
+
+    if let Value::Object(o) = json {
+        let events = o.get("events").expect("![Football] Could not find key 'events'")
+            .as_array().expect("![Football] Could not parse 'events' as an array")
+            .to_owned();
+
+        Some(events.into_iter().map(move |m| {
+            let comp = m["competitions"].as_array().unwrap()[0]
+                .as_object().unwrap()["competitors"].as_array().unwrap();
+            let away = comp[1].as_object().unwrap()["team"].as_object().unwrap()["abbreviation"].as_str();
+            let home = comp[0].as_object().unwrap()["team"].as_object().unwrap()["abbreviation"].as_str();
+
+            Match {
+                id_event: m["id"].as_str().unwrap().to_owned(),
+                away_team: away.unwrap().to_owned(),
+                home_team: home.unwrap().to_owned(),
+                away_score: comp[1].as_object().unwrap()["score"].as_str().unwrap_or("").parse().ok(),
+                home_score: comp[0].as_object().unwrap()["score"].as_str().unwrap_or("").parse().ok(),
+                date: Local::now().date_naive()
+                //TODO: Need to find a good way to parse the new date from ESPN
+            }
+        }))
     } else {
         None
     }
