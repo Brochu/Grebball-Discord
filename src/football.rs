@@ -120,11 +120,15 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
     else { *week };
     let url = format!("{}?id={}&s={}&r={}", partial_url, league, season, w);
 
-    let res = test_get_week(season, week).await
-        .expect("ERROR!");
-    res.for_each(|m| {
-        println!(" - {}", m);
+    let mut matches: Vec<Match> = test_get_week(season, week)
+        .await
+        .expect("ERROR!")
+        .collect();
+
+    matches.sort_by(|l, r| {
+        l.date.cmp(&r.date)
     });
+    matches.iter().for_each(|m| println!(" - {}", m));
 
     let res = reqwest::get(url).await
         .expect("![Football] Could not get reply")
@@ -185,14 +189,19 @@ pub async fn test_get_week(season: &u16, week: &i64) -> Option<impl Iterator<Ite
             let away = comp[1].as_object().unwrap()["team"].as_object().unwrap()["abbreviation"].as_str();
             let home = comp[0].as_object().unwrap()["team"].as_object().unwrap()["abbreviation"].as_str();
 
+            let d = m["date"].as_str()
+                .map(|s| s.replace("Z", ":00Z"))
+                .map(|s| chrono::DateTime::parse_from_rfc3339(&s).unwrap())
+                .map(|dt| dt.with_timezone(&chrono::Utc))
+                .unwrap();
+
             Match {
                 id_event: m["id"].as_str().unwrap().to_owned(),
                 away_team: away.unwrap().to_owned(),
                 home_team: home.unwrap().to_owned(),
                 away_score: comp[1].as_object().unwrap()["score"].as_str().unwrap_or("").parse().ok(),
                 home_score: comp[0].as_object().unwrap()["score"].as_str().unwrap_or("").parse().ok(),
-                date: Local::now().date_naive()
-                //TODO: Need to find a good way to parse the new date from ESPN
+                date: d.date_naive() //TODO: Work to include time here later on
             }
         }))
     } else {
