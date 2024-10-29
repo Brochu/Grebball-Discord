@@ -1,7 +1,7 @@
 use std::{env, str::FromStr, cmp::Ordering, collections::HashMap};
 use core::fmt::Display;
 
-use chrono::{ Local, NaiveDate };
+use chrono::{ Local, NaiveDate, Utc, DateTime };
 use serde_json::Value;
 use serenity::model::id::EmojiId;
 
@@ -166,6 +166,12 @@ pub async fn test_get_week(season: &u16, week: &i64) -> Option<impl Iterator<Ite
 
     let newurl = format!("{}?dates={}&seasontype={}&week={}", data_url, season, stype, w);
     println!("URL: {:?}", newurl);
+
+    //????
+    let test2 = DateTime::parse_from_str("2024-10-29T00:15Z", "%Y-%m-%dT%H:%M%:z")
+        .map(|dt| dt.with_timezone(&Utc))
+        .unwrap();
+    println!("2 ->{:?}", test2);
 
     let res = reqwest::get(newurl).await
         .expect("![Football] Could not get reply")
