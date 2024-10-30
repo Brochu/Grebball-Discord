@@ -108,6 +108,8 @@ impl Display for Match {
 pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Match>> {
     let partial_url = env::var("FOOTBALL_URL")
         .expect("![Football] Could not find 'FOOTBALL_URL' env var");
+    let data_url = env::var("DATA_URL")
+        .expect("![Football] Could not find 'DATA_URL' env var");
     let league = env::var("CONF_LEAGUE")
         .expect("![Football] Could not find 'CONF_LEAGUE' env var")
         .parse::<u16>()
@@ -118,37 +120,62 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
     else if *week == 21 { 150 }
     else if *week == 22 { 200 }
     else { *week };
+    let stype = if w < 100 { 2 } else { 3 };
+
+    // First fetch for most data
     let url = format!("{}?id={}&s={}&r={}", partial_url, league, season, w);
+    let res = serde_json::from_str(
+        reqwest::get(url).await
+            .expect("![Football] Could not get reply")
+            .text().await
+            .expect("![Football] Could not retrieve text from response").as_str()
+    ).expect("![Football] Could not parse response");
 
-    let mut matches: Vec<Match> = test_get_week(season, week)
-        .await
-        .expect("ERROR!")
-        .collect();
+    // Second fetch for up to date scores
+    let scoreurl = format!("{}?dates={}&seasontype={}&week={}", data_url, season, stype, w);
+    let scoreres = serde_json::from_str(
+        reqwest::get(scoreurl).await
+            .expect("![Football] Could not get reply")
+            .text().await
+            .expect("![Football] Could not retrieve text from response").as_str()
+    ).expect("![Football] Could not parse response");
 
-    matches.sort_by(|l, r| {
-        l.date.cmp(&r.date)
-    });
-    matches.iter().for_each(|m| println!(" - {}", m));
-
-    let res = reqwest::get(url).await
-        .expect("![Football] Could not get reply")
-        .text().await
-        .expect("![Football] Could not retrieve text from response");
-
-    let json: Value = serde_json::from_str(res.as_str())
-        .expect("![Football] Could not parse response");
-    if let Value::Object(o) = json {
+    if let (Value::Object(o), Value::Object(so)) = (res, scoreres) {
         let events = o.get("events").expect("![Football] Could not find key 'events'")
+            .as_array().expect("![Football] Could not parse 'events' as an array")
+            .to_owned();
+        let scoreevents = so.get("events").expect("![Football] Could not find key 'events'")
             .as_array().expect("![Football] Could not parse 'events' as an array")
             .to_owned();
 
         return Some(events.into_iter().map(move |m| {
+            let awayname = m["strAwayTeam"].as_str().unwrap();
+            let homename = m["strHomeTeam"].as_str().unwrap();
+            let comp = scoreevents.iter()
+                .find(|&s| {
+                    let name = s.as_object().unwrap()["name"].as_str().unwrap();
+                    name.contains(awayname) && name.contains(homename)
+                })
+                .map(|r| {
+                    r
+                        .as_object().unwrap()["competitions"].as_array().unwrap()[0]
+                        .as_object().unwrap()["competitors"].as_array().unwrap()
+                })
+                .unwrap();
+            let (mut home_score, mut away_score) = (
+                comp[0].as_object().unwrap()["score"].as_str().unwrap_or("").parse::<u64>().ok(),
+                comp[1].as_object().unwrap()["score"].as_str().unwrap_or("").parse::<u64>().ok()
+            );
+            if home_score == Some(0) && away_score == Some(0) {
+                (home_score, away_score) = (None, None);
+            }
+
             Match {
                 id_event: m["idEvent"].as_str().unwrap().to_owned(),
                 away_team: get_short_name(m["strAwayTeam"].as_str().unwrap()),
                 home_team: get_short_name(m["strHomeTeam"].as_str().unwrap()),
-                away_score: m["intAwayScore"].as_str().unwrap_or("").parse().ok(),
-                home_score: m["intHomeScore"].as_str().unwrap_or("").parse().ok(),
+                away_score,
+                home_score,
                 date: NaiveDate::from_str(m["dateEvent"].as_str().unwrap()).unwrap(),
             }
         }));
@@ -157,6 +184,7 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
     }
 }
 
+/*
 pub async fn test_get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Match>> {
     let data_url = env::var("DATA_URL")
         .expect("![Football] Could not find 'DATA_URL' env var");
@@ -169,8 +197,6 @@ pub async fn test_get_week(season: &u16, week: &i64) -> Option<impl Iterator<Ite
     let stype = if w < 100 { 2 } else { 3 };
 
     let newurl = format!("{}?dates={}&seasontype={}&week={}", data_url, season, stype, w);
-    println!("URL: {:?}", newurl);
-
     let res = reqwest::get(newurl).await
         .expect("![Football] Could not get reply")
         .text().await
@@ -184,10 +210,16 @@ pub async fn test_get_week(season: &u16, week: &i64) -> Option<impl Iterator<Ite
             .to_owned();
 
         Some(events.into_iter().map(move |m| {
-            let comp = m["competitions"].as_array().unwrap()[0]
-                .as_object().unwrap()["competitors"].as_array().unwrap();
-            let away = comp[1].as_object().unwrap()["team"].as_object().unwrap()["abbreviation"].as_str();
-            let home = comp[0].as_object().unwrap()["team"].as_object().unwrap()["abbreviation"].as_str();
+            let comp = m["competitions"]
+                .as_array().unwrap()[0]
+                .as_object().unwrap()["competitors"]
+                .as_array().unwrap();
+            let away = comp[1].as_object().unwrap()["team"]
+                .as_object().unwrap()["abbreviation"]
+                .as_str();
+            let home = comp[0].as_object().unwrap()["team"]
+                .as_object().unwrap()["abbreviation"]
+                .as_str();
 
             let d = m["date"].as_str()
                 .map(|s| s.replace("Z", ":00Z"))
@@ -208,6 +240,7 @@ pub async fn test_get_week(season: &u16, week: &i64) -> Option<impl Iterator<Ite
         None
     }
 }
+*/
 
 pub struct PickResults {
     pub pickid: Option<i64>,
