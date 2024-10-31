@@ -115,11 +115,11 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
         .parse::<u16>()
         .expect("![Football] Could not parse 'CONF_LEAGUE' to int");
 
-    let w = if *week == 19 { 160 }
-    else if *week == 20 { 125 }
-    else if *week == 21 { 150 }
-    else if *week == 22 { 200 }
-    else { *week };
+    let (w, sw) = if *week == 19 { (160, 1) }
+    else if *week == 20 { (125, 2) }
+    else if *week == 21 { (150, 3) }
+    else if *week == 22 { (200, 5) }
+    else { (*week, *week) };
     let stype = if w < 100 { 2 } else { 3 };
 
     // First fetch for most data
@@ -132,7 +132,7 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
     ).expect("![Football] Could not parse response");
 
     // Second fetch for up to date scores
-    let scoreurl = format!("{}?dates={}&seasontype={}&week={}", data_url, season, stype, w);
+    let scoreurl = format!("{}?dates={}&seasontype={}&week={}", data_url, season, stype, sw);
     let scoreres = serde_json::from_str(
         reqwest::get(scoreurl).await
             .expect("![Football] Could not get reply")
