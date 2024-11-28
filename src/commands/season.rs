@@ -73,6 +73,10 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     }
 
     season_data.sort_unstable_by(|l, r| { r.total.cmp(&l.total) });
+    let header = (1..=_week_count).fold(String::new(), |m, i| {
+        format!("{}| `{:02}` ", m, i)
+    });
+    let header = format!("`{}{}`: {}", "Semaines", " ".repeat(15-8), header);
     let message = season_data.iter()
         .fold(String::new(), |m, entry| {
             let width = 10 - entry.name.len();
@@ -82,7 +86,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         });
 
     if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
-        res.content(format!("Saison {}{}", season, message))
+        res.content(format!("Saison {}\n{}\n{}", season, header, message))
     })
     .await {
         println!("![results] Cannot respond to slash command : {:?}", reason);
