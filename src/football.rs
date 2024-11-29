@@ -1,7 +1,8 @@
 use std::{env, str::FromStr, cmp::Ordering, collections::HashMap};
-use core::fmt::Display;
+use core::fmt::{Display, Debug};
 
 use chrono::{ Local, NaiveDate };
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serenity::model::id::EmojiId;
 
@@ -124,6 +125,7 @@ pub fn get_team_id(team: &str) -> i64 {
     }
 }
 
+#[derive(Clone)]
 pub struct Match {
     pub id_event: String,
     pub away_team: String,
@@ -134,6 +136,16 @@ pub struct Match {
 }
 
 impl Display for Match {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{} - {}] {} - {:?} VS. {:?} - {}",
+            self.id_event, self.date,
+            self.away_team, self.away_score,
+            self.home_score, self.home_team
+        )
+    }
+}
+
+impl Debug for Match {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "[{} - {}] {} - {:?} VS. {:?} - {}",
             self.id_event, self.date,
@@ -222,8 +234,90 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
     }
 }
 
-pub async fn get_schedule(season: &u16, teamid: &i64) -> Vec<Match> {
-    Vec::new()
+#[derive(Serialize, Deserialize, Debug)]
+struct ESPNSchedule {
+    events: Vec<ESPNEvent>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ESPNEvent {
+    week: ESPNWeek,
+    #[serde(rename="competitions")]
+    comp: Vec<ESPNCompetition>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ESPNWeek {
+    number: i8,
+    text: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ESPNCompetition {
+    id: String,
+    date: String,
+    #[serde(rename="competitors")]
+    teams: Vec<ESPNCompetitor>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ESPNCompetitor {
+    team: ESPNTeam,
+    #[serde(default)]
+    score: ESPNScore,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+#[allow(non_snake_case)]
+struct ESPNScore {
+    value: f32,
+    displayValue: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ESPNTeam {
+    abbreviation: String,
+}
+
+pub async fn get_schedule(season: &u16, teamid: &i64) -> Vec<Option<Match>> {
+    let partial_url = env::var("BLAME_URL")
+        .expect("![Football] Could not find 'BLAME_URL' env var");
+
+    let url = format!("{}/{}/schedule?season={}", partial_url, teamid, season);
+    let res = reqwest::get(url).await
+        .expect("![Football] Could not get reply")
+        .text().await
+        .expect("![Football] Could not retrieve text from response");
+    let schedule: ESPNSchedule = serde_json::from_str(&res).expect("![Football] Could not parse response");
+
+    let matches: Vec<_> = schedule.events.iter().map(|e| {
+        let hteam = &e.comp[0].teams[0];
+        let ateam = &e.comp[0].teams[1];
+
+        let (mut away_score, mut home_score) = (
+            Some(ateam.score.value as u64),
+            Some(hteam.score.value as u64),
+        );
+        if ateam.score.displayValue.is_empty() && hteam.score.displayValue.is_empty() {
+            (away_score, home_score) = (None, None);
+        }
+
+        //TODO: Find a way to avoid all the clones
+        (e.week.number, Match {
+            id_event: e.comp[0].id.clone(),
+            away_team: ateam.team.abbreviation.clone(), home_team: hteam.team.abbreviation.clone(),
+            away_score, home_score,
+            date: NaiveDate::from_str(&e.comp[0].date[0..10]).unwrap(),
+        })
+    }).collect();
+
+    let mut result = Vec::<Option<Match>>::new();
+    result.resize(18, None);
+    for (idx, m) in matches {
+        result[(idx - 1) as usize] = Some(m);
+    }
+
+    return result;
 }
 
 /*
@@ -284,7 +378,7 @@ pub async fn test_get_week(season: &u16, week: &i64) -> Option<impl Iterator<Ite
 }
 */
 
-pub async fn calc_blame(
+pub fn calc_blame(
     _week: &i64,
     _matches: &[Match],
     _picks: &[WeekPicks],
