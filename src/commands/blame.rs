@@ -7,7 +7,7 @@ use serenity::model::prelude::command::{CommandOptionType, CommandType};
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::{calc_blame, get_team_id, get_week, Match};
+use library::football::{calc_blame, get_team_id, get_schedule};
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -45,27 +45,22 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .await {
             println!("![picks] Cannot respond to slash command : {:?}", reason);
         }
-        return; // We are done here, cannot handle invalid team name
+        // We are done here, cannot handle invalid team name
+        // Would like to create a list of possible values, but Discord caps it a 25 options
+        return;
     }
 
     let discordid = command.user.id.as_u64()
         .to_string().parse::<i64>()
         .unwrap();
     let poolerid = db.fetch_poolerid(&discordid).await.unwrap();
-    println!("poolerid = {}", poolerid);
 
-    let (seasondata, _) = db.fetch_season(&poolid, &season).await.unwrap();
-    //seasondata.iter().for_each(|(id, w)| {
-    //    println!("[{}] - {}", id, w.len())
-    //});
-
-    for (week, allpicks) in seasondata {
-        //TODO: Change this get week for get_schedule with only the teams matches
-        let matches: Vec<Match> = get_week(&season, &week).await.unwrap().collect();
-        let blame_score = calc_blame(&week, &matches, &*allpicks, &poolerid, "").await;
-
-        println!("[{}] - score = {}", week, blame_score);
-    }
+    let matches = get_schedule(&season, &teamid).await;
+    let (seasondata, week_count) = db.fetch_season(&poolid, &season).await.unwrap();
+    (0..week_count).for_each(|i| {
+        println!("{:02} -- {:?}", i+1, matches[i]);
+    });
+    let _blame_score = calc_blame(&seasondata[0].0, &Vec::new(), &seasondata[0].1, &poolerid, team.as_str().unwrap());
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res
