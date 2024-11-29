@@ -86,6 +86,44 @@ pub fn get_team_emoji(team: &str) -> EmojiId {
     });
 }
 
+pub fn get_team_id(team: &str) -> i64 {
+    match team {
+        "ARI" => 22,
+        "ATL" => 1,
+        "BAL" => 33,
+        "BUF" => 2,
+        "CAR" => 29,
+        "CHI" => 3,
+        "CIN" => 4,
+        "CLE" => 5,
+        "DAL" => 6,
+        "DEN" => 7,
+        "DET" => 8,
+        "GB"  => 9,
+        "HOU" => 34,
+        "IND" => 11,
+        "JAX" => 30,
+        "KC"  => 12,
+        "LA"  => 14,
+        "LAC" => 24,
+        "LV"  => 13,
+        "MIA" => 15,
+        "MIN" => 16,
+        "NE"  => 17,
+        "NO"  => 18,
+        "NYG" => 19,
+        "NYJ" => 20,
+        "PHI" => 21,
+        "PIT" => 23,
+        "SEA" => 26,
+        "SF"  => 25,
+        "TB"  => 27,
+        "TEN" => 10,
+        "WAS" => 28,
+        _     => -1,
+    }
+}
+
 pub struct Match {
     pub id_event: String,
     pub away_team: String,
@@ -184,6 +222,10 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
     }
 }
 
+pub async fn get_schedule(season: &u16, teamid: &i64) -> Vec<Match> {
+    Vec::new()
+}
+
 /*
 pub async fn test_get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Match>> {
     let data_url = env::var("DATA_URL")
@@ -241,6 +283,16 @@ pub async fn test_get_week(season: &u16, week: &i64) -> Option<impl Iterator<Ite
     }
 }
 */
+
+pub async fn calc_blame(
+    _week: &i64,
+    _matches: &[Match],
+    _picks: &[WeekPicks],
+    _poolerid: &i64,
+    _team: &str) -> i64 {
+
+    return 0;
+}
 
 pub struct PickResults {
     pub pickid: Option<i64>,
