@@ -8,12 +8,21 @@
     <link rel="icon" type="image/x-icon" href="/favicon-16.ico" />
 
     <style>
-        .team-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            width:150px;
+-        .team-container {
+-            display: flex;
+-            flex-direction: column;
+-            align-items: center;
+-            text-align: center;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .match-card {
+            padding: 16px;
         }
     </style>
 
@@ -43,11 +52,6 @@
 </nav>
 
 <main class="container">
-<sl-button size="small">Click me</sl-button>
-<sl-color-picker></sl-color-picker>
-
-<br />
-
 <sl-radio-group label="Select an option" name="a" value="1">
   <sl-radio-button value="1">
   <div class="team-container">
@@ -72,7 +76,26 @@
     <input type="hidden" name="favteam" value="<%= favteam %>" />
     <input type="hidden" name="forcedid" value="<%= forcedid %>" />
 
+    <div class="card-grid">
     <% matches.forEach((m) => { %>
+    <sl-card class="match-card">
+        <sl-radio-group name="<%=m['idEvent']%>">
+            <sl-radio-button value="<%=m['awayTeam']%>">
+                <div class="team-container">
+                <img src="/teams/<%=m['awayTeam']%>.png" width=35></img>
+                <span class="wrap-text"><%= m['strAwayTeam'] %></span>
+                </div>
+            </sl-radio-button>
+            <span>@</span>
+            <sl-radio-button value="<%=m['homeTeam']%>">
+                <div class="team-container">
+                <img src="/teams/<%=m['homeTeam']%>.png" width=35></img>
+                <span class="wrap-text"><%= m['strHomeTeam'] %></span>
+                </div>
+            </sl-radio-button>
+        </sl-radio-group>
+    </sl-card>
+    <!--
         <sl-radio-group name="<%=m['idEvent']%>" value="<%=favteam%>">
         <tr>
             <td style="text-align: right">
@@ -111,7 +134,10 @@
             </td>
         </tr>
         </sl-radio-group>
+    -->
+    </div>
     <% }); %>
+    </div>
 
     <button type="submit" class="btn btn-primary">Submit</button>
     </form>
