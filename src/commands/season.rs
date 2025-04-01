@@ -74,7 +74,18 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
     season_data.sort_unstable_by(|l, r| { r.total.cmp(&l.total) });
     let header = (1..=_week_count).fold(String::new(), |m, i| {
-        format!("{}| `{:02}` ", m, i)
+        if i <= 18 {
+            format!("{}| `{:02}` ", m, i)
+        }
+        else {
+            match i {
+                19 => format!("{}| `{:02}` ", m, "WC"),
+                20 => format!("{}| `{:02}` ", m, "DV"),
+                21 => format!("{}| `{:02}` ", m, "CF"),
+                22 => format!("{}| `{:02}` ", m, "SB"),
+                _ => unreachable!(),
+            }
+        }
     });
     let header = format!("`{}{}`: {}", "Semaines", " ".repeat(15-8), header);
     let message = season_data.iter()
