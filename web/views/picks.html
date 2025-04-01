@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="robots" content="noindex, nofollow">
-    <link href="/css/bootstrap.min.css" rel="stylesheet" type="text/css">
-    <link rel="icon" type="image/x-icon" href="/favicon-16.ico">
+    <link rel="stylesheet" href="/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/light.css" />
+    <link rel="icon" type="image/x-icon" href="/favicon-16.ico" />
 
     <title>Grebball - Picks</title>
 </head>
@@ -32,6 +33,23 @@
 </nav>
 
 <main class="container">
+<sl-button size="small">Click me</sl-button>
+<sl-color-picker></sl-color-picker>
+
+<br />
+
+<sl-radio-group label="Select an option" name="a" value="1">
+  <sl-radio-button value="1">
+    <img src="/teams/BAL.png" width=35 height=35 />
+  </sl-radio-button>
+  <sl-radio-button value="2">
+    <img src="/teams/KC.png" width=35 height=35 />
+  </sl-radio-button>
+  <sl-radio-button value="3" disabled>
+    <img src="/teams/PHI.png" width=35 height=35 />
+  </sl-radio-button>
+</sl-radio-group>
+
 <div class="bg-body-tertiary p-5 rounded">
     <span class="h2">Choix pour saison: <%= season %>, semaine: <%= week %></span>
 
@@ -97,5 +115,6 @@
 </main>
 
 <script src="/js/bootstrap.min.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace-autoloader.js"></script>
 </body>
 </html>
