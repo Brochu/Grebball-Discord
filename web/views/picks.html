@@ -3,28 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="robots" content="noindex, nofollow">
-    <link rel="stylesheet" href="/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/light.css" />
-    <link rel="icon" type="image/x-icon" href="/favicon-16.ico" />
-
-    <style>
--        .team-container {
--            display: flex;
--            flex-direction: column;
--            align-items: center;
--            text-align: center;
-        }
-
-        .card-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 16px;
-        }
-
-        .match-card {
-            padding: 16px;
-        }
-    </style>
+    <link href="/css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link rel="icon" type="image/x-icon" href="/favicon-16.ico">
 
     <title>Grebball - Picks</title>
 </head>
@@ -52,21 +32,6 @@
 </nav>
 
 <main class="container">
-<sl-radio-group label="Select an option" name="a" value="1">
-  <sl-radio-button value="1">
-  <div class="team-container">
-    <img src="/teams/BAL.png" width=35 height=35 />
-    <span>Baltimore Ravens</span>
-  </div>
-  </sl-radio-button>
-  <sl-radio-button value="2">
-  <div class="team-container">
-    <img src="/teams/KC.png" width=35 height=35 />
-    <span>Kansas City Chiefs</span>
-  </div>
-  </sl-radio-button>
-</sl-radio-group>
-
 <div class="bg-body-tertiary p-5 rounded">
     <span class="h2">Choix pour saison: <%= season %>, semaine: <%= week %></span>
 
@@ -76,68 +41,55 @@
     <input type="hidden" name="favteam" value="<%= favteam %>" />
     <input type="hidden" name="forcedid" value="<%= forcedid %>" />
 
-    <div class="card-grid">
+    <table class="table table-sm table-hover align-middle">
     <% matches.forEach((m) => { %>
-    <sl-card class="match-card">
-        <sl-radio-group name="<%=m['idEvent']%>">
-            <sl-radio-button value="<%=m['awayTeam']%>">
-                <div class="team-container">
-                <img src="/teams/<%=m['awayTeam']%>.png" width=35></img>
-                <span class="wrap-text"><%= m['strAwayTeam'] %></span>
-                </div>
-            </sl-radio-button>
-            <span>@</span>
-            <sl-radio-button value="<%=m['homeTeam']%>">
-                <div class="team-container">
-                <img src="/teams/<%=m['homeTeam']%>.png" width=35></img>
-                <span class="wrap-text"><%= m['strHomeTeam'] %></span>
-                </div>
-            </sl-radio-button>
-        </sl-radio-group>
-    </sl-card>
-    <!--
-        <sl-radio-group name="<%=m['idEvent']%>" value="<%=favteam%>">
         <tr>
             <td style="text-align: right">
-                <sl-radio-button pill="true" name="<%=m['idEvent']%>" id="<%=m['awayTeam']%>" value="<%=m['awayTeam']%>"
+                <label class="form-check-label" for="<%= m['awayTeam'] %>"><%= m['strAwayTeam'] %></label>
+            </td>
+            <td>
+                <label class="form-check-label" for="<%= m['awayTeam'] %>">
+                    <img src="/teams/<%= m['awayTeam'] %>.png" width=35 height=35 />
+                </label>
+            </td>
+            <td>
+                <input class="form-check-input" type="radio"
+                    name="<%= m['idEvent'] %>"
+                    id="<%= m['awayTeam'] %>"
+                    value="<%= m['awayTeam'] %>"
                     <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
+                        disabled
                         <% if (favteam === m['awayTeam']) { %>
                             checked
-                        <% } else { %>
-                            disabled
                         <% } %>
                     <% } %>
-                >
-                <div class="team-container">
-                    <img src="/teams/<%= m['awayTeam'] %>.png" width=35 height=35 />
-                    <span><%= m['strAwayTeam'] %></span>
-                </div>
-                </sl-radio-button>
+                    />
             </td>
-            <td>@</td>
+            <td>VS.</td>
             <td>
-                <sl-radio-button pill="true"
-                 name="<%=m['idEvent']%>" id="<%=m['homeTeam']%>" value="<%=m['homeTeam']%>"
+                <input class="form-check-input" type="radio"
+                    name="<%= m['idEvent'] %>"
+                    id="<%= m['homeTeam'] %>"
+                    value="<%= m['homeTeam'] %>"
                     <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
+                        disabled
                         <% if (favteam === m['homeTeam']) { %>
                             checked
-                        <% } else { %>
-                            disabled
                         <% } %>
                     <% } %>
-                >
-                <div class="team-container">
+                    />
+            </td>
+            <td>
+                <label class="form-check-label" for="<%= m['homeTeam'] %>">
                     <img src="/teams/<%= m['homeTeam'] %>.png" width=35 height=35 />
-                    <span><%= m['strHomeTeam'] %></span>
-                </div>
-                </sl-radio-button>
+                </label>
+            </td>
+            <td>
+                <label class="form-check-label" for="<%= m['homeTeam'] %>"><%= m['strHomeTeam'] %></label>
             </td>
         </tr>
-        </sl-radio-group>
-    -->
-    </div>
     <% }); %>
-    </div>
+    </table>
 
     <button type="submit" class="btn btn-primary">Submit</button>
     </form>
@@ -145,6 +97,5 @@
 </main>
 
 <script src="/js/bootstrap.min.js"></script>
-<script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/shoelace-autoloader.js"></script>
 </body>
 </html>
