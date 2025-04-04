@@ -49,6 +49,7 @@ app.get('/:discordid/:pickid', async (req, res) => {
                 const favteam = row['favteam']
                 const season = row['season'];
                 const week = row['week'];
+                const overunder = 41;
 
                 var w = week;
                 if (week == 19 || week == '19') {
@@ -83,6 +84,8 @@ app.get('/:discordid/:pickid', async (req, res) => {
                     });
                 }
 
+                matches[0]['featured'] = true;
+
                 res.render('picks.html', {
                     season,
                     week,
@@ -92,7 +95,8 @@ app.get('/:discordid/:pickid', async (req, res) => {
                     avatar,
                     matches,
                     matchids,
-                    forcedid
+                    forcedid,
+                    overunder
                 });
             }
         });

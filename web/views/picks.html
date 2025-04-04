@@ -54,22 +54,28 @@
         <div class="row row-cols-1 row-cols-sm-1 row-cols-md-3 row-cols-lg-4 g-2">
             <% matches.forEach((m) => { %>
             <div class="col">
-                <div class="card h-100">
-                    <div class="card-body d-flex flex-column align-items-center">
-                        <div class="d-flex align-items-center justify-content-center gap-3">
+                <div class="card h-100 border-<%= m.featured ? 'warning' : 'primary' %>">
+                    <div class="card-header d-flex flex-column align-items-center">
+                        <% if (m.featured) { %>
+                            <!-- Featured Match Banner -->
+                            <div class="bg-warning-subtle border border-warning rounded p-2 w-100 d-flex justify-content-between align-items-center">
+                                <span class="small text-muted"><%= m.matchTime %> ET</span>
+                                <span class="badge bg-warning text-dark"><i class="bi bi-trophy-fill"></i> Featured</span>
+                            </div>
+                        <% } else { %>
+                            DATE/TIME HERE
+                        <% } %>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center justify-content-center gap-3 mt-2">
                             <!-- Away Team -->
                             <input type="radio" class="btn-check" name="<%=m['idEvent']%>" id="<%=m['awayTeam']%>" value="<%=m['awayTeam']%>"
                             <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
-                                <% if (favteam === m['awayTeam']) { %>
-                                    checked
-                                <%} else {%>
-                                    disabled
-                                <%}%>
-                            <%}%>
-                            >
+                                <% if (favteam === m['awayTeam']) { %> checked <% } else { %> disabled <% } %>
+                            <% } %>>
                             <label class="btn btn-outline-primary d-flex flex-column align-items-center no-pad" for="<%=m['awayTeam']%>">
                                 <img src="/teams/<%=m['awayTeam']%>.png" width="45" height="45">
-                                <small class="text-muted text-center fs-8"><%= m['strAwayTeam']%></small>
+                                <small class="text-muted text-center fs-8"><%= m['strAwayTeam']%> - <%=m['featured']%></small>
                             </label>
 
                             <!-- @ Symbol -->
@@ -78,18 +84,30 @@
                             <!-- Home Team -->
                             <input type="radio" class="btn-check" name="<%=m['idEvent']%>" id="<%=m['homeTeam']%>" value="<%=m['homeTeam']%>"
                             <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
-                                <% if (favteam === m['homeTeam']) { %>
-                                    checked
-                                <%} else {%>
-                                    disabled
-                                <%}%>
-                            <%}%>
-                            >
+                                <% if (favteam === m['homeTeam']) { %> checked <% } else { %> disabled <% } %>
+                            <% } %>>
                             <label class="btn btn-outline-primary d-flex flex-column align-items-center no-pad" for="<%=m['homeTeam']%>">
                                 <img src="/teams/<%=m['homeTeam']%>.png" width="45" height="45">
                                 <small class="text-muted text-center fs-8"><%= m['strHomeTeam']%></small>
                             </label>
                         </div>
+
+                        <% if (m.featured) { %>
+                            <hr class="w-100">
+                            <!-- Over/Under Section -->
+                            <div class="text-center text-muted small">Over/Under <%= overunder %></div>
+                            <div class="btn-group w-100 mt-2" role="group">
+                                <input type="radio" class="btn-check btn-outline-warning" name="overunder" id="OVER"></input>
+                                <label class="btn btn-outline-warning d-flex flex-column align-items-center no-pad" for="OVER">
+                                    OVER
+                                </label>
+
+                                <input type="radio" class="btn-check btn-outline-warning" name="overunder" id="UNDER"></input>
+                                <label class="btn btn-outline-warning d-flex flex-column align-items-center no-pad" for="UNDER">
+                                    UNDER
+                                </label>
+                            </div>
+                        <% } %>
                     </div>
                 </div>
             </div>
