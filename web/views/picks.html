@@ -10,6 +10,9 @@
         .fs-8 {
           font-size: 0.7rem; /* adjust the size as needed */
         }
+        .no-pad {
+            padding: 5px;
+        }
     </style>
 
     <title>Grebball - Picks</title>
@@ -48,29 +51,50 @@
     <input type="hidden" name="forcedid" value="<%= forcedid %>" />
 
     <div class="container my-4">
-    <div class="row row-cols-1 row-cols-sm-1 row-cols-md-3 row-cols-lg-4 g-2">
-    <% matches.forEach((m) => { %>
-    <!--<p><%= m['strAwayTeam'] %> @ <%= m['strHomeTeam'] %></p>-->
-    <div class="col">
-        <div class="card">
-            <div class="card-body">
-                <!--<h5 class="card-title">Card 2</h5>-->
-                <div class="d-grid" style="grid-template-columns: 1fr auto 1fr; align-items: center; justify-items: center;">
-                    <div class="d-flex flex-column align-items-center">
-                        <img src="/teams/<%=m['awayTeam']%>.png" width="50" height="50"></img>
-                        <small class="d-block text-wrap text-muted text-center fs-8"><%= m['strAwayTeam']%></small>
-                    </div>
-                    <span class="fs-4 mx-2">@</span>
-                    <div class="d-flex flex-column align-items-center">
-                        <img src="/teams/<%=m['homeTeam']%>.png" width="50" height="50"></img>
-                        <small class="d-block text-wrap text-muted text-center fs-8"><%= m['strHomeTeam']%></small>
+        <div class="row row-cols-1 row-cols-sm-1 row-cols-md-3 row-cols-lg-4 g-2">
+            <% matches.forEach((m) => { %>
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column align-items-center">
+                        <div class="d-flex align-items-center justify-content-center gap-3">
+                            <!-- Away Team -->
+                            <input type="radio" class="btn-check" name="<%=m['idEvent']%>" id="<%=m['awayTeam']%>" value="<%=m['awayTeam']%>"
+                            <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
+                                <% if (favteam === m['awayTeam']) { %>
+                                    checked
+                                <%} else {%>
+                                    disabled
+                                <%}%>
+                            <%}%>
+                            >
+                            <label class="btn btn-outline-primary d-flex flex-column align-items-center no-pad" for="<%=m['awayTeam']%>">
+                                <img src="/teams/<%=m['awayTeam']%>.png" width="45" height="45">
+                                <small class="text-muted text-center fs-8"><%= m['strAwayTeam']%></small>
+                            </label>
+
+                            <!-- @ Symbol -->
+                            <span class="fs-4">@</span>
+
+                            <!-- Home Team -->
+                            <input type="radio" class="btn-check" name="<%=m['idEvent']%>" id="<%=m['homeTeam']%>" value="<%=m['homeTeam']%>"
+                            <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
+                                <% if (favteam === m['homeTeam']) { %>
+                                    checked
+                                <%} else {%>
+                                    disabled
+                                <%}%>
+                            <%}%>
+                            >
+                            <label class="btn btn-outline-primary d-flex flex-column align-items-center no-pad" for="<%=m['homeTeam']%>">
+                                <img src="/teams/<%=m['homeTeam']%>.png" width="45" height="45">
+                                <small class="text-muted text-center fs-8"><%= m['strHomeTeam']%></small>
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
+            <% }) %>
         </div>
-    </div>
-    <% }) %>
-    </div>
     </div>
 
     <!--
