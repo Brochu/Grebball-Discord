@@ -1,9 +1,8 @@
-use std::{env, str::FromStr, cmp::Ordering, collections::HashMap};
+use std::{env, cmp::Ordering, collections::HashMap};
 use core::fmt::{Display, Debug};
 
-use chrono::{ Local, NaiveDate };
+use chrono::{ Utc, DateTime };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use serenity::model::id::EmojiId;
 
 use crate::database::WeekPicks;
@@ -26,7 +25,7 @@ pub fn get_short_name(name: &str) -> String {
         "Indianapolis Colts"   => "IND",
         "Jacksonville Jaguars" => "JAX",
         "Kansas City Chiefs"   => "KC",
-        "Los Angeles Rams"     => "LA",
+        "Los Angeles Rams"     => "LAR",
         "Los Angeles Chargers" => "LAC",
         "Las Vegas Raiders"    => "LV",
         "Oakland Raiders"      => "LV",
@@ -42,9 +41,9 @@ pub fn get_short_name(name: &str) -> String {
         "San Francisco 49ers"  => "SF",
         "Tampa Bay Buccaneers" => "TB",
         "Tennessee Titans"     => "TEN",
-        "Washington"           => "WAS",
-        "Washington Commanders"=> "WAS",
-        "Washington Redskins"  => "WAS",
+        "Washington"           => "WSH",
+        "Washington Commanders"=> "WSH",
+        "Washington Redskins"  => "WSH",
         _                      => "N/A",
     }.to_owned()
 }
@@ -68,6 +67,7 @@ pub fn get_team_emoji(team: &str) -> EmojiId {
         "JAX" => 1142671677990387722,
         "KC"  => 1142671679051546724,
         "LA"  => 1142671680410484888,
+        "LAR" => 1142671680410484888,
         "LAC" => 1142671682121773097,
         "LV"  => 1142671384263270410,
         "MIA" => 1142671683325526126,
@@ -83,6 +83,7 @@ pub fn get_team_emoji(team: &str) -> EmojiId {
         "TB"  => 1142671784433430570,
         "TEN" => 1142671692989218937,
         "WAS" => 1142671397987041281,
+        "WSH" => 1142671397987041281,
         _     => 1142674584508825681,
     });
 }
@@ -106,6 +107,7 @@ pub fn get_team_id(team: &str) -> i64 {
         "JAX" => 30,
         "KC"  => 12,
         "LA"  => 14,
+        "LAR" => 14,
         "LAC" => 24,
         "LV"  => 13,
         "MIA" => 15,
@@ -121,6 +123,7 @@ pub fn get_team_id(team: &str) -> i64 {
         "TB"  => 27,
         "TEN" => 10,
         "WAS" => 28,
+        "WSH" => 28,
         _     => -1,
     }
 }
@@ -132,7 +135,7 @@ pub struct Match {
     pub home_team: String,
     pub away_score: Option<u64>,
     pub home_score: Option<u64>,
-    pub date: NaiveDate,
+    pub date: DateTime<Utc>,
 }
 
 impl Display for Match {
@@ -156,14 +159,8 @@ impl Debug for Match {
 }
 
 pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Match>> {
-    let partial_url = env::var("FOOTBALL_URL")
-        .expect("![Football] Could not find 'FOOTBALL_URL' env var");
     let data_url = env::var("DATA_URL")
         .expect("![Football] Could not find 'DATA_URL' env var");
-    let league = env::var("CONF_LEAGUE")
-        .expect("![Football] Could not find 'CONF_LEAGUE' env var")
-        .parse::<u16>()
-        .expect("![Football] Could not parse 'CONF_LEAGUE' to int");
 
     let (w, sw) = if *week == 19 { (160, 1) }
     else if *week == 20 { (125, 2) }
@@ -172,25 +169,32 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
     else { (*week, *week) };
     let stype = if w < 100 { 2 } else { 3 };
 
-    // First fetch for most data
-    let url = format!("{}?id={}&s={}&r={}", partial_url, league, season, w);
-    let res = serde_json::from_str(
-        reqwest::get(url).await
-            .expect("![Football] Could not get reply")
-            .text().await
-            .expect("![Football] Could not retrieve text from response").as_str()
-    ).expect("![Football] Could not parse response");
-
-    // Second fetch for up to date scores
     let scoreurl = format!("{}?dates={}&seasontype={}&week={}", data_url, season, stype, sw);
-    let scoreres = serde_json::from_str(
-        reqwest::get(scoreurl).await
-            .expect("![Football] Could not get reply")
-            .text().await
-            .expect("![Football] Could not retrieve text from response").as_str()
-    ).expect("![Football] Could not parse response");
+    let scoreres = reqwest::get(scoreurl).await
+        .expect("![Football] Could not get reply")
+        .text().await
+        .expect("![Football] Could not retrieve text from response");
+    let schedule: ESPNSchedule = serde_json::from_str(&scoreres)
+        .expect("![Football] Could not parse response");
 
-    if let (Value::Object(o), Value::Object(so)) = (res, scoreres) {
+    let matches = schedule.events.into_iter().map(move |e| {
+        let away_team = &e.comp[0].teams[1];
+        let home_team = &e.comp[0].teams[0];
+        let match_date = e.comp[0].date.replace("Z", ":00Z");
+        Match {
+            id_event: e.id,
+            away_team: away_team.team.abbreviation.to_owned(),
+            home_team: home_team.team.abbreviation.to_owned(),
+            away_score: away_team.score.parse::<u64>().ok(),
+            home_score: home_team.score.parse::<u64>().ok(),
+            date: DateTime::parse_from_rfc3339(match_date.as_str())
+                .map(|dt| dt.with_timezone(&Utc))
+                .expect("![Football] Could not parse event's date")
+        }
+    });
+    return Some(matches);
+    /*
+    if let Value::Object(so) = scoreres {
         let events = o.get("events").expect("![Football] Could not find key 'events'")
             .as_array().expect("![Football] Could not parse 'events' as an array")
             .to_owned();
@@ -232,6 +236,7 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
     } else {
         None
     }
+    */
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -241,6 +246,7 @@ struct ESPNSchedule {
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ESPNEvent {
+    id: String,
     week: ESPNWeek,
     #[serde(rename="competitions")]
     comp: Vec<ESPNCompetition>,
@@ -249,7 +255,7 @@ struct ESPNEvent {
 #[derive(Serialize, Deserialize, Debug)]
 struct ESPNWeek {
     number: i8,
-    text: String,
+    //text: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -264,19 +270,23 @@ struct ESPNCompetition {
 struct ESPNCompetitor {
     team: ESPNTeam,
     #[serde(default)]
-    score: ESPNScore,
+    score: String,
 }
 
+/*
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[allow(non_snake_case)]
 struct ESPNScore {
     value: f32,
     displayValue: String,
 }
+*/
 
 #[derive(Serialize, Deserialize, Debug)]
+#[allow(non_snake_case)]
 struct ESPNTeam {
     abbreviation: String,
+    displayName: String,
 }
 
 pub async fn get_schedule(season: &u16, teamid: &i64) -> Vec<Option<Match>> {
@@ -293,12 +303,13 @@ pub async fn get_schedule(season: &u16, teamid: &i64) -> Vec<Option<Match>> {
     let matches: Vec<_> = schedule.events.iter().map(|e| {
         let hteam = &e.comp[0].teams[0];
         let ateam = &e.comp[0].teams[1];
+        let match_date = e.comp[0].date.replace("Z", ":00Z");
 
         let (mut away_score, mut home_score) = (
-            Some(ateam.score.value as u64),
-            Some(hteam.score.value as u64),
+            ateam.score.parse::<u64>().ok(),
+            hteam.score.parse::<u64>().ok(),
         );
-        if ateam.score.displayValue.is_empty() && hteam.score.displayValue.is_empty() {
+        if ateam.score.is_empty() && hteam.score.is_empty() {
             (away_score, home_score) = (None, None);
         }
 
@@ -307,7 +318,9 @@ pub async fn get_schedule(season: &u16, teamid: &i64) -> Vec<Option<Match>> {
             id_event: e.comp[0].id.clone(),
             away_team: ateam.team.abbreviation.clone(), home_team: hteam.team.abbreviation.clone(),
             away_score, home_score,
-            date: NaiveDate::from_str(&e.comp[0].date[0..10]).unwrap(),
+            date: DateTime::parse_from_rfc3339(match_date.as_str())
+                .map(|dt| dt.with_timezone(&Utc))
+                .expect("![Football] Could not parse event's date"),
         })
     }).collect();
 
@@ -405,7 +418,7 @@ impl Display for PickResults {
 }
 
 pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) -> Vec<PickResults> {
-    let now = Local::now().date_naive();
+    let now = Utc::now();
     let week_complete = matches.iter().all(|m| {
         match m.date.cmp(&now) {
             Ordering::Less => {

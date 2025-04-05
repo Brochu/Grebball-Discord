@@ -166,8 +166,8 @@ const lNameMap = {
     'Indianapolis Colts'   : 'IND',
     'Jacksonville Jaguars' : 'JAX',
     'Kansas City Chiefs'   : 'KC',
-    'Los Angeles Rams'     : 'LA',
-    'St. Louis Rams'       : 'LA',
+    'Los Angeles Rams'     : 'LAR',
+    'St. Louis Rams'       : 'LAR',
     'Los Angeles Chargers' : 'LAC',
     'Las Vegas Raiders'    : 'LV',
     'Oakland Raiders'      : 'LV',
@@ -183,9 +183,9 @@ const lNameMap = {
     'San Francisco 49ers'  : 'SF',
     'Tampa Bay Buccaneers' : 'TB',
     'Tennessee Titans'     : 'TEN',
-    'Washington'           : 'WAS',
-    'Washington Commanders': 'WAS',
-    'Washington Redskins'  : 'WAS'
+    'Washington'           : 'WSH',
+    'Washington Commanders': 'WSH',
+    'Washington Redskins'  : 'WSH'
 };
 
 const GetTeamShortName = (longname) => {
