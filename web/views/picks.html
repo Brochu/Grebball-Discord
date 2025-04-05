@@ -52,18 +52,15 @@
 
     <div class="container my-4">
         <div class="row row-cols-1 row-cols-sm-1 row-cols-md-3 row-cols-lg-4 g-2">
+
             <% matches.forEach((m) => { %>
             <div class="col">
                 <div class="card h-100 border-<%= m.featured ? 'warning' : 'primary' %>">
                     <div class="card-header d-flex flex-column align-items-center">
                         <% if (m.featured) { %>
-                            <!-- Featured Match Banner -->
-                            <div class="bg-warning-subtle border border-warning rounded p-2 w-100 d-flex justify-content-between align-items-center">
-                                <span class="small text-muted"><%= m.matchTime %> ET</span>
-                                <span class="badge bg-warning text-dark"><i class="bi bi-trophy-fill"></i> Featured</span>
-                            </div>
+                            <span class="small text-muted"><%= m['date'].toLocaleString() %></span>
                         <% } else { %>
-                            DATE/TIME HERE
+                            <span class="small text-muted"><%= m['date'].toLocaleString() %></span>
                         <% } %>
                     </div>
                     <div class="card-body">
@@ -73,9 +70,9 @@
                             <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
                                 <% if (favteam === m['awayTeam']) { %> checked <% } else { %> disabled <% } %>
                             <% } %>>
-                            <label class="btn btn-outline-primary d-flex flex-column align-items-center no-pad" for="<%=m['awayTeam']%>">
+                            <label class="btn btn-outline-<%= m.featured ? 'warning' : 'primary' %> d-flex flex-column align-items-center no-pad" for="<%=m['awayTeam']%>">
                                 <img src="/teams/<%=m['awayTeam']%>.png" width="45" height="45">
-                                <small class="text-muted text-center fs-8"><%= m['strAwayTeam']%> - <%=m['featured']%></small>
+                                <small class="text-muted text-center fs-8"><%= m['strAwayTeam']%></small>
                             </label>
 
                             <!-- @ Symbol -->
@@ -86,7 +83,7 @@
                             <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
                                 <% if (favteam === m['homeTeam']) { %> checked <% } else { %> disabled <% } %>
                             <% } %>>
-                            <label class="btn btn-outline-primary d-flex flex-column align-items-center no-pad" for="<%=m['homeTeam']%>">
+                            <label class="btn btn-outline-<%= m.featured ? 'warning' : 'primary' %> d-flex flex-column align-items-center no-pad" for="<%=m['homeTeam']%>">
                                 <img src="/teams/<%=m['homeTeam']%>.png" width="45" height="45">
                                 <small class="text-muted text-center fs-8"><%= m['strHomeTeam']%></small>
                             </label>
@@ -112,6 +109,7 @@
                 </div>
             </div>
             <% }) %>
+
         </div>
     </div>
 

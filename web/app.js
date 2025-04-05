@@ -53,18 +53,25 @@ app.get('/:discordid/:pickid', async (req, res) => {
 
                 var w = week;
                 if (week == 19 || week == '19') {
-                    w = 160;
+                    w = 1;
                 }
                 else if (week == 20 || week == '20') {
-                    w = 125;
+                    w = 2;
                 }
                 else if (week == 21 || week == '21') {
-                    w = 150;
+                    w = 3;
                 }
                 else if (week == 22 || week == '22') {
-                    w = 200;
+                    w = 5;
                 }
-                const url = `https://www.thesportsdb.com/api/v1/json/3/eventsround.php?id=4391&r=${w}&s=${season}`;
+
+                const stype = 2;
+                if (w >= 100) {
+                    stype = 3
+                }
+
+                const partial_url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
+                const url = `${partial_url}?dates=${season}&seasontype=${stype}&week=${w}`;
                 const result = await fetch(url);
                 const json = await result.json();
 
@@ -73,14 +80,23 @@ app.get('/:discordid/:pickid', async (req, res) => {
                 let forcedid = 0;
                 if (json['events']) {
                     matches = json['events'].map((m) => {
-                        m['awayTeam'] = GetTeamShortName(m['strAwayTeam']);
-                        m['homeTeam'] = GetTeamShortName(m['strHomeTeam']);
+                        match = {};
+                        match['idEvent'] = m['id'];
+                        match['date'] = new Date(m['date']);
 
-                        if (m['awayTeam'] === favteam || m['homeTeam'] === favteam) {
-                            forcedid = m['idEvent'];
+                        const teams = m['competitions'][0]['competitors'];
+                        const hteam = teams[0];
+                        const ateam = teams[1];
+                        match['homeTeam'] = hteam['team']['abbreviation'];
+                        match['awayTeam'] = ateam['team']['abbreviation'];
+                        match['strHomeTeam'] = hteam['team']['displayName'];
+                        match['strAwayTeam'] = ateam['team']['displayName'];
+
+                        if (match['awayTeam'] === favteam || match['homeTeam'] === favteam) {
+                            forcedid = m['id'];
                         }
-                        matchids.push(m['idEvent']);
-                        return m;
+                        matchids.push(m['id']);
+                        return match;
                     });
                 }
 
