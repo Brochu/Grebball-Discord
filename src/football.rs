@@ -1,7 +1,7 @@
 use std::{env, cmp::Ordering, collections::HashMap};
 use core::fmt::{Display, Debug};
 
-use chrono::{ Utc, DateTime };
+use chrono::{ DateTime, TimeDelta, Utc };
 use serde::{Deserialize, Serialize};
 use serenity::model::id::EmojiId;
 
@@ -418,7 +418,7 @@ impl Display for PickResults {
 }
 
 pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) -> Vec<PickResults> {
-    let now = Utc::now();
+    let now = Utc::now().checked_sub_signed(TimeDelta::hours(8)).unwrap();
     let week_complete = matches.iter().all(|m| {
         match m.date.cmp(&now) {
             Ordering::Less => {
