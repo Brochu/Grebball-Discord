@@ -17,6 +17,7 @@ pub struct WeekPicks {
     pub name: String,
     pub week: i64,
     pub picks: Option<HashMap<String, String>>,
+    pub featpick: Option<u32>,
     pub cached: Option<u32>,
 }
 
@@ -29,19 +30,19 @@ pub enum PicksStatus {
 
 impl Display for WeekPicks {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "(pickid: {:?}, poolerid: {})[{}] ({:?}) -> {:?}",
+        writeln!(f, "(pickid: {:?}, poolerid: {})[{}] ({:?}) -> {:?} (feat: {:?})",
             self.pickid, self.poolerid,
             self.name,
-            self.cached, self.picks)
+            self.cached, self.picks, self.featpick)
     }
 }
 
 impl Debug for WeekPicks {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "(pickid: {:?}, poolerid: {})[{}] ({:?}) -> {:?}",
+        writeln!(f, "(pickid: {:?}, poolerid: {})[{}] ({:?}) -> {:?} (feat: {:?})",
             self.pickid, self.poolerid,
             self.name,
-            self.cached, self.picks)
+            self.cached, self.picks, self.featpick)
     }
 }
 
@@ -70,9 +71,9 @@ impl DB {
 
     pub async fn fetch_picks(&self, poolid: &i64, season: &u16, week: &i64) -> Result<Vec<WeekPicks>> {
         let results: Vec<WeekPicks> = sqlx::query("
-                SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.pickstring, pk.scorecache FROM poolers AS pl
+                SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.pickstring, pk.featurepick, pk.scorecache FROM poolers AS pl
                 LEFT JOIN (
-                    SELECT id, poolerid, pickstring, scorecache FROM picks
+                    SELECT id, poolerid, pickstring, featurepick, scorecache FROM picks
                     WHERE season = ? AND week = ?
                 ) AS pk ON pk.poolerid = pl.id
                 WHERE pl.poolid = ?
@@ -95,9 +96,10 @@ impl DB {
                 } else {
                     None
                 };
+                let featpick: Option<u32> = row.get("featurepick");
                 let cached: Option<u32> = row.get("scorecache");
 
-                WeekPicks { pickid, poolerid, name, week: *week, picks, cached }
+                WeekPicks { pickid, poolerid, name, week: *week, picks, featpick, cached }
             })
             .collect();
         
@@ -106,7 +108,7 @@ impl DB {
 
     pub async fn fetch_pick(&self, season: &u16, week: &i64, poolerid: &i64) -> Result<WeekPicks> {
         let pickrow = sqlx::query("
-                SELECT pk.id AS 'pickid', pl.id AS 'poolerid', pl.name, pk.pickstring, pk.scorecache FROM picks AS pk
+                SELECT pk.id AS 'pickid', pl.id AS 'poolerid', pl.name, pk.pickstring, pk.featurepick, pk.scorecache FROM picks AS pk
                 JOIN poolers AS pl ON pl.id = pk.poolerid
                 WHERE season = ? AND week = ? AND poolerid = ?
                 ")
@@ -121,13 +123,14 @@ impl DB {
             name: pickrow.get("name"),
             week: *week,
             picks: serde_json::from_str(pickrow.get("pickstring")).ok(),
+            featpick: pickrow.get("featurepick"),
             cached: pickrow.get("scorecache")
         })
     }
 
     pub async fn fetch_season(&self, poolid: &i64, season: &u16) -> Result<(SeasonPicks, usize)> {
         let season = sqlx::query("
-                    SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.week, pk.scorecache, pk.pickstring FROM picks AS pk
+                    SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.week, pk.scorecache, pk.pickstring, pk.featurepick FROM picks AS pk
                     LEFT JOIN (
                         SELECT id, name, poolid FROM poolers
                         WHERE poolid = ?
@@ -154,9 +157,10 @@ impl DB {
                 } else {
                     None
                 };
+                let featpick: Option<u32> = row.get("featurepick");
                 let cached: Option<u32> = row.get("scorecache");
 
-                WeekPicks { pickid, poolerid, name, week, picks, cached }
+                WeekPicks { pickid, poolerid, name, week, picks, featpick, cached }
             })
             .fold(SeasonPicks::new(), |mut acc, e| {
                 if let Some(week) = acc.iter_mut().find(|a| a.0 == e.week) {
