@@ -299,4 +299,27 @@ impl DB {
                 }
         }
     }
+
+    pub async fn set_feature(&self, season: u16, week: i64, target: i64, matchid: String) -> Result<bool> {
+        //TODO: Select before to know wether to INSERT INTO or to UPDATE
+        match sqlx::query("
+                INSERT INTO features (season, week, type, target, match)
+                VALUES (?, ?, ?, ?, ?);
+        ")
+        .bind(season)
+        .bind(week)
+        .bind(0)
+        .bind(target)
+        .bind(matchid)
+        .execute(&self.pool)
+        .await {
+            Ok(_) => {
+                Ok(true)
+            }
+            Err(e) => {
+                println!("[DB] Could not insert new feature: {}", e);
+                Ok(false)
+            }
+        }
+    }
 }
