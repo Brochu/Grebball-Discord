@@ -138,9 +138,6 @@ app.post('/submit', (req, res) => {
         }
     });
 
-    console.log(picks);
-    return;
-
     LoadDB((db) => {
         const sql = `
             UPDATE picks
