@@ -94,12 +94,12 @@
                             <!-- Over/Under Section -->
                             <div class="text-center text-muted small">Over/Under <%= overunder %></div>
                             <div class="btn-group w-100 mt-2" role="group">
-                                <input type="radio" class="btn-check btn-outline-warning" name="overunder" id="OVER"></input>
+                                <input type="radio" class="btn-check btn-outline-warning" name="overunder" id="OVER" value="OVER"></input>
                                 <label class="btn btn-outline-warning d-flex flex-column align-items-center no-pad" for="OVER">
                                     OVER
                                 </label>
 
-                                <input type="radio" class="btn-check btn-outline-warning" name="overunder" id="UNDER"></input>
+                                <input type="radio" class="btn-check btn-outline-warning" name="overunder" id="UNDER" value="UNDER"></input>
                                 <label class="btn btn-outline-warning d-flex flex-column align-items-center no-pad" for="UNDER">
                                     UNDER
                                 </label>
@@ -112,58 +112,6 @@
 
         </div>
     </div>
-
-    <!--
-    <table class="table table-sm table-hover align-middle">
-    <% matches.forEach((m) => { %>
-        <tr>
-            <td style="text-align: right">
-                <label class="form-check-label" for="<%= m['awayTeam'] %>"><%= m['strAwayTeam'] %></label>
-            </td>
-            <td>
-                <label class="form-check-label" for="<%= m['awayTeam'] %>">
-                    <img src="/teams/<%= m['awayTeam'] %>.png" width=35 height=35 />
-                </label>
-            </td>
-            <td>
-                <input class="form-check-input" type="radio"
-                    name="<%= m['idEvent'] %>"
-                    id="<%= m['awayTeam'] %>"
-                    value="<%= m['awayTeam'] %>"
-                    <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
-                        disabled
-                        <% if (favteam === m['awayTeam']) { %>
-                            checked
-                        <% } %>
-                    <% } %>
-                    />
-            </td>
-            <td>VS.</td>
-            <td>
-                <input class="form-check-input" type="radio"
-                    name="<%= m['idEvent'] %>"
-                    id="<%= m['homeTeam'] %>"
-                    value="<%= m['homeTeam'] %>"
-                    <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
-                        disabled
-                        <% if (favteam === m['homeTeam']) { %>
-                            checked
-                        <% } %>
-                    <% } %>
-                    />
-            </td>
-            <td>
-                <label class="form-check-label" for="<%= m['homeTeam'] %>">
-                    <img src="/teams/<%= m['homeTeam'] %>.png" width=35 height=35 />
-                </label>
-            </td>
-            <td>
-                <label class="form-check-label" for="<%= m['homeTeam'] %>"><%= m['strHomeTeam'] %></label>
-            </td>
-        </tr>
-    <% }); %>
-    </table>
-    -->
 
     <button type="submit" class="btn btn-primary">Submit</button>
     </form>

@@ -124,6 +124,8 @@ app.post('/submit', (req, res) => {
     const matchids = req.body['matchids'];
     const favteam = req.body['favteam'];
     const forcedid = req.body['forcedid'];
+    //TODO: Handle over/under
+    const overunder = req.body['overunder'];
 
     var picks = {};
     matchids.split(',').forEach((i) => {
