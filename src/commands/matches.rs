@@ -49,7 +49,7 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
         })
 }
 
-pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, _db: &DB) {
+pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
     if let Value::String(str) = command.data.options.get(0)
         .expect("![Week] Could not fetch week arg")
         .value.as_ref()
@@ -75,6 +75,12 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, _db: &DB
         let matches = get_week(&season, &week).await
             .expect("![Week] Could not fetch match data");
 
+        let feature_id = if let Ok(feature) = db.fetch_feature(season, week).await {
+            feature.matchid
+        } else {
+            String::new()
+        };
+
         let output = matches.fold(String::new(), |mut out, m| {
             let aemoji = get_team_emoji(m.away_team.as_str());
             let hemoji = get_team_emoji(m.home_team.as_str());
@@ -86,12 +92,13 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, _db: &DB
                 ("--".to_string(), "--".to_string(), false, false)
             };
 
-            out.push_str(format!("<:{}:{}> {} {} {} <:{}:{}>\n",
+            out.push_str(format!("<:{}:{}> {} {} {} <:{}:{}> {}\n",
                 m.away_team, aemoji,
                 if aline { format!("__`{:02}`__", ascore) } else { format!("`{:02}`", ascore) },
                 VS_EMOJI,
                 if hline { format!("__`{:02}`__", hscore) } else { format!("`{:02}`", hscore) },
-                m.home_team, hemoji
+                m.home_team, hemoji,
+                if feature_id == m.id_event { "<--" } else { "" }
             ).as_str());
             out
         });

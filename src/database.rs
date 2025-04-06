@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fmt::{ Display, Debug };
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use serde_json::{Value, Map};
 use sqlx::{ Pool, Sqlite, Row };
 use sqlx::sqlite::SqlitePool;
@@ -43,6 +43,32 @@ impl Debug for WeekPicks {
             self.pickid, self.poolerid,
             self.name,
             self.cached, self.picks, self.featpick)
+    }
+}
+
+pub struct WeekFeature {
+    pub season: i16,
+    pub week: i64,
+    pub feattype: i32,
+    pub target: i64,
+    pub matchid: String,
+}
+
+impl Display for WeekFeature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "For ({}, {}) - {} : [{}] value = {}",
+            self.season, self.week,
+            self.matchid,
+            self.feattype, self.target)
+    }
+}
+
+impl Debug for WeekFeature {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "For ({}, {}) - {} : [{}] value = {}",
+            self.season, self.week,
+            self.matchid,
+            self.feattype, self.target)
     }
 }
 
@@ -297,6 +323,30 @@ impl DB {
                     println!("[DB] Could not update score cache: {}", e);
                     Ok(false)
                 }
+        }
+    }
+
+    pub async fn fetch_feature(&self, season: u16, week: i64) -> Result<WeekFeature> {
+        match sqlx::query("
+            SELECT ft.season, ft.week, ft.type, ft.target, ft.match FROM features AS ft
+            WHERE season = ? AND week = ?;
+        ")
+        .bind(season)
+        .bind(week)
+        .fetch_one(&self.pool).await
+        {
+            Ok(r) => {
+                Ok(WeekFeature {
+                    season: r.get("season"),
+                    week: r.get("week"),
+                    feattype: r.get("type"),
+                    target: r.get("target"),
+                    matchid: r.get("match"),
+                })
+            },
+            Err(e) => {
+                Err(anyhow!(e))
+            }
         }
     }
 
