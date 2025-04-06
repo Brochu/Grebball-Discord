@@ -8,6 +8,7 @@ use serenity::model::prelude::interaction::InteractionResponseType;
 use serenity::model::prelude::interaction::application_command::ApplicationCommandInteraction;
 use serenity::prelude::*;
 
+use library::database::DB;
 use library::football::{ get_week, get_team_emoji };
 
 const VS_EMOJI: &str = "<:VS:1144451849571794997>";
@@ -48,7 +49,7 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
         })
 }
 
-pub async fn run(ctx: Context, command: &ApplicationCommandInteraction) {
+pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, _db: &DB) {
     if let Value::String(str) = command.data.options.get(0)
         .expect("![Week] Could not fetch week arg")
         .value.as_ref()

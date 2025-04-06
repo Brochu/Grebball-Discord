@@ -37,7 +37,7 @@ impl EventHandler for Bot {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(cmd) = interaction {
             match cmd.data.name.as_str() {
-                "semaine"  => commands::matches::run(ctx, &cmd).await,
+                "semaine"  => commands::matches::run(ctx, &cmd, &self.database).await,
                 "choix"    => commands::picks::run(ctx, &cmd, &self.database).await,
                 //"ping"   => commands::ping::run(ctx, &cmd).await,
                 "resultat" => commands::results::run(ctx, &cmd, &self.database).await,
