@@ -79,11 +79,11 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     println!("![picks] Cannot respond to slash command : {:?}", reason);
                 }
             },
-            PicksStatus::Filled(pickstring) => {
+            PicksStatus::Filled(pickstring, featpick) => {
                 let picks: Map<String, Value> = serde_json::from_str(&pickstring)
                     .expect("![picks] Could not parse picks properly");
 
-                let icons = get_week(&season, &week).await
+                let mut icons = get_week(&season, &week).await
                     .expect("![picks] Could not fetch week data")
                     .fold(String::new(), |mut acc, m| {
                         let team = picks.get(&m.id_event).unwrap()
@@ -93,6 +93,10 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                         acc.push_str(format!("<:{}:{}> ", team, emoji).as_str());
                         acc
                     });
+
+                if let Some(fp) = featpick {
+                    icons.push_str(format!(" (Feature: {})", fp).as_str());
+                }
 
                 if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                     res

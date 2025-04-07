@@ -25,7 +25,7 @@ type SeasonPicks = Vec<(i64, Vec<WeekPicks>)>;
 
 pub enum PicksStatus {
     Primed(i64),
-    Filled(String),
+    Filled(String, Option<i64>),
 }
 
 impl Display for WeekPicks {
@@ -217,7 +217,7 @@ impl DB {
             .get("id");
 
         match sqlx::query("
-                SELECT id, pickstring FROM picks
+                SELECT id, pickstring, featurepick FROM picks
                 WHERE poolerid = ? AND season = ? AND week = ?
                 ")
             .bind(poolerid)
@@ -227,7 +227,8 @@ impl DB {
             .await {
                 Ok(row) => {
                     if let Some(pickstring) = row.get::<Option<String>, &str>("pickstring") {
-                        Ok(PicksStatus::Filled(pickstring))
+                        let featpick = row.get::<Option<i64>, &str>("featurepick");
+                        Ok(PicksStatus::Filled(pickstring, featpick))
                     }
                     else {
                         // Picks are already primed and not filled
