@@ -92,16 +92,28 @@
                         <% if (m.featured) { %>
                             <hr class="w-100" style="margin: 5px 0px;">
                             <!-- Over/Under Section -->
-                            <div class="text-center text-muted small">Over/Under <%= feat_val %></div>
+                            <div class="text-center text-muted small">Total de <%= feat_val %> points?</div>
                             <div class="btn-group w-100 mt-2" role="group">
-                                <input type="radio" class="btn-check btn-outline-warning" name="overunder" id="OVER" value="OVER"></input>
-                                <label class="btn btn-outline-warning d-flex flex-column align-items-center no-pad" for="OVER">
-                                    OVER
+                                <input type="radio"
+                                    class="btn-check btn-outline-warning"
+                                    name="feat_pick" id="PLUS" value="1">
+                                </input>
+                                <label
+                                    class="btn btn-outline-warning d-flex flex-column align-items-center no-pad"
+                                    for="PLUS"
+                                >
+                                    PLUS
                                 </label>
 
-                                <input type="radio" class="btn-check btn-outline-warning" name="overunder" id="UNDER" value="UNDER"></input>
-                                <label class="btn btn-outline-warning d-flex flex-column align-items-center no-pad" for="UNDER">
-                                    UNDER
+                                <input type="radio"
+                                    class="btn-check btn-outline-warning"
+                                    name="feat_pick" id="MOINS" value="0">
+                                </input>
+                                <label
+                                    class="btn btn-outline-warning d-flex flex-column align-items-center no-pad"
+                                    for="MOINS"
+                                >
+                                    MOINS
                                 </label>
                             </div>
                         <% } %>

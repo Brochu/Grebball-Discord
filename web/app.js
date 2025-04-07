@@ -118,8 +118,7 @@ app.post('/submit', (req, res) => {
     const matchids = req.body['matchids'];
     const favteam = req.body['favteam'];
     const forcedid = req.body['forcedid'];
-    //TODO: Handle over/under
-    const overunder = req.body['overunder'];
+    const feat_pick = req.body['feat_pick'];
 
     var picks = {};
     matchids.split(',').forEach((i) => {
@@ -137,10 +136,10 @@ app.post('/submit', (req, res) => {
     LoadDB((db) => {
         const sql = `
             UPDATE picks
-                SET pickstring = ?
+                SET pickstring = ?, featurepick = ?
             WHERE id = ?
         `;
-        db.run(sql, JSON.stringify(picks), pickid, (err) => {
+        db.run(sql, JSON.stringify(picks), Number(feat_pick), pickid, (err) => {
             if (err) {
                 console.log(err);
                 res.render('error.html');
