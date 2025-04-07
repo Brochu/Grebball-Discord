@@ -6,3 +6,4 @@ pub mod season;
 pub mod stats;
 pub mod team;
 pub mod blame;
+pub mod features;

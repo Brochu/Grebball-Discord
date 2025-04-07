@@ -366,24 +366,47 @@ impl DB {
     }
 
     pub async fn set_feature(&self, season: u16, week: i64, target: i64, matchid: String) -> Result<bool> {
-        //TODO: Select before to know wether to INSERT INTO or to UPDATE
-        match sqlx::query("
-                INSERT INTO features (season, week, type, target, match)
-                VALUES (?, ?, ?, ?, ?);
-        ")
-        .bind(season)
-        .bind(week)
-        .bind(0)
-        .bind(target)
-        .bind(matchid)
-        .execute(&self.pool)
-        .await {
+        match self.fetch_feature(season, week).await {
             Ok(_) => {
-                Ok(true)
+                // feature for season/week found, UPDATE existing
+                let outcome = sqlx::query("
+                        UPDATE features
+                        SET type = ?, target = ?, match = ?
+                        WHERE season = ? AND week = ?;
+                ")
+                .bind(0)
+                .bind(target)
+                .bind(matchid)
+                .bind(season)
+                .bind(week)
+                .execute(&self.pool)
+                .await;
+
+                //TODO: Probably need better error handling here
+                match outcome {
+                    Ok(_) => Ok(true),
+                    Err(_) => Ok(false),
+                }
             }
-            Err(e) => {
-                println!("[DB] Could not insert new feature: {}", e);
-                Ok(false)
+            Err(_) => {
+                // Could not find feature for season/week, INSERT new
+                let outcome = sqlx::query("
+                        INSERT INTO features (season, week, type, target, match)
+                        VALUES (?, ?, ?, ?, ?);
+                ")
+                .bind(season)
+                .bind(week)
+                .bind(0)
+                .bind(target)
+                .bind(matchid)
+                .execute(&self.pool)
+                .await;
+
+                //TODO: Probably need better error handling here
+                match outcome {
+                    Ok(_) => Ok(true),
+                    Err(_) => Ok(false),
+                }
             }
         }
     }
