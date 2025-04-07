@@ -21,11 +21,11 @@ pub struct WeekPicks {
     pub cached: Option<u32>,
 }
 
-type SeasonPicks = Vec<(i64, Vec<WeekPicks>)>;
+type SeasonPicks = Vec<(i64, String, Vec<WeekPicks>)>;
 
 pub enum PicksStatus {
     Primed(i64),
-    Filled(String, Option<i64>),
+    Filled(String, Option<u32>),
 }
 
 impl Display for WeekPicks {
@@ -155,6 +155,16 @@ impl DB {
     }
 
     pub async fn fetch_season(&self, poolid: &i64, season: &u16) -> Result<(SeasonPicks, usize)> {
+        let feat_ids: Vec<String> = sqlx::query("
+            SELECT week, match FROM features
+            SORT BY week
+            ")
+        .bind(season)
+        .fetch_all(&self.pool).await.unwrap_or_else(|_| vec![])
+        .iter().map(|r|
+            r.get("match")
+        ).collect();
+
         let season = sqlx::query("
                     SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.week, pk.scorecache, pk.pickstring, pk.featurepick FROM picks AS pk
                     LEFT JOIN (
@@ -191,11 +201,15 @@ impl DB {
             .fold(SeasonPicks::new(), |mut acc, e| {
                 if let Some(week) = acc.iter_mut().find(|a| a.0 == e.week) {
                     // Add pooler's picks to week's group
-                    week.1.push(e);
+                    week.2.push(e);
                 }
                 else {
                     // Add new week group
-                    acc.push( (e.week, vec![e]) );
+                    if let Some(feat_id) = feat_ids.get((e.week - 1) as usize) {
+                        acc.push( (e.week, feat_id.clone(), vec![e]) );
+                    } else {
+                        acc.push( (e.week, String::new(), vec![e]) );
+                    }
                 }
                 acc
             });
@@ -227,7 +241,7 @@ impl DB {
             .await {
                 Ok(row) => {
                     if let Some(pickstring) = row.get::<Option<String>, &str>("pickstring") {
-                        let featpick = row.get::<Option<i64>, &str>("featurepick");
+                        let featpick = row.get::<Option<u32>, &str>("featurepick");
                         Ok(PicksStatus::Filled(pickstring, featpick))
                     }
                     else {

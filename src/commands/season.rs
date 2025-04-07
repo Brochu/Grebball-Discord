@@ -45,13 +45,13 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     let (weeks, _week_count) = db.fetch_season(&poolid, &season).await.unwrap();
     let mut season_data = Vec::<SeasonResult>::new();
 
-    for (_, picks) in weeks.iter() {
+    for (_, feat_id, picks) in weeks.iter() {
         for pick in picks {
             let score = if pick.cached.is_some() {
                 pick.cached.unwrap()
             } else {
                 let matches: Vec<Match> = get_week(&season, &pick.week).await.unwrap().collect();
-                let results = calc_results(&pick.week, &matches, &picks).await;
+                let results = calc_results(&pick.week, &matches, &picks, &feat_id).await;
                 let result = results.iter()
                     .find(|res| res.poolerid == pick.poolerid)
                     .unwrap();

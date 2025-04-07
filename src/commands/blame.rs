@@ -60,7 +60,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     (0..week_count).for_each(|i| {
         println!("{:02} -- {:?}", i+1, matches[i]);
     });
-    let _blame_score = calc_blame(&seasondata[0].0, &Vec::new(), &seasondata[0].1, &poolerid, team.as_str().unwrap());
+    let _blame_score = calc_blame(&seasondata[0].0, &Vec::new(), &seasondata[0].2, &poolerid, team.as_str().unwrap());
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res

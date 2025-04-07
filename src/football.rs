@@ -417,7 +417,7 @@ impl Display for PickResults {
     }
 }
 
-pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) -> Vec<PickResults> {
+pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], feat_id: &String) -> Vec<PickResults> {
     let now = Utc::now().checked_sub_signed(TimeDelta::hours(8)).unwrap();
     let week_complete = matches.iter().all(|m| {
         match m.date.cmp(&now) {
@@ -458,7 +458,7 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks]) ->
             else {
                 let (score, cache) = match &p.picks {
                     Some(poolerpicks) => (
-                        calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid),
+                        calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid, &feat_id),
                         true && week_complete && p.pickid.is_some()),
                     None => (0, false && week_complete && p.pickid.is_some()),
                 };
@@ -484,7 +484,8 @@ fn calc_results_internal(
     week: &i64,
     poolpicks: &[WeekPicks],
     picks: &HashMap<String, String>,
-    poolerid: i64) -> u32 {
+    poolerid: i64,
+    _feat_id: &String) -> u32 {
 
     let total = matches.iter().fold(0, |acc, m| {
         if let Some(pick) = picks.get(&m.id_event) {

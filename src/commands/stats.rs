@@ -67,7 +67,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     let mut stats = Vec::<PoolerStats>::new();
 
     let (weeks, _) = db.fetch_season(&poolid, &season).await.unwrap();
-    for (w, poolers) in &weeks[..] {
+    for (w, _feat_id, poolers) in &weeks[..] {
         for m in get_week(&season, &w).await.unwrap() {
             //TODO: Look into skipping matches that are not played yet
             let picks: Vec<(_, _)> = poolers.iter()
