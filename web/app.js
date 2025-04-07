@@ -21,12 +21,14 @@ app.get('/:discordid/:pickid', async (req, res) => {
 
     LoadDB((db) => {
         const sql = `
-            SELECT u.avatar, po.name, po.favteam, pi.season, pi.week, pi.pickstring
+            SELECT u.avatar, po.name, po.favteam, pi.season, pi.week, pi.pickstring, ft.type, ft.target, ft.match
             FROM users AS u
                 JOIN poolers as po
                 ON u.id = po.userid
                 JOIN picks as pi
                 ON po.id = pi.poolerid
+                LEFT JOIN features as ft
+                ON ft.season = pi.season AND ft.week = pi.week
             WHERE u.discordid = ? AND pi.id = ?
         `;
         db.get(sql, discordid, pickid, async (err, row) => {
@@ -49,21 +51,16 @@ app.get('/:discordid/:pickid', async (req, res) => {
                 const favteam = row['favteam']
                 const season = row['season'];
                 const week = row['week'];
-                const overunder = 41;
+
+                const feat_id = row['match'];
+                const feat_type = row['type'];
+                const feat_val = row['target'];
 
                 var w = week;
-                if (week == 19 || week == '19') {
-                    w = 1;
-                }
-                else if (week == 20 || week == '20') {
-                    w = 2;
-                }
-                else if (week == 21 || week == '21') {
-                    w = 3;
-                }
-                else if (week == 22 || week == '22') {
-                    w = 5;
-                }
+                if (week == 19 || week == '19') { w = 1; }
+                else if (week == 20 || week == '20') { w = 2; }
+                else if (week == 21 || week == '21') { w = 3; }
+                else if (week == 22 || week == '22') { w = 5; }
 
                 const stype = 2;
                 if (w >= 100) {
@@ -92,6 +89,10 @@ app.get('/:discordid/:pickid', async (req, res) => {
                         match['strHomeTeam'] = hteam['team']['displayName'];
                         match['strAwayTeam'] = ateam['team']['displayName'];
 
+                        if (m['id'] == feat_id) {
+                            match['featured'] = true;
+                        }
+
                         if (match['awayTeam'] === favteam || match['homeTeam'] === favteam) {
                             forcedid = m['id'];
                         }
@@ -100,19 +101,12 @@ app.get('/:discordid/:pickid', async (req, res) => {
                     });
                 }
 
-                matches[0]['featured'] = true;
-
                 res.render('picks.html', {
-                    season,
-                    week,
+                    season, week,
                     pickid,
-                    username,
-                    favteam,
-                    avatar,
-                    matches,
-                    matchids,
-                    forcedid,
-                    overunder
+                    username, favteam, avatar,
+                    matches, matchids, forcedid,
+                    feat_val
                 });
             }
         });
