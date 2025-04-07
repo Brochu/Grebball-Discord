@@ -50,7 +50,7 @@ pub struct WeekFeature {
     pub season: i16,
     pub week: i64,
     pub feattype: i32,
-    pub target: i64,
+    pub target: i32,
     pub matchid: String,
 }
 
