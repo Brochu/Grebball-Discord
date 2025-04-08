@@ -60,6 +60,7 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
 }
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
+    //TODO: Make command admin only
     let week_opt = command.data.options.get(0).expect("![features] No week option provided")
         .value.as_ref().unwrap().as_str().unwrap();
     let target_opt = command.data.options.get(1).expect("![features] No target option provided")
