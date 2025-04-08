@@ -1,7 +1,5 @@
 use std::env;
 
-use serde_json::Value;
-
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::prelude::command::{ CommandType, CommandOptionType };
 use serenity::model::prelude::interaction::InteractionResponseType;
@@ -62,38 +60,45 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
 }
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
-    let week_opt = command.data.options.get(0);
-    let target_opt = command.data.options.get(1);
-    let match_opt = command.data.options.get(2);
+    let week_opt = command.data.options.get(0).expect("![features] No week option provided")
+        .value.as_ref().unwrap().as_str().unwrap();
+    let target_opt = command.data.options.get(1).expect("![features] No target option provided")
+        .value.as_ref().unwrap().as_i64().unwrap();
+    let match_opt = command.data.options.get(2).expect("![features] No match index option provided")
+        .value.as_ref().unwrap().as_i64().unwrap();
 
     let season = env::var("CONF_SEASON")
         .expect("![Week] Could not find 'CONF_SEASON' env var")
         .parse::<u16>()
         .expect("![Week] Could not parse 'CONF_SEASON' to int");
-    let week = str.parse::<i64>()
+    let week = week_opt.parse::<i64>()
         .expect("![Week] Could not parse week arg to u64");
-    let matches = get_week(&season, &week).await
-        .expect("![Week] Could not fetch match data");
-    let match_id = String::new();
+    let matches: Vec<_> = get_week(&season, &week).await
+        .expect("![Week] Could not fetch match data")
+        .collect();
 
-    match db.set_feature(season, week, 0, "".to_owned()).await {
-        Ok(out) => {
-        },
+    if let Some(game) = matches.get(match_opt as usize) {
+        match db.set_feature(season, week, target_opt, &game.id_event).await {
+            Ok(_) => {
+            },
 
-        Err(out) => {
-        },
-    };
+            Err(_) => {
+            },
+        };
 
-    if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
-        res
-            .kind(InteractionResponseType::ChannelMessageWithSource)
-            .interaction_response_data(|m| m
-                .ephemeral(true)
-                .content(format!("Choisi match {} comme featured pour saison: {} semaine {}",
-                        match_id, season, week))
-            )
-    })
-    .await {
-        println!("![features] Cannot respond to slash command : {:?}", reason);
+        if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+            res
+                .kind(InteractionResponseType::ChannelMessageWithSource)
+                .interaction_response_data(|m| m
+                    .ephemeral(true)
+                    .content(format!("Choisi match {} (cible = {}) comme featured pour saison: {} semaine {}",
+                            game.id_event, target_opt, season, week))
+                )
+        })
+        .await {
+            println!("![features] Cannot respond to slash command : {:?}", reason);
+        }
+    } else {
+        println!("![features] Invalid match index provided : {}", match_opt);
     }
 }

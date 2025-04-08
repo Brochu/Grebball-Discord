@@ -365,7 +365,7 @@ impl DB {
         }
     }
 
-    pub async fn set_feature(&self, season: u16, week: i64, target: i64, matchid: String) -> Result<bool> {
+    pub async fn set_feature(&self, season: u16, week: i64, target: i64, matchid: &String) -> Result<bool> {
         match self.fetch_feature(season, week).await {
             Ok(_) => {
                 // feature for season/week found, UPDATE existing
