@@ -333,64 +333,6 @@ pub async fn get_schedule(season: &u16, teamid: &i64) -> Vec<Option<Match>> {
     return result;
 }
 
-/*
-pub async fn test_get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Match>> {
-    let data_url = env::var("DATA_URL")
-        .expect("![Football] Could not find 'DATA_URL' env var");
-
-    let w = if *week == 19 { 160 }
-    else if *week == 20 { 125 }
-    else if *week == 21 { 150 }
-    else if *week == 22 { 200 }
-    else { *week };
-    let stype = if w < 100 { 2 } else { 3 };
-
-    let newurl = format!("{}?dates={}&seasontype={}&week={}", data_url, season, stype, w);
-    let res = reqwest::get(newurl).await
-        .expect("![Football] Could not get reply")
-        .text().await
-        .expect("![Football] Could not retrieve text from response");
-    let json: Value = serde_json::from_str(res.as_str())
-        .expect("![Football] Could not parse response");
-
-    if let Value::Object(o) = json {
-        let events = o.get("events").expect("![Football] Could not find key 'events'")
-            .as_array().expect("![Football] Could not parse 'events' as an array")
-            .to_owned();
-
-        Some(events.into_iter().map(move |m| {
-            let comp = m["competitions"]
-                .as_array().unwrap()[0]
-                .as_object().unwrap()["competitors"]
-                .as_array().unwrap();
-            let away = comp[1].as_object().unwrap()["team"]
-                .as_object().unwrap()["abbreviation"]
-                .as_str();
-            let home = comp[0].as_object().unwrap()["team"]
-                .as_object().unwrap()["abbreviation"]
-                .as_str();
-
-            let d = m["date"].as_str()
-                .map(|s| s.replace("Z", ":00Z"))
-                .map(|s| chrono::DateTime::parse_from_rfc3339(&s).unwrap())
-                .map(|dt| dt.with_timezone(&chrono::Utc))
-                .unwrap();
-
-            Match {
-                id_event: m["id"].as_str().unwrap().to_owned(),
-                away_team: away.unwrap().to_owned(),
-                home_team: home.unwrap().to_owned(),
-                away_score: comp[1].as_object().unwrap()["score"].as_str().unwrap_or("").parse().ok(),
-                home_score: comp[0].as_object().unwrap()["score"].as_str().unwrap_or("").parse().ok(),
-                date: d.date_naive() //TODO: Work to include time here later on
-            }
-        }))
-    } else {
-        None
-    }
-}
-*/
-
 pub fn calc_blame(
     _week: &i64,
     _matches: &[Match],

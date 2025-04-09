@@ -21,7 +21,7 @@ pub struct WeekPicks {
     pub cached: Option<u32>,
 }
 
-type SeasonPicks = Vec<(i64, String, Vec<WeekPicks>)>;
+type SeasonPicks = Vec<(i64, Option<WeekFeature>, Vec<WeekPicks>)>;
 
 pub enum PicksStatus {
     Primed(i64),
@@ -155,16 +155,24 @@ impl DB {
     }
 
     pub async fn fetch_season(&self, poolid: &i64, season: &u16) -> Result<(SeasonPicks, usize)> {
-        let feat_ids: Vec<String> = sqlx::query("
+        let mut feats: HashMap<_, _> = sqlx::query("
             SELECT season, week, type, target, match FROM features
             SORT BY week
             ")
         .bind(season)
         .fetch_all(&self.pool).await.unwrap_or_else(|_| vec![])
-        .iter().map(|r|
-            //TODO: Create WeekFeatures, need types and targets
-            r.get("match")
-        ).collect();
+        .into_iter().map(|r| {
+            let week: i64 = r.get("week");
+            let feat = WeekFeature {
+                season: r.get("season"),
+                week,
+                feattype: r.get("type"),
+                target: r.get("target"),
+                matchid: r.get("match"),
+            };
+            (week, feat)
+        })
+        .collect();
 
         let season = sqlx::query("
                     SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.week, pk.scorecache, pk.pickstring, pk.featurepick FROM picks AS pk
@@ -206,10 +214,10 @@ impl DB {
                 }
                 else {
                     // Add new week group
-                    if let Some(feat_id) = feat_ids.get((e.week - 1) as usize) {
-                        acc.push( (e.week, feat_id.clone(), vec![e]) );
+                    if let Some(feat) = feats.remove(&e.week) {
+                        acc.push( (e.week, Some(feat), vec![e]) );
                     } else {
-                        acc.push( (e.week, String::new(), vec![e]) );
+                        acc.push( (e.week, None, vec![e]) );
                     }
                 }
                 acc
