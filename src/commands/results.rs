@@ -64,11 +64,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 .expect("[results] Could not fetch week data")
                 .collect();
 
-            let feature_id = if let Ok(feature) = db.fetch_feature(season, week).await {
-                feature.matchid
-            } else {
-                String::new()
-            };
+            let feature = db.fetch_feature(season, week).await.ok();
 
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                 res
@@ -86,7 +82,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 Err(_) => None,
             };
 
-            for r in calc_results(&week, &matches, &picks, &feature_id).await.iter() {
+            for r in calc_results(&week, &matches, &picks, &feature).await.iter() {
                 if r.cache {
                     db.cache_results(&r.pickid.unwrap(), &r.score).await.unwrap();
                 }

@@ -5,7 +5,7 @@ use chrono::{ DateTime, TimeDelta, Utc };
 use serde::{Deserialize, Serialize};
 use serenity::model::id::EmojiId;
 
-use crate::database::WeekPicks;
+use crate::database::{WeekFeature, WeekPicks};
 
 pub fn get_short_name(name: &str) -> String {
     match name {
@@ -417,7 +417,7 @@ impl Display for PickResults {
     }
 }
 
-pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], feat_id: &String) -> Vec<PickResults> {
+pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], feat: &Option<WeekFeature>) -> Vec<PickResults> {
     let now = Utc::now().checked_sub_signed(TimeDelta::hours(8)).unwrap();
     let week_complete = matches.iter().all(|m| {
         match m.date.cmp(&now) {
@@ -458,7 +458,7 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], fe
             else {
                 let (score, cache) = match &p.picks {
                     Some(poolerpicks) => (
-                        calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid, &feat_id),
+                        calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid, feat),
                         true && week_complete && p.pickid.is_some()),
                     None => (0, false && week_complete && p.pickid.is_some()),
                 };
@@ -485,7 +485,7 @@ fn calc_results_internal(
     poolpicks: &[WeekPicks],
     picks: &HashMap<String, String>,
     poolerid: i64,
-    _feat_id: &String) -> u32 {
+    feat: &Option<WeekFeature>) -> u32 {
 
     let total = matches.iter().fold(0, |acc, m| {
         if let Some(pick) = picks.get(&m.id_event) {
@@ -500,7 +500,15 @@ fn calc_results_internal(
                 })
                 .all(|pp| pp != pick);
 
+            let mut feat_score = 0;
             let outcome = if let (Some(a), Some(h)) = (m.away_score, m.home_score) {
+                if let Some(f) = feat {
+                    //TODO: Need to get the feat_pick from the correct WeekPick
+                    if m.id_event == f.matchid && a + h >= f.target as u64 {
+                        feat_score = 3;
+                    }
+                }
+
                 match a.cmp(&h) {
                     Ordering::Less => if pick == m.away_team { MatchOutcome::Loss } else { MatchOutcome::Win },
                     Ordering::Greater => if pick == m.away_team { MatchOutcome::Win } else { MatchOutcome::Loss },
@@ -511,7 +519,7 @@ fn calc_results_internal(
                 MatchOutcome::NotPlayed
             };
 
-            acc + get_score(&outcome, unique, &week)
+            acc + get_score(&outcome, unique, &week) + feat_score
         }
         else {
             acc

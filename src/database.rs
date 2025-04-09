@@ -156,12 +156,13 @@ impl DB {
 
     pub async fn fetch_season(&self, poolid: &i64, season: &u16) -> Result<(SeasonPicks, usize)> {
         let feat_ids: Vec<String> = sqlx::query("
-            SELECT week, match FROM features
+            SELECT season, week, type, target, match FROM features
             SORT BY week
             ")
         .bind(season)
         .fetch_all(&self.pool).await.unwrap_or_else(|_| vec![])
         .iter().map(|r|
+            //TODO: Create WeekFeatures, need types and targets
             r.get("match")
         ).collect();
 
