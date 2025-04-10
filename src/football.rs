@@ -400,7 +400,7 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], fe
             else {
                 let (score, cache) = match &p.picks {
                     Some(poolerpicks) => (
-                        calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid, feat),
+                        calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid, feat, &p.featpick),
                         true && week_complete && p.pickid.is_some()),
                     None => (0, false && week_complete && p.pickid.is_some()),
                 };
@@ -427,7 +427,8 @@ fn calc_results_internal(
     poolpicks: &[WeekPicks],
     picks: &HashMap<String, String>,
     poolerid: i64,
-    feat: &Option<WeekFeature>) -> u32 {
+    feat: &Option<WeekFeature>,
+    _featpick: &Option<u32>) -> u32 {
 
     let total = matches.iter().fold(0, |acc, m| {
         if let Some(pick) = picks.get(&m.id_event) {
