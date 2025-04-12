@@ -57,15 +57,11 @@ app.get('/:discordid/:pickid', async (req, res) => {
                 const feat_val = row['target'];
 
                 var w = week;
-                if (week == 19 || week == '19') { w = 1; }
-                else if (week == 20 || week == '20') { w = 2; }
-                else if (week == 21 || week == '21') { w = 3; }
-                else if (week == 22 || week == '22') { w = 5; }
-
-                const stype = 2;
-                if (w >= 100) {
-                    stype = 3
-                }
+                var stype = 2;
+                if (week == 19 || week == '19') { w = 1; stype = 3; }
+                else if (week == 20 || week == '20') { w = 2; stype = 3; }
+                else if (week == 21 || week == '21') { w = 3; stype = 3; }
+                else if (week == 22 || week == '22') { w = 5; stype = 3; }
 
                 const partial_url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
                 const url = `${partial_url}?dates=${season}&seasontype=${stype}&week=${w}`;
