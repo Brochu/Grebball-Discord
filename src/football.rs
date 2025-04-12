@@ -339,8 +339,8 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], fe
                     if let (Some(f), Some(fp), Some(asc), Some(hsc)) = (feat, p.featpick, m.away_score, m.home_score) {
                         //TODO: Can we make this more generic if needed?
                         if m.id_event == f.matchid && (
-                            fp == 1 && (asc + hsc) >= f.target as u64 ||
-                            fp == 0 && (asc + hsc) < f.target as u64
+                            fp == 1 && (asc + hsc) > f.target as u64 ||
+                            fp == 0 && (asc + hsc) <= f.target as u64
                         ) {
                             featscore = 3;
                         }
