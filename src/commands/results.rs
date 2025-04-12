@@ -90,8 +90,13 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 let width = 12 - r.name.len();
                 if let Some(hook) = &webhook {
                     hook.execute(&ctx.http, false, |h| {
-                        h.content(format!("`{}{} ({:02}+{})` {}\n",
-                            r.name, " ".repeat(width), r.score, r.featscore, r.icons).as_str())
+                        if r.featscore == 0 {
+                            h.content(format!("`{}{} ({:02}+{})` {}\n",
+                                r.name, " ".repeat(width), r.score, " ", r.icons).as_str())
+                        } else {
+                            h.content(format!("`{}{} ({:02}+{})` {}\n",
+                                r.name, " ".repeat(width), r.score, r.featscore, r.icons).as_str())
+                        }
                     }).await.unwrap();
                 }
             }
