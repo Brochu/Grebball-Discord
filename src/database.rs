@@ -19,6 +19,7 @@ pub struct WeekPicks {
     pub picks: Option<HashMap<String, String>>,
     pub featpick: Option<u32>,
     pub cached: Option<u32>,
+    pub featcached: Option<u32>,
 }
 
 type SeasonPicks = Vec<(i64, Option<WeekFeature>, Vec<WeekPicks>)>;
@@ -97,9 +98,9 @@ impl DB {
 
     pub async fn fetch_picks(&self, poolid: &i64, season: &u16, week: &i64) -> Result<Vec<WeekPicks>> {
         let results: Vec<WeekPicks> = sqlx::query("
-                SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.pickstring, pk.featurepick, pk.scorecache FROM poolers AS pl
+                SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.pickstring, pk.featurepick, pk.scorecache, pk.featcache FROM poolers AS pl
                 LEFT JOIN (
-                    SELECT id, poolerid, pickstring, featurepick, scorecache FROM picks
+                    SELECT id, poolerid, pickstring, featurepick, scorecache, featcache FROM picks
                     WHERE season = ? AND week = ?
                 ) AS pk ON pk.poolerid = pl.id
                 WHERE pl.poolid = ?
@@ -124,8 +125,9 @@ impl DB {
                 };
                 let featpick: Option<u32> = row.get("featurepick");
                 let cached: Option<u32> = row.get("scorecache");
+                let featcached: Option<u32> = row.get("featcache");
 
-                WeekPicks { pickid, poolerid, name, week: *week, picks, featpick, cached }
+                WeekPicks { pickid, poolerid, name, week: *week, picks, featpick, cached, featcached }
             })
             .collect();
         
@@ -134,7 +136,7 @@ impl DB {
 
     pub async fn fetch_pick(&self, season: &u16, week: &i64, poolerid: &i64) -> Result<WeekPicks> {
         let pickrow = sqlx::query("
-                SELECT pk.id AS 'pickid', pl.id AS 'poolerid', pl.name, pk.pickstring, pk.featurepick, pk.scorecache FROM picks AS pk
+                SELECT pk.id AS 'pickid', pl.id AS 'poolerid', pl.name, pk.pickstring, pk.featurepick, pk.scorecache, pk.featcache FROM picks AS pk
                 JOIN poolers AS pl ON pl.id = pk.poolerid
                 WHERE season = ? AND week = ? AND poolerid = ?
                 ")
@@ -150,7 +152,8 @@ impl DB {
             week: *week,
             picks: serde_json::from_str(pickrow.get("pickstring")).ok(),
             featpick: pickrow.get("featurepick"),
-            cached: pickrow.get("scorecache")
+            cached: pickrow.get("scorecache"),
+            featcached: pickrow.get("featcache")
         })
     }
 
@@ -175,7 +178,7 @@ impl DB {
         .collect();
 
         let season = sqlx::query("
-                    SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.week, pk.scorecache, pk.pickstring, pk.featurepick FROM picks AS pk
+                    SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name, pk.week, pk.scorecache, pk.pickstring, pk.featurepick, pk.featcache FROM picks AS pk
                     LEFT JOIN (
                         SELECT id, name, poolid FROM poolers
                         WHERE poolid = ?
@@ -204,8 +207,9 @@ impl DB {
                 };
                 let featpick: Option<u32> = row.get("featurepick");
                 let cached: Option<u32> = row.get("scorecache");
+                let featcached: Option<u32> = row.get("featcache");
 
-                WeekPicks { pickid, poolerid, name, week, picks, featpick, cached }
+                WeekPicks { pickid, poolerid, name, week, picks, featpick, cached, featcached }
             })
             .fold(SeasonPicks::new(), |mut acc, e| {
                 if let Some(week) = acc.iter_mut().find(|a| a.0 == e.week) {
@@ -277,13 +281,14 @@ impl DB {
         }
     }
 
-    pub async fn cache_results(&self, pickid: &i64, score: &u32) -> Result<bool> {
+    pub async fn cache_results(&self, pickid: &i64, score: &u32, featscore: &u32) -> Result<bool> {
         match sqlx::query("
                 UPDATE picks
-                SET scorecache = ?
+                SET scorecache = ?, featcache = ?
                 WHERE id = ?
                 ")
             .bind(score)
+            .bind(featscore)
             .bind(pickid)
             .execute(&self.pool)
             .await {

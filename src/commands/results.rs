@@ -84,14 +84,14 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
             for r in calc_results(&week, &matches, &picks, &feature).await.iter() {
                 if r.cache {
-                    db.cache_results(&r.pickid.unwrap(), &r.score).await.unwrap();
+                    db.cache_results(&r.pickid.unwrap(), &r.score, &r.featscore).await.unwrap();
                 }
 
-                let width = 10 - r.name.len();
+                let width = 12 - r.name.len();
                 if let Some(hook) = &webhook {
                     hook.execute(&ctx.http, false, |h| {
-                        h.content(format!("`{}{} ({:02})` {}\n",
-                            r.name, " ".repeat(width), r.score, r.icons).as_str())
+                        h.content(format!("`{}{} ({:02}+{})` {}\n",
+                            r.name, " ".repeat(width), r.score, r.featscore, r.icons).as_str())
                     }).await.unwrap();
                 }
             }

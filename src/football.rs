@@ -193,50 +193,6 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
         }
     });
     return Some(matches);
-    /*
-    if let Value::Object(so) = scoreres {
-        let events = o.get("events").expect("![Football] Could not find key 'events'")
-            .as_array().expect("![Football] Could not parse 'events' as an array")
-            .to_owned();
-        let scoreevents = so.get("events").expect("![Football] Could not find key 'events'")
-            .as_array().expect("![Football] Could not parse 'events' as an array")
-            .to_owned();
-
-        return Some(events.into_iter().map(move |m| {
-            let awayname = m["strAwayTeam"].as_str().unwrap();
-            let homename = m["strHomeTeam"].as_str().unwrap();
-            let comp = scoreevents.iter()
-                .find(|&s| {
-                    let name = s.as_object().unwrap()["name"].as_str().unwrap();
-                    name.contains(awayname) && name.contains(homename)
-                })
-                .map(|r| {
-                    r
-                        .as_object().unwrap()["competitions"].as_array().unwrap()[0]
-                        .as_object().unwrap()["competitors"].as_array().unwrap()
-                })
-                .unwrap();
-            let (mut home_score, mut away_score) = (
-                comp[0].as_object().unwrap()["score"].as_str().unwrap_or("").parse::<u64>().ok(),
-                comp[1].as_object().unwrap()["score"].as_str().unwrap_or("").parse::<u64>().ok()
-            );
-            if home_score == Some(0) && away_score == Some(0) {
-                (home_score, away_score) = (None, None);
-            }
-
-            Match {
-                id_event: m["idEvent"].as_str().unwrap().to_owned(),
-                away_team: get_short_name(m["strAwayTeam"].as_str().unwrap()),
-                home_team: get_short_name(m["strHomeTeam"].as_str().unwrap()),
-                away_score,
-                home_score,
-                date: NaiveDate::from_str(m["dateEvent"].as_str().unwrap()).unwrap(),
-            }
-        }));
-    } else {
-        None
-    }
-    */
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -348,14 +304,15 @@ pub struct PickResults {
     pub poolerid: i64,
     pub name: String,
     pub score: u32,
+    pub featscore: u32,
     pub icons: String,
     pub cache: bool,
 }
 
 impl Display for PickResults {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{:?}] {} - {} (should cache? {})",
-            self.pickid, self.name, self.score, self.cache)
+        write!(f, "[{:?}] {} - {} + {} (should cache? {})",
+            self.pickid, self.name, self.score, self.featscore, self.cache)
     }
 }
 
@@ -375,9 +332,19 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], fe
     let mut output: Vec<PickResults> = picks.iter()
         .map(|p| {
             let name = p.name.to_owned();
+            let mut featscore: u32 = 0;
 
             let icons = if let Some(picks) = &p.picks {
                 matches.iter().fold(String::new(), |mut acc, m| {
+                    if let (Some(f), Some(fp), Some(asc), Some(hsc)) = (feat, p.featpick, m.away_score, m.home_score) {
+                        //TODO: Can we make this more generic if needed?
+                        if m.id_event == f.matchid && (
+                            fp == 1 && (asc + hsc) >= f.target as u64 ||
+                            fp == 0 && (asc + hsc) < f.target as u64
+                        ) {
+                            featscore = 3;
+                        }
+                    }
                     let choice = match picks.get(&m.id_event) {
                         Some(p) => p.as_str(),
                         None => "NA",
@@ -393,18 +360,19 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], fe
 
             if let Some(cached) = p.cached {
                 PickResults {
-                    pickid: p.pickid, poolerid: p.poolerid, name, score: cached, icons,
+                    pickid: p.pickid, poolerid: p.poolerid, name,
+                    score: cached, featscore: p.featcached.unwrap_or_else(|| featscore), icons,
                     cache: false && week_complete && p.pickid.is_some()
                 }
             }
             else {
                 let (score, cache) = match &p.picks {
                     Some(poolerpicks) => (
-                        calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid, feat, &p.featpick),
+                        calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid),
                         true && week_complete && p.pickid.is_some()),
                     None => (0, false && week_complete && p.pickid.is_some()),
                 };
-                PickResults { pickid: p.pickid, poolerid: p.poolerid, name, score, icons, cache }
+                PickResults { pickid: p.pickid, poolerid: p.poolerid, name, score, featscore, icons, cache }
             }
         })
         .collect();
@@ -426,9 +394,7 @@ fn calc_results_internal(
     week: &i64,
     poolpicks: &[WeekPicks],
     picks: &HashMap<String, String>,
-    poolerid: i64,
-    feat: &Option<WeekFeature>,
-    _featpick: &Option<u32>) -> u32 {
+    poolerid: i64) -> u32 {
 
     let total = matches.iter().fold(0, |acc, m| {
         if let Some(pick) = picks.get(&m.id_event) {
@@ -443,15 +409,7 @@ fn calc_results_internal(
                 })
                 .all(|pp| pp != pick);
 
-            let mut feat_score = 0;
             let outcome = if let (Some(a), Some(h)) = (m.away_score, m.home_score) {
-                if let Some(f) = feat {
-                    //TODO: Need to get the feat_pick from the correct WeekPick
-                    if m.id_event == f.matchid && a + h >= f.target as u64 {
-                        feat_score = 3;
-                    }
-                }
-
                 match a.cmp(&h) {
                     Ordering::Less => if pick == m.away_team { MatchOutcome::Loss } else { MatchOutcome::Win },
                     Ordering::Greater => if pick == m.away_team { MatchOutcome::Win } else { MatchOutcome::Loss },
@@ -462,7 +420,7 @@ fn calc_results_internal(
                 MatchOutcome::NotPlayed
             };
 
-            acc + get_score(&outcome, unique, &week) + feat_score
+            acc + get_score(&outcome, unique, &week)
         }
         else {
             acc

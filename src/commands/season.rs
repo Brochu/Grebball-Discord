@@ -48,7 +48,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     for (_, feat, picks) in weeks.iter() {
         for pick in picks {
             let score = if pick.cached.is_some() {
-                pick.cached.unwrap()
+                pick.cached.unwrap() + pick.featcached.unwrap()
             } else {
                 let matches: Vec<Match> = get_week(&season, &pick.week).await.unwrap().collect();
                 let results = calc_results(&pick.week, &matches, &picks, feat).await;
@@ -57,9 +57,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     .unwrap();
 
                 if result.cache {
-                    db.cache_results(&result.pickid.unwrap(), &result.score).await.unwrap();
+                    db.cache_results(&result.pickid.unwrap(), &result.score, &result.featscore).await.unwrap();
                 }
-                result.score
+                result.score + result.featscore
             };
 
             if let Some(data) = season_data.iter_mut().find(|d| d.name.eq(&pick.name)) {
