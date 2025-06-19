@@ -434,17 +434,17 @@ fn get_score(outcome: &MatchOutcome, unique: bool, week: &i64) -> u32 {
         MatchOutcome::Win => {
             match week {
                 1..=18 => if unique { 4 } else { 2 },
-                19 => if unique { 8 } else { 4 },
-                160 => if unique { 8 } else { 4 },
+                19 => if unique { 6 } else { 4 },
+                160 => if unique { 6 } else { 4 },
 
-                20 => if unique { 12 } else { 6 },
-                125 => if unique { 12 } else { 6 },
+                20 => if unique { 8 } else { 6 },
+                125 => if unique { 8 } else { 6 },
 
-                21 => if unique { 16 } else { 8 },
-                150 => if unique { 16 } else { 8 },
+                21 => if unique { 10 } else { 8 },
+                150 => if unique { 10 } else { 8 },
 
-                22 => if unique { 20 } else { 10 },
-                200 => if unique { 20 } else { 10 },
+                22 => if unique { 12 } else { 10 },
+                200 => if unique { 12 } else { 10 },
                 _ => if unique { 4 } else { 2 },
             }
         },
