@@ -58,9 +58,9 @@
                 <div class="card h-100 border-<%= m.featured ? 'warning' : 'primary' %>">
                     <div class="card-header d-flex flex-column align-items-center">
                         <% if (m.featured) { %>
-                            <span class="small text-muted"><%= m['date'].toLocaleString() %></span>
+                            <span class="small text-muted display-date"><%= m['date'].toISOString() %></span>
                         <% } else { %>
-                            <span class="small text-muted"><%= m['date'].toLocaleString() %></span>
+                            <span class="small text-muted display-date"><%= m['date'].toISOString() %></span>
                         <% } %>
                     </div>
                     <div class="card-body">
@@ -134,5 +134,15 @@
 </main>
 
 <script src="/js/bootstrap.min.js"></script>
+<script>
+    document.querySelectorAll('.display-date').forEach(el => {
+        const utcStr = el.textContent;
+        const date = new Date(utcStr);
+
+        // Optional: use toLocaleString or Intl.DateTimeFormat
+        el.textContent = date.toLocaleString();  // or customized format
+    });
+</script>
+
 </body>
 </html>
