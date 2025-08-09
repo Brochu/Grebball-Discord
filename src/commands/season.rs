@@ -90,7 +90,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     let header = format!("`{}{}`: {}", "Semaines", " ".repeat(15-8), header);
     let message = season_data.iter()
         .fold(String::new(), |m, entry| {
-            let width = 10 - entry.name.len();
+            let width = 15 - entry.name.len();
             let grid = entry.scores.iter().fold(String::new(), |g, s| { format!("{}| `{:02}` ", g, s) });
 
             format!("{}\n`{}{}[{:03}]`: {}", m, entry.name, " ".repeat(width), entry.total, grid)
