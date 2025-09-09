@@ -160,7 +160,7 @@ impl DB {
     pub async fn fetch_season(&self, poolid: &i64, season: &u16) -> Result<(SeasonPicks, usize)> {
         let mut feats: HashMap<_, _> = sqlx::query("
             SELECT season, week, type, target, match FROM features
-            SORT BY week
+            ORDER BY week
             ")
         .bind(season)
         .fetch_all(&self.pool).await.unwrap_or_else(|_| vec![])

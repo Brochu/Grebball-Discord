@@ -59,7 +59,6 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 if result.cache {
                     db.cache_results(&result.pickid.unwrap(), &result.score, &result.featscore).await.unwrap();
                 }
-                //TODO: There is an issue with this branch, should investigate
                 result.score + result.featscore
             };
 
