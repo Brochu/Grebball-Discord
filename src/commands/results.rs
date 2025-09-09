@@ -87,7 +87,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     db.cache_results(&r.pickid.unwrap(), &r.score, &r.featscore).await.unwrap();
                 }
 
-                let width = 15 - r.name.len();
+                let width = 12 - r.name.len();
                 if let Some(hook) = &webhook {
                     hook.execute(&ctx.http, false, |h| {
                         if r.featscore == 0 {

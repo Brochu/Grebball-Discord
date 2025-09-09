@@ -338,7 +338,7 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], fe
                 matches.iter().fold(String::new(), |mut acc, m| {
                     if let (Some(f), Some(fp), Some(asc), Some(hsc)) = (feat, p.featpick, m.away_score, m.home_score) {
                         //TODO: Can we make this more generic if needed?
-                        if m.id_event == f.matchid && (
+                        if m.id_event == f.matchid && (asc + hsc) > 0 && (
                             fp == 1 && (asc + hsc) > f.target as u64 ||
                             fp == 0 && (asc + hsc) <= f.target as u64
                         ) {
@@ -410,11 +410,15 @@ fn calc_results_internal(
                 .all(|pp| pp != pick);
 
             let outcome = if let (Some(a), Some(h)) = (m.away_score, m.home_score) {
-                match a.cmp(&h) {
-                    Ordering::Less => if pick == m.away_team { MatchOutcome::Loss } else { MatchOutcome::Win },
-                    Ordering::Greater => if pick == m.away_team { MatchOutcome::Win } else { MatchOutcome::Loss },
-                    Ordering::Equal => MatchOutcome::Tied,
-                }
+				if a == 0 && h == 0 {
+					MatchOutcome::NotPlayed
+				} else {
+					match a.cmp(&h) {
+						Ordering::Less => if pick == m.away_team { MatchOutcome::Loss } else { MatchOutcome::Win },
+						Ordering::Greater => if pick == m.away_team { MatchOutcome::Win } else { MatchOutcome::Loss },
+						Ordering::Equal => MatchOutcome::Tied,
+					}
+				}
             }
             else {
                 MatchOutcome::NotPlayed
