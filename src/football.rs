@@ -88,6 +88,14 @@ pub fn get_team_emoji(team: &str) -> EmojiId {
     });
 }
 
+//TODO: This might be better as a match on enum FeatPick::Over vs. FeatPick::Under
+pub fn get_overpick_emoji() -> EmojiId {
+    EmojiId(1415070599415468096)
+}
+pub fn get_underpick_emoji() -> EmojiId {
+    EmojiId(1415070657682870312)
+}
+
 pub fn get_team_id(team: &str) -> i64 {
     match team {
         "ARI" => 22,
@@ -362,12 +370,11 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], fe
                 String::new()
             };
 
-            //TODO: Use emojis in the server to show over/under
             let overunder = if let Some(featpick) = &p.featpick {
                 if *featpick == 0 {
-                    "v".to_owned()
+                    format!("<:{}:{}>", "underpick", get_underpick_emoji())
                 } else {
-                    "^".to_owned()
+                    format!("<:{}:{}>", "overpick", get_overpick_emoji())
                 }
             } else {
                 String::new()

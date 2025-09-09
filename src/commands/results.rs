@@ -91,11 +91,11 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 if let Some(hook) = &webhook {
                     hook.execute(&ctx.http, false, |h| {
                         if r.featscore == 0 {
-                            h.content(format!("`{}{} ({:02})  ` {}\n",
-                                r.name, " ".repeat(width), r.score, r.icons).as_str())
+                            h.content(format!("`{}{} ({:02})  ` {}|{}\n",
+                                r.name, " ".repeat(width), r.score, r.icons, r.overunder).as_str())
                         } else {
-                            h.content(format!("`{}{} ({:02}+{})` {}\n",
-                                r.name, " ".repeat(width), r.score, r.featscore, r.icons).as_str())
+                            h.content(format!("`{}{} ({:02}+{})` {}|{}\n",
+                                r.name, " ".repeat(width), r.score, r.featscore, r.icons, r.overunder).as_str())
                         }
                     }).await.unwrap();
                 }
