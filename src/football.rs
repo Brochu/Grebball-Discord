@@ -158,6 +158,9 @@ impl Debug for Match {
     }
 }
 
+//TODO: Return vector<Match> here so we can collect and sort matches here
+// ESPN's matches get re-ordered based on some logic I don't understand yet
+// I think the outputs on Discord look better when the matches are always in the same order
 pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Match>> {
     let data_url = env::var("DATA_URL")
         .expect("![Football] Could not find 'DATA_URL' env var");
@@ -306,6 +309,7 @@ pub struct PickResults {
     pub score: u32,
     pub featscore: u32,
     pub icons: String,
+    pub overunder: String,
     pub cache: bool,
 }
 
@@ -358,10 +362,21 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], fe
                 String::new()
             };
 
+            //TODO: Use emojis in the server to show over/under
+            let overunder = if let Some(featpick) = &p.featpick {
+                if *featpick == 0 {
+                    "v".to_owned()
+                } else {
+                    "^".to_owned()
+                }
+            } else {
+                String::new()
+            };
+
             if let Some(cached) = p.cached {
                 PickResults {
                     pickid: p.pickid, poolerid: p.poolerid, name,
-                    score: cached, featscore: p.featcached.unwrap_or_else(|| featscore), icons,
+                    score: cached, featscore: p.featcached.unwrap_or_else(|| featscore), icons, overunder,
                     cache: false && week_complete && p.pickid.is_some()
                 }
             }
@@ -372,7 +387,10 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], fe
                         true && week_complete && p.pickid.is_some()),
                     None => (0, false && week_complete && p.pickid.is_some()),
                 };
-                PickResults { pickid: p.pickid, poolerid: p.poolerid, name, score, featscore, icons, cache }
+                PickResults {
+                    pickid: p.pickid, poolerid: p.poolerid,
+                    name, score, featscore, icons, overunder, cache
+                }
             }
         })
         .collect();
