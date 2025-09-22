@@ -372,9 +372,9 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], fe
 
             let overunder = if let Some(featpick) = &p.featpick {
                 if *featpick == 0 {
-                    format!(":{}:", "chart_with_upwards_trend")
-                } else {
                     format!(":{}:", "chart_with_downwards_trend")
+                } else {
+                    format!(":{}:", "chart_with_upwards_trend")
                 }
             } else {
                 String::new()
