@@ -8,19 +8,11 @@
 
     <style>
         .fs-8 {
-          font-size: 0.7rem;
+          font-size: 0.7rem; /* adjust the size as needed */
         }
         .no-pad {
             padding: 5px;
-            width: 150px;
-        }
-        .progress-container {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            background: white;
-            padding: 1rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+	    width: 150px;
         }
     </style>
 
@@ -53,21 +45,7 @@
 <div class="bg-body-tertiary p-5 rounded">
     <span class="h2">Choix pour saison: <%= season %>, semaine: <%= week %></span>
 
-    <!-- Progress Bar Section -->
-    <div class="progress-container mt-4">
-        <div class="progress" style="height: 25px;">
-            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
-                 role="progressbar" 
-                 style="width: 0%;" 
-                 aria-valuenow="0" 
-                 aria-valuemin="0" 
-                 aria-valuemax="<%= matches.length %>">
-                0%
-            </div>
-        </div>
-    </div>
-
-    <form action="/submit" method="post" id="picks-form">
+    <form action="/submit" method="post">
     <input type="hidden" name="pickid" value="<%= pickid %>" />
     <input type="hidden" name="matchids" value="<%= matchids %>" />
     <input type="hidden" name="favteam" value="<%= favteam %>" />
@@ -89,7 +67,7 @@
                     <div class="card-body">
                         <div class="d-flex align-items-center justify-content-center gap-2 mt-2">
                             <!-- Away Team -->
-                            <input type="radio" class="btn-check match-pick" name="<%=m['idEvent']%>" id="<%=m['awayTeam']%>" value="<%=m['awayTeam']%>"
+                            <input type="radio" class="btn-check" name="<%=m['idEvent']%>" id="<%=m['awayTeam']%>" value="<%=m['awayTeam']%>"
                             <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
                                 <% if (favteam === m['awayTeam']) { %> checked <% } else { %> disabled <% } %>
                             <% } %>>
@@ -102,7 +80,7 @@
                             <span class="fs-4">@</span>
 
                             <!-- Home Team -->
-                            <input type="radio" class="btn-check match-pick" name="<%=m['idEvent']%>" id="<%=m['homeTeam']%>" value="<%=m['homeTeam']%>"
+                            <input type="radio" class="btn-check" name="<%=m['idEvent']%>" id="<%=m['homeTeam']%>" value="<%=m['homeTeam']%>"
                             <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
                                 <% if (favteam === m['homeTeam']) { %> checked <% } else { %> disabled <% } %>
                             <% } %>>
@@ -118,7 +96,7 @@
                             <div class="text-center text-muted small">Total de <%= feat_val %>.5 points?</div>
                             <div class="btn-group w-100 mt-2" role="group">
                                 <input type="radio"
-                                    class="btn-check btn-outline-warning featured-pick"
+                                    class="btn-check btn-outline-warning"
                                     name="feat_pick" id="PLUS" value="1">
                                 </input>
                                 <label
@@ -129,7 +107,7 @@
                                 </label>
 
                                 <input type="radio"
-                                    class="btn-check btn-outline-warning featured-pick"
+                                    class="btn-check btn-outline-warning"
                                     name="feat_pick" id="MOINS" value="0">
                                 </input>
                                 <label
@@ -149,7 +127,8 @@
     </div>
 
     <div class="container my-4 d-flex flex-column align-items-center">
-        <button type="submit" id="submit-btn" class="btn btn-primary" disabled>Submit</button>
+        <button type="submit" class="btn btn-primary">Submit</button>
+        <!--<small class="text-muted">Tous les choix doivent être remplis avant de soumettre</small>-->
     </div>
     </form>
 </div>
@@ -157,80 +136,13 @@
 
 <script src="/js/bootstrap.min.js"></script>
 <script>
-    // Convert dates to local time
     document.querySelectorAll('.display-date').forEach(el => {
         const utcStr = el.textContent;
         const date = new Date(utcStr);
-        el.textContent = date.toLocaleString();
+
+        // Optional: use toLocaleString or Intl.DateTimeFormat
+        el.textContent = date.toLocaleString();  // or customized format
     });
-
-    // Progress tracking
-    const totalMatches = <%= matches.length %>;
-    const hasFeatured = <%= matches.some(m => m.featured) ? 'true' : 'false' %>;
-    const submitBtn = document.getElementById('submit-btn');
-    const progressBar = document.getElementById('progress-bar');
-
-    function updateProgress() {
-        // Get all unique match groups (by name attribute)
-        const matchGroups = {};
-        document.querySelectorAll('.match-pick').forEach(radio => {
-            matchGroups[radio.name] = matchGroups[radio.name] || [];
-            matchGroups[radio.name].push(radio);
-        });
-
-        // Count how many matches have a selection
-        let completedMatches = 0;
-        Object.values(matchGroups).forEach(group => {
-            if (group.some(radio => radio.checked)) {
-                completedMatches++;
-            }
-        });
-
-        // Check if featured pick is completed
-        let featuredCompleted = true;
-        if (hasFeatured) {
-            const featuredPicks = document.querySelectorAll('.featured-pick');
-            featuredCompleted = Array.from(featuredPicks).some(radio => radio.checked);
-        }
-
-        // Calculate total required picks
-        const totalRequired = hasFeatured ? totalMatches + 1 : totalMatches;
-        const totalCompleted = completedMatches + (hasFeatured && featuredCompleted ? 1 : 0);
-
-        // Update progress bar
-        const percentage = (totalCompleted / totalRequired) * 100;
-        progressBar.style.width = percentage + '%';
-        progressBar.textContent = Math.round(percentage) + '%';
-        progressBar.setAttribute('aria-valuenow', totalCompleted);
-
-        // Update button state
-        const allComplete = totalCompleted === totalRequired;
-        submitBtn.disabled = !allComplete;
-
-        // Update progress bar color
-        if (allComplete) {
-            progressBar.classList.remove('bg-secondary', 'progress-bar-animated');
-            progressBar.classList.add('bg-success');
-        } else {
-            progressBar.classList.remove('bg-success');
-            progressBar.classList.add('progress-bar-animated');
-        }
-    }
-
-    // Add event listeners to all radio buttons
-    document.querySelectorAll('.match-pick, .featured-pick').forEach(radio => {
-        radio.addEventListener('change', updateProgress);
-    });
-
-    // Show warning on submit attempt when incomplete
-    submitBtn.addEventListener('click', function(e) {
-        if (this.disabled) {
-            e.preventDefault();
-        }
-    });
-
-    // Initial progress check
-    updateProgress();
 </script>
 
 </body>
