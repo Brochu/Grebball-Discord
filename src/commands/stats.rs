@@ -7,7 +7,7 @@ use serenity::model::application::interaction::application_command::ApplicationC
 use serenity::model::prelude::command::CommandType;
 use serenity::prelude::*;
 
-use library::database::DB;
+use library::database::{ DB, WeekFeature };
 use library::football::{ Match, get_week };
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
@@ -22,11 +22,13 @@ struct PoolStats {
     uni_hits: u32,
     unique_count: u32,
     unique_hits: u32,
+    ou_count: u32,
+    ou_hits: u32,
 }
 impl Display for PoolStats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "[POOL] unilateral rate: {} / {}; unique rate: {} / {}",
-            self.uni_hits, self.uni_count, self.unique_hits, self.unique_count)
+        writeln!(f, "[POOL] unilateral rate: {} / {}; unique rate: {} / {}; O/U rate {} / {}",
+            self.uni_hits, self.uni_count, self.unique_hits, self.unique_count, self.ou_hits, self.ou_count)
     }
 }
 
@@ -36,6 +38,8 @@ struct PoolerStats {
     hit_count: u32,
     unique_count: u32,
     unique_hits: u32,
+    ou_count: u32,
+    ou_hits: u32,
 }
 impl Display for PoolerStats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -63,11 +67,11 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         println!("![results] Cannot respond to slash command : {:?}", reason);
     }
 
-    let mut pool = PoolStats{ uni_count: 0, uni_hits: 0, unique_count: 0, unique_hits: 0 };
+    let mut pool = PoolStats{ uni_count: 0, uni_hits: 0, unique_count: 0, unique_hits: 0, ou_count: 0, ou_hits: 0 };
     let mut stats = Vec::<PoolerStats>::new();
 
     let (weeks, _) = db.fetch_season(&poolid, &season).await.unwrap();
-    for (w, _feat_id, poolers) in &weeks[..] {
+    for (w, feat_info, poolers) in &weeks[..] {
         for m in get_week(&season, &w).await.unwrap() {
             //TODO: Look into skipping matches that are not played yet
             let picks: Vec<(_, _)> = poolers.iter()
@@ -93,21 +97,38 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                             pick_count: 1,
                             hit_count: if win { 1 } else { 0 },
                             unique_count: 0,
-                            unique_hits: 0
+                            unique_hits: 0,
+                            ou_count: 0,
+                            ou_hits: 0
                         });
                     }
                 })
                 .collect();
+            let feats: Vec<(_, _)> = poolers.iter()
+                .map(|p| {
+                    (p.name.as_str(), p.featpick)
+                }).collect();
+
             check_unanimous(&m, &picks, &mut pool.uni_hits, &mut pool.uni_count);
             check_unique(&m, &picks, &mut pool.unique_hits, &mut pool.unique_count, &mut stats);
+
+            if let Some(week_feat) = feat_info {
+                check_ou(&m, week_feat, &feats, &mut pool.ou_hits, &mut stats);
+            }
+        }
+
+        if let Some(_) = feat_info {
+            pool.ou_count += poolers.len() as u32;
         }
     }
 
     if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
-        let uni = format!(" - Choix unanimes: {}/{} ({:.2}%)",
+        let uni = format!("`|Unanimes| {}/{} ({:.2}%)|`",
             pool.uni_hits, pool.uni_count, (pool.uni_hits as f32 / pool.uni_count as f32) * 100.0);
-        let unique = format!("- Choix uniques: {}/{} ({:.2}%)",
+        let unique = format!("`|Uniques | {}/{} ({:.2}%)|`",
             pool.unique_hits, pool.unique_count, (pool.unique_hits as f32 / pool.unique_count as f32) * 100.0);
+        let ou_line = format!("`|O/U     | {}/{} ({:.2}%)|`",
+            pool.ou_hits, pool.ou_count, (pool.ou_hits as f32 / pool.ou_count as f32) * 100.0);
         let list = stats.iter()
             .fold(String::new(), |message, stat| {
                 let unique_percent = if stat.unique_count > 0 {
@@ -116,29 +137,31 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     0.0
                 };
 
-                let pooler = format!("### {}\n - Choix: {}/{} ({:.2}%)\n- Uniques: {}/{} ({:.2}%)",
-                    stat.name,
+                let width = 12 - stat.name.len();
+                let pooler = format!("`|{}{}|Choix: {}/{} ({:.2}%)|Uniques: {}/{} ({:.2}%)|O/Us: {}/{} ({:.2}%)|`",
+                    stat.name, " ".repeat(width),
                     stat.hit_count, stat.pick_count, (stat.hit_count as f32 / stat.pick_count as f32) * 100.0,
-                    stat.unique_hits, stat.unique_count, unique_percent);
+                    stat.unique_hits, stat.unique_count, unique_percent,
+                    stat.ou_hits, stat.ou_count, 0.0);
                 format!("{}\n{}", message, pooler)
             });
 
-        res.content(format!("## Statistiques de la saison {}\n{}\n{}\n{}", season, uni, unique, list))
+        res.content(format!("## Statistiques de la saison {}\n{}\n{}\n{}\n{}", season, uni, unique, ou_line, list))
     })
     .await {
         println!("![results] Cannot respond to slash command : {:?}", reason);
     }
 }
 
-fn check_unanimous(m: &Match, picks: &Vec<(&str, &str)>, uni_hit: &mut u32, uni_count: &mut u32) {
+fn check_unanimous(m: &Match, picks: &Vec<(&str, &str)>, una_hit: &mut u32, una_count: &mut u32) {
     let all_away = picks.iter().all(|&(_, p)| p == m.away_team);
     let all_home = picks.iter().all(|&(_, p)| p == m.home_team);
 
     if all_away || all_home {
-        *uni_count += 1;
+        *una_count += 1;
 
         if all_away && m.away_score > m.home_score || all_home && m.home_score > m.away_score {
-            *uni_hit += 1;
+            *una_hit += 1;
         }
     }
 }
@@ -168,6 +191,32 @@ fn check_unique(
         if away_count == 1 && m.away_score > m.home_score || home_count == 1 && m.home_score > m.away_score {
             *uni_hit += 1;
             stat.unique_hits += 1;
+        }
+    }
+}
+
+fn check_ou(m: &Match, f: &WeekFeature, feats: &Vec<(&str, Option<u32>)>, pool_hits: &mut u32, stats: &mut Vec<PoolerStats>) {
+    if m.id_event != f.matchid { return; }
+
+    for (name, feat) in feats {
+        match (feat, f.feattype) {
+            (None, _) => {},
+            (Some(pick), 0) => {
+                if m.home_score.is_none() || m.away_score.is_none() { continue; }
+                let total_score = m.home_score.unwrap() + m.away_score.unwrap();
+                let under_win = total_score > 0 && total_score <= f.target as u64 && *pick == 0;
+                let over_win = total_score > 0 && total_score > f.target as u64 && *pick == 1;
+
+                let stat = stats.iter_mut().find(|s| &s.name == name).unwrap();
+                stat.ou_count += 1;
+
+                if under_win || over_win {
+                    *pool_hits += 1;
+                    stat.ou_hits += 1;
+                }
+
+            },
+            _ => todo!(),
         }
     }
 }
