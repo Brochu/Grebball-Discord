@@ -137,12 +137,18 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     0.0
                 };
 
+                let ou_percent = if stat.ou_count > 0 {
+                    stat.ou_hits as f32 / stat.ou_count as f32 * 100.0
+                } else {
+                    0.0
+                };
+
                 let width = 12 - stat.name.len();
                 let pooler = format!("`|{}{}|Choix: {}/{} ({:.2}%)|Uniques: {}/{} ({:.2}%)|O/Us: {}/{} ({:.2}%)|`",
                     stat.name, " ".repeat(width),
                     stat.hit_count, stat.pick_count, (stat.hit_count as f32 / stat.pick_count as f32) * 100.0,
                     stat.unique_hits, stat.unique_count, unique_percent,
-                    stat.ou_hits, stat.ou_count, 0.0);
+                    stat.ou_hits, stat.ou_count, ou_percent);
                 format!("{}\n{}", message, pooler)
             });
 
