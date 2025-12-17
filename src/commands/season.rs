@@ -75,29 +75,29 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     season_data.sort_unstable_by(|l, r| { r.total.cmp(&l.total) });
     let header = (1..=_week_count).fold(String::new(), |m, i| {
         if i <= 18 {
-            format!("{}| `{:02}` ", m, i)
+            format!("{}|{:02}", m, i)
         }
         else {
             match i {
-                19 => format!("{}| `{:02}` ", m, "WC"),
-                20 => format!("{}| `{:02}` ", m, "DV"),
-                21 => format!("{}| `{:02}` ", m, "CF"),
-                22 => format!("{}| `{:02}` ", m, "SB"),
+                19 => format!("{}|{:02}", m, "WC"),
+                20 => format!("{}|{:02}", m, "DV"),
+                21 => format!("{}|{:02}", m, "CF"),
+                22 => format!("{}|{:02}", m, "SB"),
                 _ => unreachable!(),
             }
         }
     });
-    let header = format!("`{}{}`: {}", "Semaines", " ".repeat(15-6), header);
+    let header = format!("Semaines{} {}", " ".repeat(15-6), header);
     let message = season_data.iter()
         .fold(String::new(), |m, entry| {
             let width = 12 - entry.name.len();
-            let grid = entry.scores.iter().fold(String::new(), |g, s| { format!("{}| `{:02}` ", g, s) });
+            let grid = entry.scores.iter().fold(String::new(), |g, s| { format!("{}|{:02}", g, s) });
 
-            format!("{}\n`{}{}[{:03}]`: {}", m, entry.name, " ".repeat(width), entry.total, grid)
+            format!("{}\n`{}{}[{:03}] {}`", m, entry.name, " ".repeat(width), entry.total, grid)
         });
 
     if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
-        res.content(format!("Saison {}\n{}\n{}", season, header, message))
+        res.content(format!("Saison {}\n`{}`\n{}\n", season, header, message))
     })
     .await {
         println!("![results] Cannot respond to slash command : {:?}", reason);
