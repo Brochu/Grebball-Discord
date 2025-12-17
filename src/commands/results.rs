@@ -8,7 +8,7 @@ use serenity::model::webhook::Webhook;
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::{ calc_results, get_week, Match };
+use library::football::{ get_team_emoji, calc_results, get_week, Match };
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -65,12 +65,24 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 .collect();
 
             let feature = db.fetch_feature(season, week).await.ok();
+            let feat_line = if let Some(feat) = &feature {
+                let feat_match = matches.iter().find(|m| m.id_event == feat.matchid).unwrap();
+                let aways = feat_match.away_score.unwrap_or_default();
+                let homes = feat_match.home_score.unwrap_or_default();
+
+                format!(":bar_chart: <:{}:{}> {} @ {} <:{}:{}>  -  O/U: {:02}.5  (Total: {})",
+                    feat_match.away_team, get_team_emoji(&feat_match.away_team), aways,
+                    homes, feat_match.home_team, get_team_emoji(&feat_match.home_team),
+                    feat.target, aways + homes)
+            } else {
+                format!("")
+            };
 
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                 res
                     .kind(InteractionResponseType::ChannelMessageWithSource)
                     .interaction_response_data(|m| m
-                        .content(format!("Résultats pour la semaine {}, {} ->", week, season))
+                        .content(format!("### Résultats pour la semaine {}, {}\n{}", week, season, feat_line))
                     )
             })
             .await {
