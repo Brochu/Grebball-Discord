@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-bs-theme="auto">
+<html lang="en" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="robots" content="noindex, nofollow">
@@ -18,7 +18,6 @@
             position: sticky;
             top: 0;
             z-index: 1000;
-            background: white;
             padding: 1rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
@@ -54,7 +53,7 @@
     <span class="h2">Choix pour saison: <%= season %>, semaine: <%= week %></span>
 
     <!-- Progress Bar Section -->
-    <div class="progress-container mt-4">
+    <div class="progress-container bg-dark mt-4">
         <div class="progress" style="height: 25px;">
             <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
                  role="progressbar" 
@@ -80,15 +79,52 @@
             <div class="col">
                 <div class="card h-100 border-<%= m.featured ? 'warning' : 'primary' %>">
                     <div class="card-header d-flex flex-column align-items-center">
-                        <% if (m.featured) { %>
-                            <span class="small text-muted display-date"><%= m['date'].toISOString() %></span>
-                        <% } else { %>
-                            <span class="small text-muted display-date"><%= m['date'].toISOString() %></span>
-                        <% } %>
+                        <span class="small text-muted display-date"><%= m['date'].toISOString() %></span>
                     </div>
                     <div class="card-body">
-                        <div class="d-flex align-items-center justify-content-center gap-2 mt-2">
-                            <!-- Away Team -->
+                        <div class="text-center">
+                            <div class="row mx-1">
+                                <input type="radio" class="btn-check match-pick" name="<%=m['idEvent']%>" id="<%=m['awayTeam']%>" value="<%=m['awayTeam']%>"
+                                <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
+                                    <% if (favteam === m['awayTeam']) { %> checked <% } else { %> disabled <% } %>
+                                <% } %>>
+                                <label class="btn btn-outline-<%= m.featured ? 'warning' : 'primary' %>" for="<%=m['awayTeam']%>">
+                                    <div class="row align-items-center">
+                                        <div class="col-2"> <img src="/teams/<%=m['awayTeam']%>.png" width="45" height="45"> </div>
+                                        <div class="col"> <small class="text-muted text-center"><%= m['strAwayTeam']%></small> </div>
+                                    </div>
+
+                                    <!--
+                                    <div class="row">
+                                        <div class="col fs-8"> STAT1 </div>
+                                        <div class="col fs-8"> STAT1 </div>
+                                    </div>
+                                    -->
+                                </label>
+                            </div>
+
+                            <div class="fs-5"> @ </div>
+
+                            <div class="row mx-1">
+                                <input type="radio" class="btn-check match-pick" name="<%=m['idEvent']%>" id="<%=m['homeTeam']%>" value="<%=m['homeTeam']%>"
+                                <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
+                                    <% if (favteam === m['homeTeam']) { %> checked <% } else { %> disabled <% } %>
+                                <% } %>>
+                                <label class="btn btn-outline-<%= m.featured ? 'warning' : 'primary' %>" for="<%=m['homeTeam']%>">
+                                    <div class="row align-items-center">
+                                        <div class="col-2"> <img src="/teams/<%=m['homeTeam']%>.png" width="45" height="45"> </div>
+                                        <div class="col"> <small class="text-muted text-center"><%= m['strHomeTeam']%></small> </div>
+                                    </div>
+
+                                    <!--
+                                    <div class="row">
+                                        <div class="col fs-8"> STAT1 </div>
+                                        <div class="col fs-8"> STAT1 </div>
+                                    </div>
+                                    -->
+                                </label>
+                            </div>
+                            <!--
                             <input type="radio" class="btn-check match-pick" name="<%=m['idEvent']%>" id="<%=m['awayTeam']%>" value="<%=m['awayTeam']%>"
                             <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
                                 <% if (favteam === m['awayTeam']) { %> checked <% } else { %> disabled <% } %>
@@ -98,10 +134,8 @@
                                 <small class="text-muted text-center fs-8"><%= m['strAwayTeam']%></small>
                             </label>
 
-                            <!-- @ Symbol -->
                             <span class="fs-4">@</span>
 
-                            <!-- Home Team -->
                             <input type="radio" class="btn-check match-pick" name="<%=m['idEvent']%>" id="<%=m['homeTeam']%>" value="<%=m['homeTeam']%>"
                             <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
                                 <% if (favteam === m['homeTeam']) { %> checked <% } else { %> disabled <% } %>
@@ -110,6 +144,7 @@
                                 <img src="/teams/<%=m['homeTeam']%>.png" width="45" height="45">
                                 <small class="text-muted text-center fs-8"><%= m['strHomeTeam']%></small>
                             </label>
+                            -->
                         </div>
 
                         <% if (m.featured) { %>
