@@ -40,6 +40,11 @@
             <ul class="navbar-nav me-auto mb-2 mb-md-0">
             </ul>
 
+            <div class="px-5 form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="themeToggle">
+                <label class="form-check-label" for="themeToggle" id="themeLabel"></label>
+            </div>
+
             <div class="d-flex" role="user" style="padding-right: 1em">
             <span style="color: white">
                 <img src="/teams/<%= favteam %>.png" width=60 height=60 />
@@ -193,6 +198,15 @@
     const submitBtn = document.getElementById('submit-btn');
     const progressBar = document.getElementById('progress-bar');
 
+    const themeToggle = document.getElementById('themeToggle');
+    const themeLabel = document.getElementById('themeLabel');
+    const htmlElement = document.documentElement;
+
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    htmlElement.setAttribute('data-bs-theme', savedTheme);
+    themeToggle.checked = (savedTheme === 'light') ? "checked" : "";
+    themeLabel.innerHTML = (savedTheme === 'light') ? '☀️' : '🌙';
+
     function updateProgress() {
         // Get all unique match groups (by name attribute)
         const matchGroups = {};
@@ -243,6 +257,14 @@
     // Add event listeners to all radio buttons
     document.querySelectorAll('.match-pick, .featured-pick').forEach(radio => {
         radio.addEventListener('change', updateProgress);
+    });
+
+    themeToggle.addEventListener('click', function(e) {
+        const currentTheme = htmlElement.getAttribute('data-bs-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        htmlElement.setAttribute('data-bs-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        themeLabel.innerHTML = (newTheme === 'light') ? '☀️' : '🌙';
     });
 
     // Show warning on submit attempt when incomplete
