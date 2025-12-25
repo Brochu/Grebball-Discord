@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="robots" content="noindex, nofollow">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <link href="/css/bootstrap.min.css" rel="stylesheet" type="text/css">
     <link rel="icon" type="image/x-icon" href="/favicon-16.ico">
 
@@ -48,12 +50,12 @@
     </div>
 </nav>
 
-<main class="container">
+<main class="container responsive-container">
 <div class="bg-body-tertiary p-5 rounded">
     <span class="h2">Choix pour saison: <%= season %>, semaine: <%= week %></span>
 
     <!-- Progress Bar Section -->
-    <div class="progress-container bg-dark mt-4">
+    <div class="progress-container mt-4">
         <div class="progress" style="height: 25px;">
             <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
                  role="progressbar" 
@@ -73,7 +75,7 @@
     <input type="hidden" name="forcedid" value="<%= forcedid %>" />
 
     <div class="container my-4">
-        <div class="row row-cols-1 row-cols-sm-1 row-cols-md-2 row-cols-lg-4 g-2">
+        <div class="row row-cols-1 row-cols-sm-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-2">
 
             <% matches.forEach((m) => { %>
             <div class="col">
@@ -91,15 +93,17 @@
                                 <label class="btn btn-outline-<%= m.featured ? 'warning' : 'primary' %>" for="<%=m['awayTeam']%>">
                                     <div class="row align-items-center">
                                         <div class="col-2"> <img src="/teams/<%=m['awayTeam']%>.png" width="45" height="45"> </div>
-                                        <div class="col"> <small class="text-muted text-center"><%= m['strAwayTeam']%></small> </div>
+                                        <div class="col"> <small class="text-muted"><%= m['strAwayTeam']%></small> </div>
                                     </div>
 
-                                    <!--
                                     <div class="row">
-                                        <div class="col fs-8"> STAT1 </div>
-                                        <div class="col fs-8"> STAT1 </div>
+                                        <div class="col-2"></div>
+                                        <div class="col fs-8">
+                                            <span class="text-muted px-1"><%= m['awayRecordAll']['summary'] %></span>
+                                            •
+                                            <span class="text-muted px-1"><%= m['awayRecordAlt']['summary'] %> <%= m['awayRecordAlt']['name'] %></span>
+                                        </div>
                                     </div>
-                                    -->
                                 </label>
                             </div>
 
@@ -113,38 +117,19 @@
                                 <label class="btn btn-outline-<%= m.featured ? 'warning' : 'primary' %>" for="<%=m['homeTeam']%>">
                                     <div class="row align-items-center">
                                         <div class="col-2"> <img src="/teams/<%=m['homeTeam']%>.png" width="45" height="45"> </div>
-                                        <div class="col"> <small class="text-muted text-center"><%= m['strHomeTeam']%></small> </div>
+                                        <div class="col"> <small class="text-muted"><%= m['strHomeTeam']%></small> </div>
                                     </div>
 
-                                    <!--
                                     <div class="row">
-                                        <div class="col fs-8"> STAT1 </div>
-                                        <div class="col fs-8"> STAT1 </div>
+                                        <div class="col-2"></div>
+                                        <div class="col fs-8">
+                                            <span class="text-muted px-1"><%= m['homeRecordAll']['summary'] %></span>
+                                            •
+                                            <span class="text-muted px-1"><%= m['homeRecordAlt']['summary'] %> <%= m['homeRecordAlt']['name'] %></span>
+                                        </div>
                                     </div>
-                                    -->
                                 </label>
                             </div>
-                            <!--
-                            <input type="radio" class="btn-check match-pick" name="<%=m['idEvent']%>" id="<%=m['awayTeam']%>" value="<%=m['awayTeam']%>"
-                            <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
-                                <% if (favteam === m['awayTeam']) { %> checked <% } else { %> disabled <% } %>
-                            <% } %>>
-                            <label class="btn btn-outline-<%= m.featured ? 'warning' : 'primary' %> d-flex flex-column align-items-center no-pad" for="<%=m['awayTeam']%>">
-                                <img src="/teams/<%=m['awayTeam']%>.png" width="45" height="45">
-                                <small class="text-muted text-center fs-8"><%= m['strAwayTeam']%></small>
-                            </label>
-
-                            <span class="fs-4">@</span>
-
-                            <input type="radio" class="btn-check match-pick" name="<%=m['idEvent']%>" id="<%=m['homeTeam']%>" value="<%=m['homeTeam']%>"
-                            <% if (favteam === m['awayTeam'] || favteam === m['homeTeam']) { %>
-                                <% if (favteam === m['homeTeam']) { %> checked <% } else { %> disabled <% } %>
-                            <% } %>>
-                            <label class="btn btn-outline-<%= m.featured ? 'warning' : 'primary' %> d-flex flex-column align-items-center no-pad" for="<%=m['homeTeam']%>">
-                                <img src="/teams/<%=m['homeTeam']%>.png" width="45" height="45">
-                                <small class="text-muted text-center fs-8"><%= m['strHomeTeam']%></small>
-                            </label>
-                            -->
                         </div>
 
                         <% if (m.featured) { %>

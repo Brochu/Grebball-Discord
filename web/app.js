@@ -80,10 +80,17 @@ app.get('/:discordid/:pickid', async (req, res) => {
                         const teams = m['competitions'][0]['competitors'];
                         const hteam = teams[0];
                         const ateam = teams[1];
+
+
                         match['homeTeam'] = hteam['team']['abbreviation'];
                         match['awayTeam'] = ateam['team']['abbreviation'];
                         match['strHomeTeam'] = hteam['team']['displayName'];
                         match['strAwayTeam'] = ateam['team']['displayName'];
+
+                        match['homeRecordAll'] = hteam['records'][0];
+                        match['homeRecordAlt'] = hteam['records'][1];
+                        match['awayRecordAll'] = ateam['records'][0];
+                        match['awayRecordAlt'] = ateam['records'][2];
 
                         if (m['id'] == feat_id) {
                             match['featured'] = true;
