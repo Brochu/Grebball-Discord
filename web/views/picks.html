@@ -32,6 +32,22 @@
 </head>
 
 <body>
+<div class="container">
+    <nav class="row navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="col-2 col-sm-7 navbar-brand fs-2" href="#">Grebball</a>
+
+        <div class="col d-flex justify-content-end">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="themeToggle">
+                <label class="form-check-label" for="themeToggle" id="themeLabel"></label>
+            </div>
+        </div>
+
+        <div class="col-auto"> <img class="img-fluid" src="/teams/<%= favteam %>.png" width=60 height=60 /> </div>
+        <div class="col-auto align-self-end" role="user"> <img class="img-fluid rounded-circle" src="<%= avatar %>" width=64 height=64 /> </div>
+    </nav>
+</div>
+<!--
 <nav class="navbar navbar-expand-md navbar-dark bg-dark mb-4">
     <div class="container-fluid">
         <a class="navbar-brand" href="#">Grebball - Choix</a>
@@ -41,22 +57,17 @@
             </ul>
 
             <div class="px-5 form-check form-switch">
-                <input class="form-check-input" type="checkbox" role="switch" id="themeToggle">
-                <label class="form-check-label" for="themeToggle" id="themeLabel"></label>
             </div>
 
             <div class="d-flex" role="user" style="padding-right: 1em">
             <span style="color: white">
-                <img src="/teams/<%= favteam %>.png" width=60 height=60 />
                 <%= username %>
             </span>
-            </div>
-            <div class="d-flex" role="user">
-                <img class="img-fluid rounded-circle" src="<%= avatar %>" width=64 height=64 />
             </div>
         </div>
     </div>
 </nav>
+-->
 
 <main class="container responsive-container">
 <div class="bg-body-tertiary p-5 rounded">
