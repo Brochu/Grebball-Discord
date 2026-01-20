@@ -1,0 +1,45 @@
+.team-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.btn-winner-selected {
+  background-color: #fef3c7;
+  border-color: #fbbf24;
+  color: #92400e;
+}
+
+.btn-winner-selected:hover {
+  background-color: #fde68a;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+
+.btn-winner-locked {
+  background-color: #fef3c7;
+  border-color: #fbbf24;
+  color: #92400e;
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-wildcard-selected {
+  background-color: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+.btn-wildcard-selected:hover {
+  background-color: #a7f3d0;
+  border-color: #059669;
+  color: #065f46;
+}
+
+.card {
+  border: 1px solid #e5e7eb;
+}
+
+.bg-white {
+  background-color: #ffffff !important;
+}

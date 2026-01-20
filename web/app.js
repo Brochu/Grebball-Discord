@@ -154,11 +154,85 @@ app.post('/submit', (req, res) => {
     });
 });
 
+app.get('/playoffs/:discordid/:season', (req, res) => {
+    const discordid = req.params['discordid'];
+    const season = req.params['season'];
+
+    LoadDB((db) => {
+        const sql = `
+            SELECT discordid, season FROM capsules AS c
+                JOIN poolers AS p
+                ON p.id == c.poolerid
+                JOIN users AS u
+                ON u.id == p.userid
+            WHERE u.discordid = ? AND season = ?
+        `;
+        db.get(sql, discordid, season, async (err, row) => {
+            if (err || !row) {
+                console.log(err);
+                res.render('error.html');
+            }
+            else {
+                const test0 = row['discordid'];
+                console.log(test0);
+                const test1 = row['season'];
+                console.log(test1);
+
+                res.render('playoffs.html', {
+                    afcTeams,
+                    nfcTeams
+                });
+            }
+        });
+    });
+});
+
+app.post('/submit-playoffs', (req, res) => {
+});
+
 const port = 3000;
 
 app.listen(port, () => {
     console.log(`Picks page application, listening on port ${port}`);
 });
+
+const afcTeams = [
+  { name: 'Buffalo Bills', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/buf.png' },
+  { name: 'Miami Dolphins', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/mia.png' },
+  { name: 'New York Jets', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/nyj.png' },
+  { name: 'New England Patriots', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/ne.png' },
+  { name: 'Baltimore Ravens', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/bal.png' },
+  { name: 'Cincinnati Bengals', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/cin.png' },
+  { name: 'Cleveland Browns', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/cle.png' },
+  { name: 'Pittsburgh Steelers', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/pit.png' },
+  { name: 'Houston Texans', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/hou.png' },
+  { name: 'Indianapolis Colts', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/ind.png' },
+  { name: 'Jacksonville Jaguars', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/jax.png' },
+  { name: 'Tennessee Titans', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/ten.png' },
+  { name: 'Kansas City Chiefs', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/kc.png' },
+  { name: 'Las Vegas Raiders', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/lv.png' },
+  { name: 'Los Angeles Chargers', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/lac.png' },
+  { name: 'Denver Broncos', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/den.png' }
+];
+
+const nfcTeams = [
+  { name: 'Dallas Cowboys', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/dal.png' },
+  { name: 'Philadelphia Eagles', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/phi.png' },
+  { name: 'New York Giants', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/nyg.png' },
+  { name: 'Washington Commanders', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/wsh.png' },
+  { name: 'Detroit Lions', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/det.png' },
+  { name: 'Green Bay Packers', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/gb.png' },
+  { name: 'Minnesota Vikings', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/min.png' },
+  { name: 'Chicago Bears', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/chi.png' },
+  { name: 'Tampa Bay Buccaneers', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/tb.png' },
+  { name: 'Atlanta Falcons', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/atl.png' },
+  { name: 'New Orleans Saints', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/no.png' },
+  { name: 'Carolina Panthers', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/car.png' },
+  { name: 'San Francisco 49ers', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/sf.png' },
+  { name: 'Los Angeles Rams', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/lar.png' },
+  { name: 'Seattle Seahawks', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/sea.png' },
+  { name: 'Arizona Cardinals', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/ari.png' }
+];
 
 const lNameMap = {
     'Arizona Cardinals'    : 'ARI',
