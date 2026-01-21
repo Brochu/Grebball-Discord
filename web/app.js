@@ -160,43 +160,81 @@ app.get('/playoffs/:discordid/:season', (req, res) => {
 
     LoadDB((db) => {
         const sql = `
-            SELECT discordid, season FROM capsules AS c
-                JOIN poolers AS p
-                ON p.id == c.poolerid
-                JOIN users AS u
-                ON u.id == p.userid
-            WHERE u.discordid = ? AND season = ?
+            SELECT c.poolerid, c.season, c.winafcn, c.winafcs, c.winafce, c.winafcw,
+                   c.winnfcn, c.winnfcs, c.winnfce, c.winnfcw, c.afcwildcards, c.nfcwildcards
+            FROM capsules AS c
+                JOIN poolers AS p ON p.id = c.poolerid
+                JOIN users AS u ON u.id = p.userid
+            WHERE u.discordid = ? AND c.season = ?
         `;
         db.get(sql, discordid, season, async (err, row) => {
             if (err || !row) {
                 console.log(err);
                 res.render('error.html');
+                return;
             }
-            else {
-                res.render('playoffs.html', {
-                    afcTeams,
-                    nfcTeams
-                });
+
+            // Check if picks have already been submitted (any division winner is not null)
+            if (row['winafcn'] != null || row['winafcs'] != null ||
+                row['winafce'] != null || row['winafcw'] != null ||
+                row['winnfcn'] != null || row['winnfcs'] != null ||
+                row['winnfce'] != null || row['winnfcw'] != null) {
+                res.render('error.html');
+                return;
             }
+
+            res.render('playoffs.html', {
+                afcTeams,
+                nfcTeams,
+                poolerid: row['poolerid'],
+                season: row['season']
+            });
         });
     });
 });
 
 app.post('/submit-playoffs', (req, res) => {
-    const { afcWinners, nfcWinners, afcWildcards, nfcWildcards } = req.body;
+    const { poolerid, season, afcWinners, nfcWinners, afcWildcards, nfcWildcards } = req.body;
 
-    // Parse the JSON strings
-    const data = {
-        afcWinners: JSON.parse(afcWinners),
-        nfcWinners: JSON.parse(nfcWinners),
-        afcWildcards: JSON.parse(afcWildcards),
-        nfcWildcards: JSON.parse(nfcWildcards)
-    };
+    // Parse the JSON strings from the form
+    const afcWinnersObj = JSON.parse(afcWinners);
+    const nfcWinnersObj = JSON.parse(nfcWinners);
+    const afcWildcardsArr = JSON.parse(afcWildcards);
+    const nfcWildcardsArr = JSON.parse(nfcWildcards);
 
-    // Here you would save to database, etc.
-    console.log('Playoff predictions received:', data);
+    // Convert full team names to short names
+    const afcWildcardsShort = afcWildcardsArr.map(GetTeamShortName).join(',');
+    const nfcWildcardsShort = nfcWildcardsArr.map(GetTeamShortName).join(',');
 
-    res.render('success.html');
+    LoadDB((db) => {
+        const sql = `
+            UPDATE capsules
+            SET winafcn = ?, winafcs = ?, winafce = ?, winafcw = ?,
+                winnfcn = ?, winnfcs = ?, winnfce = ?, winnfcw = ?,
+                afcwildcards = ?, nfcwildcards = ?
+            WHERE poolerid = ? AND season = ?
+        `;
+        db.run(sql,
+            GetTeamShortName(afcWinnersObj['North']),
+            GetTeamShortName(afcWinnersObj['South']),
+            GetTeamShortName(afcWinnersObj['East']),
+            GetTeamShortName(afcWinnersObj['West']),
+            GetTeamShortName(nfcWinnersObj['North']),
+            GetTeamShortName(nfcWinnersObj['South']),
+            GetTeamShortName(nfcWinnersObj['East']),
+            GetTeamShortName(nfcWinnersObj['West']),
+            afcWildcardsShort, nfcWildcardsShort,
+            poolerid, season,
+            (err) => {
+                if (err) {
+                    console.log(err);
+                    res.render('error.html');
+                } else {
+                    res.render('success.html');
+                }
+            }
+        );
+    });
 });
 
 const port = 3000;
@@ -206,41 +244,41 @@ app.listen(port, () => {
 });
 
 const afcTeams = [
-  { sname: 'BAL', name: 'Baltimore Ravens', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/bal.png' },
-  { sname: 'CIN', name: 'Cincinnati Bengals', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/cin.png' },
-  { sname: 'CLE', name: 'Cleveland Browns', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/cle.png' },
-  { sname: 'PIT', name: 'Pittsburgh Steelers', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/pit.png' },
-  { sname: 'HOU', name: 'Houston Texans', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/hou.png' },
-  { sname: 'IND', name: 'Indianapolis Colts', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/ind.png' },
-  { sname: 'JAX', name: 'Jacksonville Jaguars', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/jax.png' },
-  { sname: 'TEN', name: 'Tennessee Titans', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/ten.png' },
-  { sname: 'BUF', name: 'Buffalo Bills', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/buf.png' },
-  { sname: 'MIA', name: 'Miami Dolphins', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/mia.png' },
-  { sname: 'NYJ', name: 'New York Jets', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/nyj.png' },
-  { sname: 'NE', name: 'New England Patriots', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/ne.png' },
-  { sname: 'KC', name: 'Kansas City Chiefs', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/kc.png' },
-  { sname: 'LV', name: 'Las Vegas Raiders', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/lv.png' },
-  { sname: 'LAC', name: 'Los Angeles Chargers', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/lac.png' },
-  { sname: 'DEN', name: 'Denver Broncos', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/den.png' }
+  { sname: 'BAL', name: 'Baltimore Ravens', division: 'North' },
+  { sname: 'CIN', name: 'Cincinnati Bengals', division: 'North' },
+  { sname: 'CLE', name: 'Cleveland Browns', division: 'North' },
+  { sname: 'PIT', name: 'Pittsburgh Steelers', division: 'North' },
+  { sname: 'HOU', name: 'Houston Texans', division: 'South' },
+  { sname: 'IND', name: 'Indianapolis Colts', division: 'South' },
+  { sname: 'JAX', name: 'Jacksonville Jaguars', division: 'South' },
+  { sname: 'TEN', name: 'Tennessee Titans', division: 'South' },
+  { sname: 'BUF', name: 'Buffalo Bills', division: 'East' },
+  { sname: 'MIA', name: 'Miami Dolphins', division: 'East' },
+  { sname: 'NYJ', name: 'New York Jets', division: 'East' },
+  { sname: 'NE', name: 'New England Patriots', division: 'East' },
+  { sname: 'KC', name: 'Kansas City Chiefs', division: 'West' },
+  { sname: 'LV', name: 'Las Vegas Raiders', division: 'West' },
+  { sname: 'LAC', name: 'Los Angeles Chargers', division: 'West' },
+  { sname: 'DEN', name: 'Denver Broncos', division: 'West' }
 ];
 
 const nfcTeams = [
-  { sname: 'DET', name: 'Detroit Lions', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/det.png' },
-  { sname: 'GB', name: 'Green Bay Packers', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/gb.png' },
-  { sname: 'MIN', name: 'Minnesota Vikings', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/min.png' },
-  { sname: 'CHI', name: 'Chicago Bears', division: 'North', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/chi.png' },
-  { sname: 'TB', name: 'Tampa Bay Buccaneers', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/tb.png' },
-  { sname: 'ATL', name: 'Atlanta Falcons', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/atl.png' },
-  { sname: 'NO', name: 'New Orleans Saints', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/no.png' },
-  { sname: 'CAR', name: 'Carolina Panthers', division: 'South', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/car.png' },
-  { sname: 'DAL', name: 'Dallas Cowboys', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/dal.png' },
-  { sname: 'PHI', name: 'Philadelphia Eagles', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/phi.png' },
-  { sname: 'NYG', name: 'New York Giants', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/nyg.png' },
-  { sname: 'WSH', name: 'Washington Commanders', division: 'East', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/wsh.png' },
-  { sname: 'SF', name: 'San Francisco 49ers', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/sf.png' },
-  { sname: 'LAR', name: 'Los Angeles Rams', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/lar.png' },
-  { sname: 'SEA', name: 'Seattle Seahawks', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/sea.png' },
-  { sname: 'ARI', name: 'Arizona Cardinals', division: 'West', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/ari.png' }
+  { sname: 'DET', name: 'Detroit Lions', division: 'North' },
+  { sname: 'GB', name: 'Green Bay Packers', division: 'North' },
+  { sname: 'MIN', name: 'Minnesota Vikings', division: 'North' },
+  { sname: 'CHI', name: 'Chicago Bears', division: 'North' },
+  { sname: 'TB', name: 'Tampa Bay Buccaneers', division: 'South' },
+  { sname: 'ATL', name: 'Atlanta Falcons', division: 'South' },
+  { sname: 'NO', name: 'New Orleans Saints', division: 'South' },
+  { sname: 'CAR', name: 'Carolina Panthers', division: 'South' },
+  { sname: 'DAL', name: 'Dallas Cowboys', division: 'East' },
+  { sname: 'PHI', name: 'Philadelphia Eagles', division: 'East' },
+  { sname: 'NYG', name: 'New York Giants', division: 'East' },
+  { sname: 'WSH', name: 'Washington Commanders', division: 'East' },
+  { sname: 'SF', name: 'San Francisco 49ers', division: 'West' },
+  { sname: 'LAR', name: 'Los Angeles Rams', division: 'West' },
+  { sname: 'SEA', name: 'Seattle Seahawks', division: 'West' },
+  { sname: 'ARI', name: 'Arizona Cardinals', division: 'West' }
 ];
 
 const lNameMap = {

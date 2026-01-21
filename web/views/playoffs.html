@@ -44,6 +44,8 @@
 
     <!-- Action Buttons -->
     <form id="playoff-form" method="POST" action="/submit-playoffs">
+      <input type="hidden" name="poolerid" value="<%= poolerid %>">
+      <input type="hidden" name="season" value="<%= season %>">
       <input type="hidden" name="afcWinners" id="afc-winners-input">
       <input type="hidden" name="nfcWinners" id="nfc-winners-input">
       <input type="hidden" name="afcWildcards" id="afc-wildcards-input">
