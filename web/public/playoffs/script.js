@@ -1,10 +1,35 @@
+// Theme toggle functionality
+function initTheme() {
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-bs-theme', savedTheme);
+  updateThemeIcon(savedTheme);
+}
+
+function toggleTheme() {
+  const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+  const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-bs-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  updateThemeIcon(newTheme);
+}
+
+function updateThemeIcon(theme) {
+  const icon = document.getElementById('theme-icon');
+  if (icon) {
+    icon.className = theme === 'light' ? 'bi bi-moon-fill' : 'bi bi-sun-fill';
+  }
+}
+
+document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
+initTheme();
+
 let phase = 'winners';
 let afcWinners = {};
 let nfcWinners = {};
 let afcWildcards = [];
 let nfcWildcards = [];
 
-const divisions = ['East', 'North', 'South', 'West'];
+const divisions = [ 'North', 'South', 'East', 'West' ];
 
 function toggleWinner(conference, division, teamName) {
   const winners = conference === 'AFC' ? afcWinners : nfcWinners;
@@ -55,9 +80,9 @@ function renderDivisionWinners(teams, division, conference) {
   const selectedWinner = winners[division];
   
   let html = `
-    <div class="col-6">
+    <div class="col-6 col-sm-6">
       <div class="card">
-        <div class="card-body p-3">
+        <div class="card-body p-2 p-md-3">
           <div class="d-flex align-items-center mb-2">
             <i class="bi bi-trophy-fill text-warning me-2"></i>
             <h6 class="mb-0 fw-bold text-uppercase small">${division}</h6>
@@ -72,8 +97,8 @@ function renderDivisionWinners(teams, division, conference) {
     html += `
       <button class="btn ${btnClass} btn-sm text-start d-flex align-items-center"
               onclick="toggleWinner('${conference}', '${division}', '${team.name}')">
-        <img src="${team.logo}" alt="${team.name}" class="team-logo me-2">
-        <span class="flex-grow-1">${team.name}</span>
+        <img src="/teams/${team.sname}.png" alt="${team.name}" class="team-logo me-2">
+        <span class="flex-grow-1 team-name">${team.name}</span>
         ${isSelected ? '<i class="bi bi-check-lg"></i>' : ''}
       </button>
     `;
@@ -96,9 +121,9 @@ function renderDivisionWildcards(teams, division, conference) {
   const divisionWinner = winners[division];
   
   let html = `
-    <div class="col-6">
+    <div class="col-6 col-sm-6">
       <div class="card">
-        <div class="card-body p-3">
+        <div class="card-body p-2 p-md-3">
           <h6 class="mb-2 fw-bold text-uppercase small">${division}</h6>
           <div class="d-grid gap-2">
   `;
@@ -119,8 +144,8 @@ function renderDivisionWildcards(teams, division, conference) {
     html += `
       <button class="btn ${btnClass} btn-sm text-start d-flex align-items-center" ${disabled}
               onclick="${!isWinner ? `toggleWildcard('${conference}', '${team.name}')` : ''}">
-        <img src="${team.logo}" alt="${team.name}" class="team-logo me-2">
-        <span class="flex-grow-1">${team.name}</span>
+        <img src="/teams/${team.sname}.png" alt="${team.name}" class="team-logo me-2">
+        <span class="flex-grow-1 team-name">${team.name}</span>
         ${icon}
       </button>
     `;
@@ -144,13 +169,9 @@ function render() {
   const actionBtn = document.getElementById('action-btn');
   const backBtn = document.getElementById('back-btn');
   const phaseDesc = document.getElementById('phase-description');
-  const afcPhaseLabel = document.getElementById('afc-phase-label');
-  const nfcPhaseLabel = document.getElementById('nfc-phase-label');
   
   if (phase === 'winners') {
     phaseDesc.textContent = 'Step 1: Select division winners (1 per division)';
-    afcPhaseLabel.textContent = '';
-    nfcPhaseLabel.textContent = '';
     
     afcDiv.innerHTML = divisions.map(d => renderDivisionWinners(afcTeams, d, 'AFC')).join('');
     nfcDiv.innerHTML = divisions.map(d => renderDivisionWinners(nfcTeams, d, 'NFC')).join('');
@@ -169,9 +190,6 @@ function render() {
     backBtn.style.display = 'none';
   } else {
     phaseDesc.textContent = 'Step 2: Select wild card teams (3 per conference)';
-    afcPhaseLabel.textContent = 'Wild Cards';
-    nfcPhaseLabel.textContent = 'Wild Cards';
-    
     afcDiv.innerHTML = divisions.map(d => renderDivisionWildcards(afcTeams, d, 'AFC')).join('');
     nfcDiv.innerHTML = divisions.map(d => renderDivisionWildcards(nfcTeams, d, 'NFC')).join('');
     
@@ -182,10 +200,18 @@ function render() {
     
     actionBtn.textContent = 'Submit Predictions';
     actionBtn.disabled = !canSubmit();
-    actionBtn.onclick = () => alert('Predictions submitted!\nAFC Winners: ' + JSON.stringify(afcWinners) + '\nNFC Winners: ' + JSON.stringify(nfcWinners) + '\nAFC Wildcards: ' + JSON.stringify(afcWildcards) + '\nNFC Wildcards: ' + JSON.stringify(nfcWildcards));
+    actionBtn.onclick = submitForm;
     backBtn.style.display = 'inline-block';
     backBtn.onclick = backToWinners;
   }
+}
+
+function submitForm() {
+  document.getElementById('afc-winners-input').value = JSON.stringify(afcWinners);
+  document.getElementById('nfc-winners-input').value = JSON.stringify(nfcWinners);
+  document.getElementById('afc-wildcards-input').value = JSON.stringify(afcWildcards);
+  document.getElementById('nfc-wildcards-input').value = JSON.stringify(nfcWildcards);
+  document.getElementById('playoff-form').submit();
 }
 
 render();

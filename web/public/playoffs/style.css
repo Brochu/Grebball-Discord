@@ -4,6 +4,21 @@
   object-fit: contain;
 }
 
+.team-name {
+  font-size: 0.9rem;
+}
+
+@media (max-width: 576px) {
+  .team-name {
+    font-size: 0.85rem;
+  }
+  
+  .team-logo {
+    width: 20px;
+    height: 20px;
+  }
+}
+
 .btn-winner-selected {
   background-color: #fef3c7;
   border-color: #fbbf24;
@@ -37,9 +52,37 @@
 }
 
 .card {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--bs-border-color);
 }
 
-.bg-white {
-  background-color: #ffffff !important;
+/* Dark mode adjustments */
+[data-bs-theme="dark"] .btn-winner-selected {
+  background-color: #78350f;
+  border-color: #b45309;
+  color: #fef3c7;
+}
+
+[data-bs-theme="dark"] .btn-winner-selected:hover {
+  background-color: #92400e;
+  border-color: #d97706;
+  color: #fef3c7;
+}
+
+[data-bs-theme="dark"] .btn-winner-locked {
+  background-color: #78350f;
+  border-color: #b45309;
+  color: #fef3c7;
+  opacity: 0.6;
+}
+
+[data-bs-theme="dark"] .btn-wildcard-selected {
+  background-color: #065f46;
+  border-color: #059669;
+  color: #d1fae5;
+}
+
+[data-bs-theme="dark"] .btn-wildcard-selected:hover {
+  background-color: #047857;
+  border-color: #10b981;
+  color: #d1fae5;
 }
