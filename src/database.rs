@@ -29,6 +29,26 @@ pub enum PicksStatus {
     Filled(String, Option<u32>),
 }
 
+pub enum CapsuleStatus {
+    Primed,
+    Filled(CapsulePicks),
+}
+
+pub struct CapsulePicks {
+    pub season: i64,
+    pub poolerid: i64,
+    pub winafcn: Option<String>,
+    pub winafcs: Option<String>,
+    pub winafce: Option<String>,
+    pub winafcw: Option<String>,
+    pub winnfcn: Option<String>,
+    pub winnfcs: Option<String>,
+    pub winnfce: Option<String>,
+    pub winnfcw: Option<String>,
+    pub afcwildcards: Option<String>,
+    pub nfcwildcards: Option<String>,
+}
+
 impl Display for WeekPicks {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "(pickid: {:?}, poolerid: {})[{}] ({:?}) -> {:?} (feat: {:?})",
@@ -422,6 +442,72 @@ impl DB {
                     Err(_) => Ok(false),
                 }
             }
+        }
+    }
+
+    pub async fn prime_capsule(&self, discordid: &i64, season: &u16) -> Result<CapsuleStatus> {
+        let poolerid: i64 = sqlx::query("
+                SELECT p.id FROM users AS u
+                JOIN poolers AS p
+                ON u.id = p.userid
+                WHERE u.discordid = ?
+                ")
+            .bind(discordid)
+            .fetch_one(&self.pool)
+            .await?
+            .get("id");
+
+        match sqlx::query("
+                SELECT season, poolerid, winafcn, winafcs, winafce, winafcw,
+                       winnfcn, winnfcs, winnfce, winnfcw,
+                       afcwildcards, nfcwildcards
+                FROM capsules
+                WHERE poolerid = ? AND season = ?
+                ")
+            .bind(poolerid)
+            .bind(season)
+            .fetch_one(&self.pool)
+            .await {
+                Ok(row) => {
+                    let capsule = CapsulePicks {
+                        season: row.get("season"),
+                        poolerid: row.get("poolerid"),
+                        winafcn: row.get("winafcn"),
+                        winafcs: row.get("winafcs"),
+                        winafce: row.get("winafce"),
+                        winafcw: row.get("winafcw"),
+                        winnfcn: row.get("winnfcn"),
+                        winnfcs: row.get("winnfcs"),
+                        winnfce: row.get("winnfce"),
+                        winnfcw: row.get("winnfcw"),
+                        afcwildcards: row.get("afcwildcards"),
+                        nfcwildcards: row.get("nfcwildcards"),
+                    };
+
+                    // Check if any picks have been made
+                    if capsule.winafcn.is_some() || capsule.winafcs.is_some() ||
+                       capsule.winafce.is_some() || capsule.winafcw.is_some() ||
+                       capsule.winnfcn.is_some() || capsule.winnfcs.is_some() ||
+                       capsule.winnfce.is_some() || capsule.winnfcw.is_some() ||
+                       capsule.afcwildcards.is_some() || capsule.nfcwildcards.is_some() {
+                        Ok(CapsuleStatus::Filled(capsule))
+                    } else {
+                        Ok(CapsuleStatus::Primed)
+                    }
+                },
+                Err(_) => {
+                    // No capsule exists, create one
+                    sqlx::query("
+                            INSERT INTO capsules (season, poolerid)
+                            VALUES (?, ?);
+                            ")
+                        .bind(season)
+                        .bind(poolerid)
+                        .execute(&self.pool)
+                        .await?;
+
+                    Ok(CapsuleStatus::Primed)
+                }
         }
     }
 }

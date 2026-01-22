@@ -154,7 +154,7 @@ app.post('/submit', (req, res) => {
     });
 });
 
-app.get('/playoffs/:discordid/:season', (req, res) => {
+app.get('/capsule/:discordid/:season', (req, res) => {
     const discordid = req.params['discordid'];
     const season = req.params['season'];
 
@@ -193,7 +193,7 @@ app.get('/playoffs/:discordid/:season', (req, res) => {
     });
 });
 
-app.post('/submit-playoffs', (req, res) => {
+app.post('/capsule-submit', (req, res) => {
     const { poolerid, season, afcWinners, nfcWinners, afcWildcards, nfcWildcards } = req.body;
 
     // Parse the JSON strings from the form
