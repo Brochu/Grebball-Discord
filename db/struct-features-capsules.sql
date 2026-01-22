@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS "capsules" (
 	"winnfcw"	TEXT,
 	"afcwildcards"	TEXT,
 	"nfcwildcards"	TEXT,
+	"scorecache"	INTEGER,
 	CONSTRAINT "SeasonPoolerId_PK" PRIMARY KEY("season","poolerid"),
 	CONSTRAINT "PoolerId_FK" FOREIGN KEY("poolerid") REFERENCES "poolers"("id")
 );
