@@ -79,10 +79,24 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
                 // Wildcards
                 if let Some(wildcards) = &capsule.afcwildcards {
-                    content.push_str(&format!("\n**Wildcards - AFC:** {}\n", wildcards));
+                    let (first, rest) = wildcards.split_once(",").unwrap();
+                    let (second, third) = rest.split_once(",").unwrap();
+
+                    content.push_str(&format!("\n**Wildcards - AFC:** <:{}:{}> <:{}:{}> <:{}:{}>\n",
+                        first, get_team_emoji(first),
+                        second, get_team_emoji(second),
+                        third, get_team_emoji(third),
+                    ));
                 }
                 if let Some(wildcards) = &capsule.nfcwildcards {
-                    content.push_str(&format!("**Wildcards - NFC:** {}\n", wildcards));
+                    let (first, rest) = wildcards.split_once(",").unwrap();
+                    let (second, third) = rest.split_once(",").unwrap();
+
+                    content.push_str(&format!("\n**Wildcards - NFC:** <:{}:{}> <:{}:{}> <:{}:{}>\n",
+                        first, get_team_emoji(first),
+                        second, get_team_emoji(second),
+                        third, get_team_emoji(third),
+                    ));
                 }
 
                 if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
