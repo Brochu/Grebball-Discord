@@ -71,7 +71,17 @@
 
 <main class="container responsive-container">
 <div class="bg-body-tertiary p-5 rounded">
-    <span class="h2">Choix pour saison: <%= season %>, semaine: <%= week %></span>
+    <% if (week <= 18) { %>
+        <span class="h2">Choix pour saison: <%= season %>, semaine: <%= week %></span>
+    <% } else if (week == 19) { %>
+        <span class="h2">Choix pour saison: <%= season %>, semaine: WildCards</span>
+    <% } else if (week == 20) { %>
+        <span class="h2">Choix pour saison: <%= season %>, semaine: Divisional</span>
+    <% } else if (week == 21) { %>
+        <span class="h2">Choix pour saison: <%= season %>, semaine: Championship</span>
+    <% } else if (week == 22) { %>
+        <span class="h2">Choix pour saison: <%= season %>, semaine: SuperBowl</span>
+    <% } %>
 
     <!-- Progress Bar Section -->
     <div class="progress-container mt-4">
