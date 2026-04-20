@@ -256,6 +256,35 @@ struct ESPNTeam {
     displayName: String,
 }
 
+#[derive(Deserialize, Debug)]
+struct ESPNStandings {
+    children: Vec<ESPNConference>,
+}
+
+#[derive(Deserialize, Debug)]
+struct ESPNConference {
+    abbreviation: String,
+    standings: ESPNStandingsBody,
+}
+
+#[derive(Deserialize, Debug)]
+struct ESPNStandingsBody {
+    entries: Vec<ESPNStandingsEntry>,
+}
+
+#[derive(Deserialize, Debug)]
+struct ESPNStandingsEntry {
+    team: ESPNTeam,
+    stats: Vec<ESPNStat>,
+}
+
+#[derive(Deserialize, Debug)]
+#[allow(non_snake_case)]
+struct ESPNStat {
+    name: String,
+    displayValue: String,
+}
+
 pub async fn get_schedule(season: &u16, teamid: &i64) -> Vec<Option<Match>> {
     let partial_url = env::var("BLAME_URL")
         .expect("![Football] Could not find 'BLAME_URL' env var");
