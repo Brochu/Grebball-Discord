@@ -31,3 +31,4 @@ rust-project.json
 # ---------------------------------------------
 .env
 local/
+.claude
