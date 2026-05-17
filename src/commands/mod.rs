@@ -8,3 +8,4 @@ pub mod team;
 pub mod blame;
 pub mod features;
 pub mod capsule;
+pub mod eliminatoires;
