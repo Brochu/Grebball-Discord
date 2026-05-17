@@ -249,42 +249,6 @@ struct ESPNScore {
 }
 */
 
-#[derive(Serialize, Deserialize, Debug)]
-#[allow(non_snake_case)]
-struct ESPNTeam {
-    abbreviation: String,
-    displayName: String,
-}
-
-#[derive(Deserialize, Debug)]
-struct ESPNStandings {
-    children: Vec<ESPNConference>,
-}
-
-#[derive(Deserialize, Debug)]
-struct ESPNConference {
-    abbreviation: String,
-    standings: ESPNStandingsBody,
-}
-
-#[derive(Deserialize, Debug)]
-struct ESPNStandingsBody {
-    entries: Vec<ESPNStandingsEntry>,
-}
-
-#[derive(Deserialize, Debug)]
-struct ESPNStandingsEntry {
-    team: ESPNTeam,
-    stats: Vec<ESPNStat>,
-}
-
-#[derive(Deserialize, Debug)]
-#[allow(non_snake_case)]
-struct ESPNStat {
-    name: String,
-    displayValue: String,
-}
-
 pub async fn get_schedule(season: &u16, teamid: &i64) -> Vec<Option<Match>> {
     let partial_url = env::var("BLAME_URL")
         .expect("![Football] Could not find 'BLAME_URL' env var");
@@ -513,4 +477,66 @@ fn get_score(outcome: &MatchOutcome, unique: bool, week: &i64) -> u32 {
         MatchOutcome::Loss | MatchOutcome::NotPlayed => 0,
         MatchOutcome::Tied => 1,
     }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[allow(non_snake_case)]
+struct ESPNTeam {
+    abbreviation: String,
+    displayName: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct ESPNStandings {
+    children: Vec<ESPNConference>,
+}
+
+#[derive(Deserialize, Debug)]
+struct ESPNConference {
+    abbreviation: String,
+    children: Vec<ESPNDivision>,
+}
+
+#[derive(Deserialize, Debug)]
+struct ESPNDivision {
+    name: String,
+    standings: ESPNStandingsBody,
+}
+
+#[derive(Deserialize, Debug)]
+struct ESPNStandingsBody {
+    entries: Vec<ESPNStandingsEntry>,
+}
+
+#[derive(Deserialize, Debug)]
+struct ESPNStandingsEntry {
+    team: ESPNTeam,
+    stats: Vec<ESPNStat>,
+}
+
+#[derive(Deserialize, Debug)]
+#[allow(non_snake_case)]
+struct ESPNStat {
+    name: String,
+    displayValue: String,
+}
+
+#[derive(Debug, Default)]
+pub struct PlayoffPicture {
+    pub afc_n_win: String,
+    pub afc_s_win: String,
+    pub afc_e_win: String,
+    pub afc_w_win: String,
+    pub nfc_n_win: String,
+    pub nfc_s_win: String,
+    pub nfc_e_win: String,
+    pub nfc_w_win: String,
+    pub afc_wildcards: Vec<String>,
+    pub nfc_wildcards: Vec<String>,
+}
+
+fn get_playoff_picture() {
+}
+
+fn calc_playoff_picture() {
 }
