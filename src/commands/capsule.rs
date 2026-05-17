@@ -20,12 +20,15 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     let season = env::var("CONF_SEASON")
         .expect("[capsule] Cannot find 'CONF_SEASON' in env").parse::<u16>()
         .expect("[capsule] Could not parse 'CONF_SEASON' to u16");
+    let poolid = env::var("POOL_ID")
+        .expect("![capsule] Could not find env var 'POOL_ID'").parse::<i64>()
+        .expect("![capsule] Could not parse pool_id to int");
 
     let discordid = command.user.id.as_u64()
         .to_string().parse::<i64>()
         .unwrap();
 
-    if let Ok(status) = db.prime_capsule(&discordid, &season).await {
+    if let Ok(status) = db.prime_capsule(&discordid, &season, &poolid).await {
         match status {
             CapsuleStatus::Primed => {
                 let picks_url = env::var("PICKS_URL")

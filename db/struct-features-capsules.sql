@@ -2,6 +2,7 @@ BEGIN TRANSACTION;
 CREATE TABLE IF NOT EXISTS "capsules" (
 	"season"	INTEGER NOT NULL DEFAULT 2000,
 	"poolerid"	INTEGER,
+	"poolid"	INTEGER,
 	"winafcn"	TEXT,
 	"winafcs"	TEXT,
 	"winafce"	TEXT,
@@ -14,7 +15,8 @@ CREATE TABLE IF NOT EXISTS "capsules" (
 	"nfcwildcards"	TEXT,
 	"scorecache"	INTEGER,
 	CONSTRAINT "SeasonPoolerId_PK" PRIMARY KEY("season","poolerid"),
-	CONSTRAINT "PoolerId_FK" FOREIGN KEY("poolerid") REFERENCES "poolers"("id")
+	CONSTRAINT "PoolerId_FK" FOREIGN KEY("poolerid") REFERENCES "poolers"("id"),
+	CONSTRAINT "PoolId_FK" FOREIGN KEY("poolid") REFERENCES "pools"("id")
 );
 CREATE TABLE IF NOT EXISTS "features" (
 	"id"	INTEGER,

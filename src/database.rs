@@ -447,7 +447,7 @@ impl DB {
         }
     }
 
-    pub async fn prime_capsule(&self, discordid: &i64, season: &u16) -> Result<CapsuleStatus> {
+    pub async fn prime_capsule(&self, discordid: &i64, season: &u16, poolid: &i64) -> Result<CapsuleStatus> {
         let poolerid: i64 = sqlx::query("
                 SELECT p.id FROM users AS u
                 JOIN poolers AS p
@@ -501,11 +501,12 @@ impl DB {
                 Err(_) => {
                     // No capsule exists, create one
                     sqlx::query("
-                            INSERT INTO capsules (season, poolerid)
-                            VALUES (?, ?);
+                            INSERT INTO capsules (season, poolerid, poolid)
+                            VALUES (?, ?, ?);
                             ")
                         .bind(season)
                         .bind(poolerid)
+                        .bind(poolid)
                         .execute(&self.pool)
                         .await?;
 
@@ -514,12 +515,13 @@ impl DB {
         }
     }
 
-    pub async fn fetch_capsule(&self, season: &u16) -> Result<Vec<CapsulePicks>> {
+    pub async fn fetch_capsule(&self, season: &u16, poolid: &i64) -> Result<Vec<CapsulePicks>> {
         let results: Vec<CapsulePicks> = sqlx::query("
-                SELECT season, poolerid, winafcn, winafcs, winafce, winafcw, winnfcn, winnfcs, winnfce, winnfcw, afcwildcards, nfcwildcards, scorecache	 FROM capsules
-                WHERE season = ?
+                SELECT season, poolerid, poolid, winafcn, winafcs, winafce, winafcw, winnfcn, winnfcs, winnfce, winnfcw, afcwildcards, nfcwildcards, scorecache FROM capsules
+                WHERE season = ? AND poolid = ?
                 ")
             .bind(season)
+            .bind(poolid)
             .fetch_all(&self.pool).await?
             .iter().map(|row| {
                 let season: i64 = row.get("season");
