@@ -1,5 +1,6 @@
 use std::env;
 
+use library::football;
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
@@ -47,6 +48,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     };
 
     // TODO: score each capsule and persist results
+    let _picture = football::get_playoff_picture(season).await;
 
     let content = format!("Correction des capsules pour la saison {} ({} poolers trouvés).", season, capsules.len());
 

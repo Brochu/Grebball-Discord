@@ -499,13 +499,13 @@ struct ESPNConference {
 
 #[derive(Deserialize, Debug)]
 struct ESPNDivision {
-    name: String,
+    abbreviation: String,
     standings: ESPNStandingsBody,
 }
 
 #[derive(Deserialize, Debug)]
 struct ESPNStandingsBody {
-    entries: Vec<ESPNStandingsEntry>,
+    entries: Option<Vec<ESPNStandingsEntry>>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -535,8 +535,68 @@ pub struct PlayoffPicture {
     pub nfc_wildcards: Vec<String>,
 }
 
-fn get_playoff_picture() {
-}
+pub async fn get_playoff_picture(season: u16) -> PlayoffPicture {
+    let standings_url = env::var("STANDINGS_URL")
+        .expect("![Football] Could not find 'STANDINGS_URL' env var");
 
-fn calc_playoff_picture() {
+    let url = format!("{}?season={}&type=0&level=3", standings_url, season);
+    let res = reqwest::get(url).await
+        .expect("![Football] Could not get standings reply")
+        .text().await
+        .expect("![Football] Could not retrieve standings text");
+    let standings: ESPNStandings = serde_json::from_str(&res)
+        .expect("![Football] Could not parse standings response");
+
+    let mut picture = PlayoffPicture::default();
+
+    for conference in &standings.children {
+        let conf = conference.abbreviation.as_str();
+        let mut wildcards: Vec<(u32, String)> = Vec::new();
+
+        for division in &conference.children {
+            let div_abbr = division.abbreviation.as_str();
+
+            let entries = match &division.standings.entries {
+                Some(entries) => entries,
+                None => continue,
+            };
+
+            for entry in entries {
+                let seed = entry.stats.iter()
+                    .find(|s| s.name == "playoffSeed")
+                    .and_then(|s| s.displayValue.parse::<u32>().ok());
+
+                if let Some(seed) = seed {
+                    let team = entry.team.abbreviation.clone();
+
+                    if (1..=4).contains(&seed) {
+                        match (conf, div_abbr) {
+                            ("AFC", "NORTH") => picture.afc_n_win = team,
+                            ("AFC", "SOUTH") => picture.afc_s_win = team,
+                            ("AFC", "EAST")  => picture.afc_e_win = team,
+                            ("AFC", "WEST")  => picture.afc_w_win = team,
+                            ("NFC", "NORTH") => picture.nfc_n_win = team,
+                            ("NFC", "SOUTH") => picture.nfc_s_win = team,
+                            ("NFC", "EAST")  => picture.nfc_e_win = team,
+                            ("NFC", "WEST")  => picture.nfc_w_win = team,
+                            _ => {}
+                        }
+                    } else if (5..=7).contains(&seed) {
+                        wildcards.push((seed, team));
+                    }
+                }
+            }
+        }
+
+        wildcards.sort_by_key(|(seed, _)| *seed);
+        let wc_teams: Vec<String> = wildcards.into_iter().map(|(_, t)| t).collect();
+
+        match conf {
+            "AFC" => picture.afc_wildcards = wc_teams,
+            "NFC" => picture.nfc_wildcards = wc_teams,
+            _ => {}
+        }
+    }
+
+    return picture;
 }
