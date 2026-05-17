@@ -550,4 +550,8 @@ impl DB {
 
         Ok(results)
     }
+
+    pub async fn cache_capsule(&self, _season: u16, _poolerid: i64, _capsule_score: u32) -> Result<bool> {
+        Ok(true)
+    }
 }
