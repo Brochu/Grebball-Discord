@@ -5,7 +5,7 @@ use chrono::{ DateTime, TimeDelta, Utc };
 use serde::{Deserialize, Serialize};
 use serenity::model::id::EmojiId;
 
-use crate::database::{WeekFeature, WeekPicks};
+use crate::database::{WeekFeature, WeekPicks, CapsulePicks};
 
 pub fn get_short_name(name: &str) -> String {
     match name {
@@ -599,4 +599,93 @@ pub async fn get_playoff_picture(season: u16) -> PlayoffPicture {
     }
 
     return picture;
+}
+
+#[derive(Debug, Default)]
+pub struct CapsuleResults {
+    pub poolerid: i64,
+    pub name: String,
+    pub score: u32,
+    pub icons: String,
+    pub cache: bool,
+}
+
+#[derive(Debug)]
+enum CapsuleState {
+    DivisionWinner,
+    Wildcard,
+}
+
+pub async fn calc_playoff_picture(picture: &PlayoffPicture, picks: &[CapsulePicks]) -> Vec<CapsuleResults> {
+    // (accessor for a pooler's pick in this division, actual division winner).
+    // Non-capturing closures coerce to fn pointers so they can share one array type.
+    type DivField = fn(&CapsulePicks) -> Option<&String>;
+    let divisions: [(DivField, &str); 8] = [
+        (|c| c.winafcn.as_ref(), picture.afc_n_win.as_str()),
+        (|c| c.winafcs.as_ref(), picture.afc_s_win.as_str()),
+        (|c| c.winafce.as_ref(), picture.afc_e_win.as_str()),
+        (|c| c.winafcw.as_ref(), picture.afc_w_win.as_str()),
+        (|c| c.winnfcn.as_ref(), picture.nfc_n_win.as_str()),
+        (|c| c.winnfcs.as_ref(), picture.nfc_s_win.as_str()),
+        (|c| c.winnfce.as_ref(), picture.nfc_e_win.as_str()),
+        (|c| c.winnfcw.as_ref(), picture.nfc_w_win.as_str()),
+    ];
+
+    let mut results = Vec::<CapsuleResults>::new();
+    for pick in picks {
+        let mut score = 0;
+        let mut icons = String::new();
+
+        for (field, actual) in &divisions {
+            // Skip divisions with no determined winner yet (avoids "" == "" false positives).
+            if actual.is_empty() { continue; }
+
+            let predicted = field(pick).map(String::as_str).unwrap_or_default();
+            icons.push_str(format!("<:{}:{}>", predicted, get_team_emoji(predicted)).as_str());
+
+            if predicted != *actual { continue; }
+
+            // Unique = no other pooler picked the same team for this division.
+            // Mirrors the per-match uniqueness check in calc_results_internal.
+            let unique = picks.iter()
+                .filter(|p| p.poolerid != pick.poolerid)
+                .all(|p| field(p).map(String::as_str).unwrap_or_default() != predicted);
+
+            score += get_capsule_score(CapsuleState::DivisionWinner, unique);
+        }
+        icons.push_str("||");
+
+        if let Some(afc_wildcard) = &pick.afcwildcards {
+            for team in afc_wildcard.split(",") {
+                icons.push_str(format!("<:{}:{}>", team, get_team_emoji(team)).as_str());
+                if picture.afc_wildcards.iter().any(|t| t == team) { score += get_capsule_score(CapsuleState::Wildcard, false); }
+            }
+        }
+
+        if let Some(nfc_wildcard) = &pick.nfcwildcards {
+            for team in nfc_wildcard.split(",") {
+                icons.push_str(format!("<:{}:{}>", team, get_team_emoji(team)).as_str());
+                if picture.nfc_wildcards.iter().any(|t| t == team) { score += get_capsule_score(CapsuleState::Wildcard, false); }
+            }
+        }
+
+        results.push(CapsuleResults {
+            poolerid: pick.poolerid,
+            name: "".to_owned(),
+            score,
+            icons,
+            cache: false,
+        });
+    }
+
+    return results;
+}
+
+fn get_capsule_score(state: CapsuleState, unique: bool) -> u32 {
+    match (state, unique) {
+        (CapsuleState::DivisionWinner, true)  => 4,
+        (CapsuleState::DivisionWinner, false) => 2,
+        (CapsuleState::Wildcard      , true)  => 2,
+        (CapsuleState::Wildcard      , false) => 1,
+    }
 }

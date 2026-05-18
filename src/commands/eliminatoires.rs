@@ -48,7 +48,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     };
 
     // TODO: score each capsule and persist results
-    let _picture = football::get_playoff_picture(season).await;
+    let picture = football::get_playoff_picture(season).await;
+    let results = football::calc_playoff_picture(&picture, &capsules).await;
+    println!("{:?}", results);
 
     let content = format!("Correction des capsules pour la saison {} ({} poolers trouvés).", season, capsules.len());
 
