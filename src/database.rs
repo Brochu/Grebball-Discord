@@ -38,16 +38,10 @@ pub enum CapsuleStatus {
 pub struct CapsulePicks {
     pub season: i64,
     pub poolerid: i64,
-    pub winafcn: Option<String>,
-    pub winafcs: Option<String>,
-    pub winafce: Option<String>,
-    pub winafcw: Option<String>,
-    pub winnfcn: Option<String>,
-    pub winnfcs: Option<String>,
-    pub winnfce: Option<String>,
-    pub winnfcw: Option<String>,
-    pub afcwildcards: Option<String>,
-    pub nfcwildcards: Option<String>,
+    pub afc_winners: Option<String>,
+    pub nfc_winners: Option<String>,
+    pub afc_wildcards: Option<String>,
+    pub nfc_wildcards: Option<String>,
     pub scorecache: Option<u32>,
 }
 
@@ -460,9 +454,7 @@ impl DB {
             .get("id");
 
         match sqlx::query("
-                SELECT season, poolerid, winafcn, winafcs, winafce, winafcw,
-                       winnfcn, winnfcs, winnfce, winnfcw,
-                       afcwildcards, nfcwildcards, scorecache
+                SELECT season, poolerid, afc_winners, nfc_winners, afc_wildcards, nfc_wildcards, scorecache
                 FROM capsules
                 WHERE poolerid = ? AND season = ?
                 ")
@@ -474,25 +466,16 @@ impl DB {
                     let capsule = CapsulePicks {
                         season: row.get("season"),
                         poolerid: row.get("poolerid"),
-                        winafcn: row.get("winafcn"),
-                        winafcs: row.get("winafcs"),
-                        winafce: row.get("winafce"),
-                        winafcw: row.get("winafcw"),
-                        winnfcn: row.get("winnfcn"),
-                        winnfcs: row.get("winnfcs"),
-                        winnfce: row.get("winnfce"),
-                        winnfcw: row.get("winnfcw"),
-                        afcwildcards: row.get("afcwildcards"),
-                        nfcwildcards: row.get("nfcwildcards"),
+                        afc_winners: row.get("afc_winners"),
+                        nfc_winners: row.get("nfc_winners"),
+                        afc_wildcards: row.get("afc_wildcards"),
+                        nfc_wildcards: row.get("nfc_wildcards"),
                         scorecache: row.get("scorecache"),
                     };
 
                     // Check if any picks have been made
-                    if capsule.winafcn.is_some() || capsule.winafcs.is_some() ||
-                       capsule.winafce.is_some() || capsule.winafcw.is_some() ||
-                       capsule.winnfcn.is_some() || capsule.winnfcs.is_some() ||
-                       capsule.winnfce.is_some() || capsule.winnfcw.is_some() ||
-                       capsule.afcwildcards.is_some() || capsule.nfcwildcards.is_some() {
+                    if capsule.afc_winners.is_some() || capsule.nfc_winners.is_some() ||
+                       capsule.afc_wildcards.is_some() || capsule.nfc_wildcards.is_some() {
                         Ok(CapsuleStatus::Filled(capsule))
                     } else {
                         Ok(CapsuleStatus::Primed)
@@ -517,33 +500,22 @@ impl DB {
 
     pub async fn fetch_capsule(&self, season: &u16, poolid: &i64) -> Result<Vec<CapsulePicks>> {
         let results: Vec<CapsulePicks> = sqlx::query("
-                SELECT season, poolerid, poolid, winafcn, winafcs, winafce, winafcw, winnfcn, winnfcs, winnfce, winnfcw, afcwildcards, nfcwildcards, scorecache FROM capsules
+                SELECT season, poolerid, afc_winners, nfc_winners, afc_wildcards, nfc_wildcards, scorecache
+                FROM capsules
                 WHERE season = ? AND poolid = ?
                 ")
             .bind(season)
             .bind(poolid)
             .fetch_all(&self.pool).await?
             .iter().map(|row| {
-                let season: i64 = row.get("season");
-                let poolerid: i64 = row.get("poolerid");
-                let winafcn: Option<String> = row.get("winafcn");
-                let winafcs: Option<String> = row.get("winafcs");
-                let winafce: Option<String> = row.get("winafce");
-                let winafcw: Option<String> = row.get("winafcw");
-                let winnfcn: Option<String> = row.get("winnfcn");
-                let winnfcs: Option<String> = row.get("winnfcs");
-                let winnfce: Option<String> = row.get("winnfce");
-                let winnfcw: Option<String> = row.get("winnfcw");
-                let afcwildcards: Option<String> = row.get("afcwildcards");
-                let nfcwildcards: Option<String> = row.get("nfcwildcards");
-                let scorecache: Option<u32> = row.get("scorecache");
-
                 CapsulePicks {
-                    season, poolerid,
-                    winafcn, winafcs, winafce, winafcw,
-                    winnfcn, winnfcs, winnfce, winnfcw,
-                    afcwildcards, nfcwildcards,
-                    scorecache,
+                    season: row.get("season"),
+                    poolerid: row.get("poolerid"),
+                    afc_winners: row.get("afc_winners"),
+                    nfc_winners: row.get("nfc_winners"),
+                    afc_wildcards: row.get("afc_wildcards"),
+                    nfc_wildcards: row.get("nfc_wildcards"),
+                    scorecache: row.get("scorecache"),
                 }
             })
             .collect();

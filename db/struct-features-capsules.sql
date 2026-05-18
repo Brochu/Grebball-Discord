@@ -1,18 +1,15 @@
 BEGIN TRANSACTION;
+
 CREATE TABLE IF NOT EXISTS "capsules" (
 	"season"	INTEGER NOT NULL DEFAULT 2000,
 	"poolerid"	INTEGER,
 	"poolid"	INTEGER,
-	"winafcn"	TEXT,
-	"winafcs"	TEXT,
-	"winafce"	TEXT,
-	"winafcw"	TEXT,
-	"winnfcn"	TEXT,
-	"winnfcs"	TEXT,
-	"winnfce"	TEXT,
-	"winnfcw"	TEXT,
-	"afcwildcards"	TEXT,
-	"nfcwildcards"	TEXT,
+
+    -- index 0 = North, 1 = South, 2 = East, 3 = West (e.g. "BUF,HOU,BAL,KC").
+	"afc_winners"	TEXT,
+	"nfc_winners"	TEXT,
+	"afc_wildcards"	TEXT,
+	"nfc_wildcards"	TEXT,
 	"scorecache"	INTEGER,
 	CONSTRAINT "SeasonPoolerId_PK" PRIMARY KEY("season","poolerid"),
 	CONSTRAINT "PoolerId_FK" FOREIGN KEY("poolerid") REFERENCES "poolers"("id"),
@@ -63,4 +60,5 @@ CREATE TABLE IF NOT EXISTS "users" (
 	"avatar"	TEXT,
 	PRIMARY KEY("id" AUTOINCREMENT)
 );
+
 COMMIT;

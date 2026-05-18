@@ -160,8 +160,8 @@ app.get('/capsule/:discordid/:season', (req, res) => {
 
     LoadDB((db) => {
         const sql = `
-            SELECT c.poolerid, c.season, c.winafcn, c.winafcs, c.winafce, c.winafcw,
-                   c.winnfcn, c.winnfcs, c.winnfce, c.winnfcw, c.afcwildcards, c.nfcwildcards
+            SELECT c.poolerid, c.season, c.afc_winners, c.nfc_winners,
+                   c.afc_wildcards, c.nfc_wildcards
             FROM capsules AS c
                 JOIN poolers AS p ON p.id = c.poolerid
                 JOIN users AS u ON u.id = p.userid
@@ -174,11 +174,9 @@ app.get('/capsule/:discordid/:season', (req, res) => {
                 return;
             }
 
-            // Check if picks have already been submitted (any division winner is not null)
-            if (row['winafcn'] != null || row['winafcs'] != null ||
-                row['winafce'] != null || row['winafcw'] != null ||
-                row['winnfcn'] != null || row['winnfcs'] != null ||
-                row['winnfce'] != null || row['winnfcw'] != null) {
+            // Check if picks have already been submitted (any pick column is not null)
+            if (row['afc_winners'] != null || row['nfc_winners'] != null ||
+                row['afc_wildcards'] != null || row['nfc_wildcards'] != null) {
                 res.render('error.html');
                 return;
             }
@@ -202,27 +200,23 @@ app.post('/capsule-submit', (req, res) => {
     const afcWildcardsArr = JSON.parse(afcWildcards);
     const nfcWildcardsArr = JSON.parse(nfcWildcards);
 
-    // Convert full team names to short names
+    // Convert full team names to short names.
+    // Winner columns use the fixed slot order [North, South, East, West].
+    const DIV_ORDER = ['North', 'South', 'East', 'West'];
+    const afcWinnersShort = DIV_ORDER.map(d => GetTeamShortName(afcWinnersObj[d])).join(',');
+    const nfcWinnersShort = DIV_ORDER.map(d => GetTeamShortName(nfcWinnersObj[d])).join(',');
     const afcWildcardsShort = afcWildcardsArr.map(GetTeamShortName).join(',');
     const nfcWildcardsShort = nfcWildcardsArr.map(GetTeamShortName).join(',');
 
     LoadDB((db) => {
         const sql = `
             UPDATE capsules
-            SET winafcn = ?, winafcs = ?, winafce = ?, winafcw = ?,
-                winnfcn = ?, winnfcs = ?, winnfce = ?, winnfcw = ?,
-                afcwildcards = ?, nfcwildcards = ?
+            SET afc_winners = ?, nfc_winners = ?,
+                afc_wildcards = ?, nfc_wildcards = ?
             WHERE poolerid = ? AND season = ?
         `;
         db.run(sql,
-            GetTeamShortName(afcWinnersObj['North']),
-            GetTeamShortName(afcWinnersObj['South']),
-            GetTeamShortName(afcWinnersObj['East']),
-            GetTeamShortName(afcWinnersObj['West']),
-            GetTeamShortName(nfcWinnersObj['North']),
-            GetTeamShortName(nfcWinnersObj['South']),
-            GetTeamShortName(nfcWinnersObj['East']),
-            GetTeamShortName(nfcWinnersObj['West']),
+            afcWinnersShort, nfcWinnersShort,
             afcWildcardsShort, nfcWildcardsShort,
             poolerid, season,
             (err) => {

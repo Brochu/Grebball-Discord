@@ -88,12 +88,11 @@ pub fn get_team_emoji(team: &str) -> EmojiId {
     });
 }
 
-//TODO: This might be better as a match on enum FeatPick::Over vs. FeatPick::Under
-pub fn get_overpick_emoji() -> EmojiId {
-    EmojiId(1415070599415468096)
+pub fn get_afc_emoji() -> EmojiId {
+    EmojiId(1505942320200159364)
 }
-pub fn get_underpick_emoji() -> EmojiId {
-    EmojiId(1415070657682870312)
+pub fn get_nfc_emoji() -> EmojiId {
+    EmojiId(1505942365276471317)
 }
 
 pub fn get_team_id(team: &str) -> i64 {
@@ -521,16 +520,30 @@ struct ESPNStat {
     displayValue: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Division {
+    North = 0,
+    South = 1,
+    East  = 2,
+    West  = 3,
+}
+
+impl Division {
+    pub fn from_espn(abbr: &str) -> Option<Division> {
+        match abbr {
+            "NORTH" => Some(Division::North),
+            "SOUTH" => Some(Division::South),
+            "EAST"  => Some(Division::East),
+            "WEST"  => Some(Division::West),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct PlayoffPicture {
-    pub afc_n_win: String,
-    pub afc_s_win: String,
-    pub afc_e_win: String,
-    pub afc_w_win: String,
-    pub nfc_n_win: String,
-    pub nfc_s_win: String,
-    pub nfc_e_win: String,
-    pub nfc_w_win: String,
+    pub afc_winners: [String; 4],
+    pub nfc_winners: [String; 4],
     pub afc_wildcards: Vec<String>,
     pub nfc_wildcards: Vec<String>,
 }
@@ -570,16 +583,12 @@ pub async fn get_playoff_picture(season: u16) -> PlayoffPicture {
                     let team = entry.team.abbreviation.clone();
 
                     if (1..=4).contains(&seed) {
-                        match (conf, div_abbr) {
-                            ("AFC", "NORTH") => picture.afc_n_win = team,
-                            ("AFC", "SOUTH") => picture.afc_s_win = team,
-                            ("AFC", "EAST")  => picture.afc_e_win = team,
-                            ("AFC", "WEST")  => picture.afc_w_win = team,
-                            ("NFC", "NORTH") => picture.nfc_n_win = team,
-                            ("NFC", "SOUTH") => picture.nfc_s_win = team,
-                            ("NFC", "EAST")  => picture.nfc_e_win = team,
-                            ("NFC", "WEST")  => picture.nfc_w_win = team,
-                            _ => {}
+                        if let Some(div) = Division::from_espn(div_abbr) {
+                            match conf {
+                                "AFC" => picture.afc_winners[div as usize] = team,
+                                "NFC" => picture.nfc_winners[div as usize] = team,
+                                _ => {}
+                            }
                         }
                     } else if (5..=7).contains(&seed) {
                         wildcards.push((seed, team));
@@ -616,58 +625,63 @@ enum CapsuleState {
     Wildcard,
 }
 
-pub async fn calc_playoff_picture(picture: &PlayoffPicture, picks: &[CapsulePicks]) -> Vec<CapsuleResults> {
-    // (accessor for a pooler's pick in this division, actual division winner).
-    // Non-capturing closures coerce to fn pointers so they can share one array type.
-    type DivField = fn(&CapsulePicks) -> Option<&String>;
-    let divisions: [(DivField, &str); 8] = [
-        (|c| c.winafcn.as_ref(), picture.afc_n_win.as_str()),
-        (|c| c.winafcs.as_ref(), picture.afc_s_win.as_str()),
-        (|c| c.winafce.as_ref(), picture.afc_e_win.as_str()),
-        (|c| c.winafcw.as_ref(), picture.afc_w_win.as_str()),
-        (|c| c.winnfcn.as_ref(), picture.nfc_n_win.as_str()),
-        (|c| c.winnfcs.as_ref(), picture.nfc_s_win.as_str()),
-        (|c| c.winnfce.as_ref(), picture.nfc_e_win.as_str()),
-        (|c| c.winnfcw.as_ref(), picture.nfc_w_win.as_str()),
-    ];
+fn split_csv(csv: &Option<String>) -> Vec<&str> {
+    csv.as_deref().map(|s| s.split(',').collect()).unwrap_or_default()
+}
 
-    let mut results = Vec::<CapsuleResults>::new();
-    for pick in picks {
+fn get_capsule_score(state: CapsuleState, unique: bool) -> u32 {
+    match (state, unique) {
+        (CapsuleState::DivisionWinner, true)  => 4,
+        (CapsuleState::DivisionWinner, false) => 2,
+        (CapsuleState::Wildcard      , true)  => 2,
+        (CapsuleState::Wildcard      , false) => 1,
+    }
+}
+
+fn score_division_group(predicted: &[&str], actual: &[String; 4], all: &[Vec<&str>], self_idx: usize, score: &mut u32, icons: &mut String) {
+    for i in 0..4 {
+        let p = predicted.get(i).copied().unwrap_or_default();
+        if p.is_empty() { continue; }
+        icons.push_str(&format!("<:{}:{}>", p, get_team_emoji(p)));
+
+        // Skip undecided divisions; only score an exact, correct match.
+        if actual[i].is_empty() || p != actual[i] { continue; }
+
+        let unique = all.iter().enumerate()
+            .filter(|(j, _)| *j != self_idx)
+            .all(|(_, other)| other.get(i).copied().unwrap_or_default() != p);
+
+        *score += get_capsule_score(CapsuleState::DivisionWinner, unique);
+    }
+}
+
+fn score_wildcard_group(predicted: &Option<String>, actual: &[String], score: &mut u32, icons: &mut String) {
+    for team in split_csv(predicted) {
+        if team.is_empty() { continue; }
+
+        icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+        if actual.iter().any(|t| t == team) {
+            *score += get_capsule_score(CapsuleState::Wildcard, false);
+        }
+    }
+}
+
+pub async fn calc_playoff_picture(picture: &PlayoffPicture, picks: &[CapsulePicks]) -> Vec<CapsuleResults> {
+    // Pre-split every pooler's winners so uniqueness is a positional column scan.
+    let afc_all: Vec<Vec<&str>> = picks.iter().map(|p| split_csv(&p.afc_winners)).collect();
+    let nfc_all: Vec<Vec<&str>> = picks.iter().map(|p| split_csv(&p.nfc_winners)).collect();
+
+    let mut results = Vec::<CapsuleResults>::with_capacity(picks.len());
+    for (idx, pick) in picks.iter().enumerate() {
         let mut score = 0;
         let mut icons = String::new();
 
-        for (field, actual) in &divisions {
-            // Skip divisions with no determined winner yet (avoids "" == "" false positives).
-            if actual.is_empty() { continue; }
-
-            let predicted = field(pick).map(String::as_str).unwrap_or_default();
-            icons.push_str(format!("<:{}:{}>", predicted, get_team_emoji(predicted)).as_str());
-
-            if predicted != *actual { continue; }
-
-            // Unique = no other pooler picked the same team for this division.
-            // Mirrors the per-match uniqueness check in calc_results_internal.
-            let unique = picks.iter()
-                .filter(|p| p.poolerid != pick.poolerid)
-                .all(|p| field(p).map(String::as_str).unwrap_or_default() != predicted);
-
-            score += get_capsule_score(CapsuleState::DivisionWinner, unique);
-        }
-        icons.push_str("||");
-
-        if let Some(afc_wildcard) = &pick.afcwildcards {
-            for team in afc_wildcard.split(",") {
-                icons.push_str(format!("<:{}:{}>", team, get_team_emoji(team)).as_str());
-                if picture.afc_wildcards.iter().any(|t| t == team) { score += get_capsule_score(CapsuleState::Wildcard, false); }
-            }
-        }
-
-        if let Some(nfc_wildcard) = &pick.nfcwildcards {
-            for team in nfc_wildcard.split(",") {
-                icons.push_str(format!("<:{}:{}>", team, get_team_emoji(team)).as_str());
-                if picture.nfc_wildcards.iter().any(|t| t == team) { score += get_capsule_score(CapsuleState::Wildcard, false); }
-            }
-        }
+        // Order: AFC winners, AFC wildcards, then NFC winners, NFC wildcards.
+        score_division_group(&afc_all[idx], &picture.afc_winners, &afc_all, idx, &mut score, &mut icons);
+        score_wildcard_group(&pick.afc_wildcards, &picture.afc_wildcards, &mut score, &mut icons);
+        icons.push_str("||"); // visual separator between conferences
+        score_division_group(&nfc_all[idx], &picture.nfc_winners, &nfc_all, idx, &mut score, &mut icons);
+        score_wildcard_group(&pick.nfc_wildcards, &picture.nfc_wildcards, &mut score, &mut icons);
 
         results.push(CapsuleResults {
             poolerid: pick.poolerid,
@@ -679,13 +693,4 @@ pub async fn calc_playoff_picture(picture: &PlayoffPicture, picks: &[CapsulePick
     }
 
     return results;
-}
-
-fn get_capsule_score(state: CapsuleState, unique: bool) -> u32 {
-    match (state, unique) {
-        (CapsuleState::DivisionWinner, true)  => 4,
-        (CapsuleState::DivisionWinner, false) => 2,
-        (CapsuleState::Wildcard      , true)  => 2,
-        (CapsuleState::Wildcard      , false) => 1,
-    }
 }

@@ -7,7 +7,7 @@ use serenity::model::prelude::command::CommandType;
 use serenity::prelude::*;
 
 use library::database::{DB, CapsuleStatus};
-use library::football::get_team_emoji;
+use library::football::{get_team_emoji, get_afc_emoji, get_nfc_emoji};
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -48,58 +48,31 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 }
             },
             CapsuleStatus::Filled(capsule) => {
-                let mut content = format!("**Capsule {}**\n\n", season);
+                let mut content = String::new();
+                content.push_str(format!("**Capsule {}**\n\n", season).as_str());
 
-                // AFC Division Winners
-                content.push_str("**Gagnants de divisions - AFC:**\n");
-                if let Some(team) = &capsule.winafcn {
-                    content.push_str(&format!("  Nord: <:{}:{}>\n", team, get_team_emoji(team)));
-                }
-                if let Some(team) = &capsule.winafcs {
-                    content.push_str(&format!("  Sud: <:{}:{}>\n", team, get_team_emoji(team)));
-                }
-                if let Some(team) = &capsule.winafce {
-                    content.push_str(&format!("  Est: <:{}:{}>\n", team, get_team_emoji(team)));
-                }
-                if let Some(team) = &capsule.winafcw {
-                    content.push_str(&format!("  Ouest: <:{}:{}>\n", team, get_team_emoji(team)));
+                content.push_str(format!("**Gagnants -** <:{}:{}> : ", "AFC", get_afc_emoji()).as_str());
+                let afc_wins = &capsule.afc_winners.unwrap_or("".to_owned());
+                for winner in afc_wins.split(",") {
+                    content.push_str(&format!("  <:{}:{}>", winner, get_team_emoji(winner)));
                 }
 
-                // NFC Division Winners
-                content.push_str("\n**Gagnants de divisions - NFC:**\n");
-                if let Some(team) = &capsule.winnfcn {
-                    content.push_str(&format!("  Nord: <:{}:{}>\n", team, get_team_emoji(team)));
-                }
-                if let Some(team) = &capsule.winnfcs {
-                    content.push_str(&format!("  Sud: <:{}:{}>\n", team, get_team_emoji(team)));
-                }
-                if let Some(team) = &capsule.winnfce {
-                    content.push_str(&format!("  Est: <:{}:{}>\n", team, get_team_emoji(team)));
-                }
-                if let Some(team) = &capsule.winnfcw {
-                    content.push_str(&format!("  Ouest: <:{}:{}>\n", team, get_team_emoji(team)));
+                content.push_str(format!(" / **Wildcards -** <:{}:{}> : ", "AFC", get_afc_emoji()).as_str());
+                let afc_wild = &capsule.afc_wildcards.unwrap_or("".to_owned());
+                for wild in afc_wild.split(",") {
+                    content.push_str(&format!("  <:{}:{}>", wild, get_team_emoji(wild)));
                 }
 
-                // Wildcards
-                if let Some(wildcards) = &capsule.afcwildcards {
-                    let (first, rest) = wildcards.split_once(",").unwrap();
-                    let (second, third) = rest.split_once(",").unwrap();
-
-                    content.push_str(&format!("\n**Wildcards - AFC:** <:{}:{}> <:{}:{}> <:{}:{}>\n",
-                        first, get_team_emoji(first),
-                        second, get_team_emoji(second),
-                        third, get_team_emoji(third),
-                    ));
+                content.push_str(format!("\n**Gagnants -** <:{}:{}> : ", "NFC", get_nfc_emoji()).as_str());
+                let nfc_wins = &capsule.nfc_winners.unwrap_or("".to_owned());
+                for winner in nfc_wins.split(",") {
+                    content.push_str(&format!("  <:{}:{}>", winner, get_team_emoji(winner)));
                 }
-                if let Some(wildcards) = &capsule.nfcwildcards {
-                    let (first, rest) = wildcards.split_once(",").unwrap();
-                    let (second, third) = rest.split_once(",").unwrap();
 
-                    content.push_str(&format!("\n**Wildcards - NFC:** <:{}:{}> <:{}:{}> <:{}:{}>\n",
-                        first, get_team_emoji(first),
-                        second, get_team_emoji(second),
-                        third, get_team_emoji(third),
-                    ));
+                content.push_str(format!("  /  **Wildcards -** <:{}:{}> : ", "NFC", get_nfc_emoji()).as_str());
+                let nfc_wild = &capsule.nfc_wildcards.unwrap_or("".to_owned());
+                for wild in nfc_wild.split(",") {
+                    content.push_str(&format!("  <:{}:{}>", wild, get_team_emoji(wild)));
                 }
 
                 if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
