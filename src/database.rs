@@ -38,6 +38,7 @@ pub enum CapsuleStatus {
 pub struct CapsulePicks {
     pub season: i64,
     pub poolerid: i64,
+    pub name: String,
     pub afc_winners: Option<String>,
     pub nfc_winners: Option<String>,
     pub afc_wildcards: Option<String>,
@@ -466,6 +467,7 @@ impl DB {
                     let capsule = CapsulePicks {
                         season: row.get("season"),
                         poolerid: row.get("poolerid"),
+                        name: String::new(),
                         afc_winners: row.get("afc_winners"),
                         nfc_winners: row.get("nfc_winners"),
                         afc_wildcards: row.get("afc_wildcards"),
@@ -500,9 +502,11 @@ impl DB {
 
     pub async fn fetch_capsule(&self, season: &u16, poolid: &i64) -> Result<Vec<CapsulePicks>> {
         let results: Vec<CapsulePicks> = sqlx::query("
-                SELECT season, poolerid, afc_winners, nfc_winners, afc_wildcards, nfc_wildcards, scorecache
-                FROM capsules
-                WHERE season = ? AND poolid = ?
+                SELECT c.season, c.poolerid, p.name, c.afc_winners, c.nfc_winners,
+                       c.afc_wildcards, c.nfc_wildcards, c.scorecache
+                FROM capsules AS c
+                JOIN poolers AS p ON p.id = c.poolerid
+                WHERE c.season = ? AND c.poolid = ?
                 ")
             .bind(season)
             .bind(poolid)
@@ -511,6 +515,7 @@ impl DB {
                 CapsulePicks {
                     season: row.get("season"),
                     poolerid: row.get("poolerid"),
+                    name: row.get("name"),
                     afc_winners: row.get("afc_winners"),
                     nfc_winners: row.get("nfc_winners"),
                     afc_wildcards: row.get("afc_wildcards"),
