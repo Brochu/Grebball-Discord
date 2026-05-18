@@ -677,13 +677,13 @@ pub async fn calc_playoff_picture(picture: &PlayoffPicture, picks: &[CapsulePick
         let mut icons = String::new();
 
         // Order: AFC winners, AFC wildcards, then NFC winners, NFC wildcards.
-        icons.push_str(format!("  <:{}:{}>", "AFC", get_afc_emoji()).as_str());
+        icons.push_str(format!("  <:{}:{}>`:`", "AFC", get_afc_emoji()).as_str());
         score_division_group(&afc_all[idx], &picture.afc_winners, &afc_all, idx, &mut score, &mut icons);
-        icons.push_str("`  /  `");
+        icons.push_str("`|`");
         score_wildcard_group(&pick.afc_wildcards, &picture.afc_wildcards, &mut score, &mut icons);
-        icons.push_str(format!("  <:{}:{}>", "NFC", get_nfc_emoji()).as_str());
+        icons.push_str(format!("`  `<:{}:{}>`:`", "NFC", get_nfc_emoji()).as_str());
         score_division_group(&nfc_all[idx], &picture.nfc_winners, &nfc_all, idx, &mut score, &mut icons);
-        icons.push_str("`  /  `");
+        icons.push_str("`|`");
         score_wildcard_group(&pick.nfc_wildcards, &picture.nfc_wildcards, &mut score, &mut icons);
 
         results.push(CapsuleResults {
