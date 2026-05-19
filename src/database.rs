@@ -528,7 +528,25 @@ impl DB {
         Ok(results)
     }
 
-    pub async fn cache_capsule(&self, _season: u16, _poolerid: i64, _capsule_score: u32) -> Result<bool> {
-        Ok(true)
+    pub async fn cache_capsule(&self, season: u16, poolerid: i64, capsule_score: u32) -> Result<bool> {
+        match sqlx::query("
+                UPDATE capsules
+                SET scorecache = ?
+                WHERE season = ? AND poolerid = ?
+                ")
+            .bind(capsule_score)
+            .bind(season)
+            .bind(poolerid)
+            .execute(&self.pool)
+            .await {
+                Ok(r) => {
+                    println!("[DB] Successful capsule score cache updated: rows affected {}", r.rows_affected());
+                    Ok(true)
+                },
+                Err(e) => {
+                    println!("[DB] Could not update capsule score cache: {}", e);
+                    Ok(false)
+                }
+        }
     }
 }

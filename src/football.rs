@@ -546,6 +546,7 @@ pub struct PlayoffPicture {
     pub nfc_winners: [String; 4],
     pub afc_wildcards: Vec<String>,
     pub nfc_wildcards: Vec<String>,
+    pub reg_season_over: bool,
 }
 
 pub async fn get_playoff_picture(season: u16) -> PlayoffPicture {
@@ -562,6 +563,18 @@ pub async fn get_playoff_picture(season: u16) -> PlayoffPicture {
 
     let mut picture = PlayoffPicture::default();
 
+    // Regular season is over once every team has played its 17 games,
+    // at which point seeding (and thus the picture) is final.
+    let games_played = |entry: &ESPNStandingsEntry| -> u32 {
+        let stat = |name: &str| entry.stats.iter()
+            .find(|s| s.name == name)
+            .and_then(|s| s.displayValue.parse::<u32>().ok())
+            .unwrap_or(0);
+        stat("wins") + stat("losses") + stat("ties")
+    };
+
+    let mut reg_over = true;
+
     for conference in &standings.children {
         let conf = conference.abbreviation.as_str();
         let mut wildcards: Vec<(u32, String)> = Vec::new();
@@ -575,6 +588,8 @@ pub async fn get_playoff_picture(season: u16) -> PlayoffPicture {
             };
 
             for entry in entries {
+                if games_played(entry) < 17 { reg_over = false; }
+
                 let seed = entry.stats.iter()
                     .find(|s| s.name == "playoffSeed")
                     .and_then(|s| s.displayValue.parse::<u32>().ok());
@@ -607,6 +622,12 @@ pub async fn get_playoff_picture(season: u16) -> PlayoffPicture {
         }
     }
 
+    let complete = picture.afc_winners.iter().all(|t| !t.is_empty())
+        && picture.nfc_winners.iter().all(|t| !t.is_empty())
+        && picture.afc_wildcards.len() == 3
+        && picture.nfc_wildcards.len() == 3;
+
+    picture.reg_season_over = reg_over && complete;
     return picture;
 }
 
