@@ -7,7 +7,7 @@ use serenity::model::prelude::command::CommandType;
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::{Match, get_week, calc_results};
+use library::football::{Match, calc_playoff_picture, calc_results, get_playoff_picture, get_week};
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -20,6 +20,7 @@ struct SeasonResult {
     //poolerid: i64,
     name: String,
     scores: Vec<u32>,
+    cap_score: u32,
     total: u32,
 }
 
@@ -43,6 +44,12 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     }
 
     let (weeks, _week_count) = db.fetch_season(&poolid, &season).await.unwrap();
+    let capsule = match db.fetch_capsule(&season, &poolid).await {
+        Ok(cap) => cap,
+        Err(_) => vec![],
+    };
+    let picture = get_playoff_picture(season).await;
+    let cap_results = calc_playoff_picture(&picture, &capsule).await;
     let mut season_data = Vec::<SeasonResult>::new();
 
     for (_, feat, picks) in weeks.iter() {
@@ -67,12 +74,20 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 data.total += score;
             }
             else {
-                season_data.push(SeasonResult{ name: pick.name.clone(), scores: vec![score], total: score });
+                let pooler_cap_score = match cap_results.iter().find(|cr| cr.poolerid == pick.poolerid) {
+                    Some(res) => res.score,
+                    None => 0,
+                };
+                season_data.push(SeasonResult{ name: pick.name.clone(), scores: vec![score], cap_score: pooler_cap_score, total: score });
             }
         }
     }
 
-    season_data.sort_unstable_by(|l, r| { r.total.cmp(&l.total) });
+    season_data.sort_unstable_by(|l, r| {
+        let r_full = r.total + r.cap_score;
+        let l_full = l.total + l.cap_score;
+        r_full.cmp(&l_full)
+    });
     let header = (1..=_week_count).fold(String::new(), |m, i| {
         if i <= 18 {
             format!("{}|{:02}", m, i)
@@ -87,13 +102,13 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             }
         }
     });
-    let header = format!("Semaines{} {}", " ".repeat(15-6), header);
+    let header = format!("Semaines{} {}|+C", " ".repeat(15-6), header);
     let message = season_data.iter()
         .fold(String::new(), |m, entry| {
             let width = 12 - entry.name.len();
             let grid = entry.scores.iter().fold(String::new(), |g, s| { format!("{}|{:02}", g, s) });
 
-            format!("{}\n`{}{}[{:03}] {}`", m, entry.name, " ".repeat(width), entry.total, grid)
+            format!("{}\n`{}{}[{:03}] {}|{:02}`", m, entry.name, " ".repeat(width), entry.total + entry.cap_score, grid, entry.cap_score)
         });
 
     if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
