@@ -61,56 +61,64 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .unwrap();
 
     if let Ok(status) = db.prime_picks(&discordid, &season, &week).await {
-        match status {
+        let message = match status {
             PicksStatus::Primed(row_id) => {
-                let picks_url = env::var("PICKS_URL")
-                    .expect("![Picks] Could not find 'PICKS_URL' env var");
+                let picks_url = env::var("PICKS_URL").expect("![Picks] Could not find 'PICKS_URL' env var");
                 let url = format!("{}/{}/{}", picks_url, discordid, row_id);
 
-                if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
-                    res
-                        .kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|m| m
-                            .ephemeral(true)
-                            .content(format!("Prêt pour les choix de la {} à faire ici: {}", week_name, url))
-                        )
-                })
-                .await {
-                    println!("![picks] Cannot respond to slash command : {:?}", reason);
-                }
+                format!("Prêt pour les choix de la {} à faire ici: {}", week_name, url)
             },
             PicksStatus::Filled(pickstring, featpick) => {
-                let picks: Map<String, Value> = serde_json::from_str(&pickstring)
-                    .expect("![picks] Could not parse picks properly");
+                let picks: Map<String, Value> = serde_json::from_str(&pickstring).expect("![picks] Could not parse picks properly");
+                let feature = db.fetch_feature(season, week).await.ok();
 
-                let mut icons = get_week(&season, &week).await
+                let (icons, feat_str) = get_week(&season, &week).await
                     .expect("![picks] Could not fetch week data")
-                    .fold(String::new(), |mut acc, m| {
+                    .fold((String::new(), String::new()), |(mut icons, mut feat_str), m| {
                         let team = picks.get(&m.id_event).unwrap()
                             .as_str().unwrap();
                         let emoji = get_team_emoji(team);
 
-                        acc.push_str(format!("<:{}:{}> ", team, emoji).as_str());
-                        acc
+                        icons.push_str(format!("<:{}:{}> ", team, emoji).as_str());
+
+                        if let Some(ref feat) = feature {
+                            if feat.matchid == m.id_event {
+                                let away_emoji = get_team_emoji(&m.away_team);
+                                let home_emoji = get_team_emoji(&m.home_team);
+                                let trend = match featpick {
+                                    Some(1) => ":chart_with_upwards_trend:",
+                                    _ => ":chart_with_downwards_trend:",
+                                };
+                                feat_str = format!(
+                                    "<:{}:{}> @ <:{}:{}> {}",
+                                    m.away_team, away_emoji, m.home_team, home_emoji, trend
+                                );
+                            }
+                        }
+
+                        (icons, feat_str)
                     });
 
-                if let Some(fp) = featpick {
-                    icons.push_str(format!(" (Feature: {})", fp).as_str());
-                }
-
-                if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
-                    res
-                        .kind(InteractionResponseType::ChannelMessageWithSource)
-                        .interaction_response_data(|m| m
-                            .ephemeral(true)
-                            .content(format!("Choix pour la semaine {}, {}\n{}", week, season, icons))
-                        )
-                })
-                .await {
-                    println!("![picks] Cannot respond to slash command : {:?}", reason);
+                if feat_str.is_empty() {
+                    format!("## Choix pour la semaine {}, {}\n{}", week, season, icons)
+                } else {
+                    format!("## Choix pour la semaine {}, {}\n{}\n**Feature:** {}", week, season, icons, feat_str)
                 }
             },
+        };
+
+        if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+            res
+                .kind(InteractionResponseType::ChannelMessageWithSource)
+                .interaction_response_data(|m| m
+                    .ephemeral(true)
+                    .content(message)
+                )
+        })
+        .await {
+            println!("![picks] Cannot respond to slash command : {:?}", reason);
         }
+
     } else {
         println!("[picks] Error while priming picks for week {}", week);
 
