@@ -49,7 +49,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     };
 
     let picture = football::get_playoff_picture(season).await;
-    let results = football::calc_playoff_picture(&picture, &capsules).await;
+    let results = football::calc_playoff_picture(&picture, &capsules);
 
     match env::var("RESULTS_WEBHOOK") {
         Ok(url) => {

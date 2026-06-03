@@ -160,23 +160,21 @@ app.get('/capsule/:discordid/:season', (req, res) => {
 
     LoadDB((db) => {
         const sql = `
-            SELECT c.poolerid, c.season, c.afc_winners, c.nfc_winners,
-                   c.afc_wildcards, c.nfc_wildcards
-            FROM capsules AS c
-                JOIN poolers AS p ON p.id = c.poolerid
-                JOIN users AS u ON u.id = p.userid
-            WHERE u.discordid = ? AND c.season = ?
+            SELECT p.id AS poolerid,
+                   (SELECT count(*) FROM capsules
+                    WHERE poolerid = p.id AND season = ?) AS count
+            FROM poolers AS p
+            JOIN users AS u ON u.id = p.userid
+            WHERE u.discordid = ?
         `;
-        db.get(sql, discordid, season, async (err, row) => {
+        db.get(sql, season, discordid, async (err, row) => {
             if (err || !row) {
                 console.log(err);
                 res.render('error.html');
                 return;
             }
 
-            // Check if picks have already been submitted (any pick column is not null)
-            if (row['afc_winners'] != null || row['nfc_winners'] != null ||
-                row['afc_wildcards'] != null || row['nfc_wildcards'] != null) {
+            if (row['count'] != 0) {
                 res.render('error.html');
                 return;
             }
@@ -185,11 +183,15 @@ app.get('/capsule/:discordid/:season', (req, res) => {
                 afcTeams,
                 nfcTeams,
                 poolerid: row['poolerid'],
-                season: row['season']
+                season: season
             });
         });
     });
 });
+
+const CAP_TYPE = { DIVISION_WIN: 0, WILDCARD: 1 };
+const CAP_CONF = { NFC: 0, AFC: 1 };
+const DIV_ORDER = ['North', 'South', 'East', 'West']; // index = division column value
 
 app.post('/capsule-submit', (req, res) => {
     const { poolerid, season, afcWinners, nfcWinners, afcWildcards, nfcWildcards } = req.body;
@@ -200,34 +202,38 @@ app.post('/capsule-submit', (req, res) => {
     const afcWildcardsArr = JSON.parse(afcWildcards);
     const nfcWildcardsArr = JSON.parse(nfcWildcards);
 
-    // Convert full team names to short names.
-    // Winner columns use the fixed slot order [North, South, East, West].
-    const DIV_ORDER = ['North', 'South', 'East', 'West'];
-    const afcWinnersShort = DIV_ORDER.map(d => GetTeamShortName(afcWinnersObj[d])).join(',');
-    const nfcWinnersShort = DIV_ORDER.map(d => GetTeamShortName(nfcWinnersObj[d])).join(',');
-    const afcWildcardsShort = afcWildcardsArr.map(GetTeamShortName).join(',');
-    const nfcWildcardsShort = nfcWildcardsArr.map(GetTeamShortName).join(',');
+    const rows = [];
+    DIV_ORDER.forEach((div, divIdx) => {
+        rows.push([season, poolerid, CAP_TYPE.DIVISION_WIN, CAP_CONF.AFC, divIdx, 0, GetTeamShortName(afcWinnersObj[div])]);
+        rows.push([season, poolerid, CAP_TYPE.DIVISION_WIN, CAP_CONF.NFC, divIdx, 0, GetTeamShortName(nfcWinnersObj[div])]);
+    });
+    afcWildcardsArr.forEach((name, slot) => {
+        rows.push([season, poolerid, CAP_TYPE.WILDCARD, CAP_CONF.AFC, 0, slot, GetTeamShortName(name)]);
+    });
+    nfcWildcardsArr.forEach((name, slot) => {
+        rows.push([season, poolerid, CAP_TYPE.WILDCARD, CAP_CONF.NFC, 0, slot, GetTeamShortName(name)]);
+    });
+
+    if (rows.length !== 14 || rows.some(r => !r[6])) {
+        console.log('Incomplete capsule submission, refusing to insert');
+        res.render('error.html');
+        return;
+    }
 
     LoadDB((db) => {
+        const placeholders = rows.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
         const sql = `
-            UPDATE capsules
-            SET afc_winners = ?, nfc_winners = ?,
-                afc_wildcards = ?, nfc_wildcards = ?
-            WHERE poolerid = ? AND season = ?
+            INSERT INTO capsules (season, poolerid, type, conference, division, slot, team)
+            VALUES ${placeholders}
         `;
-        db.run(sql,
-            afcWinnersShort, nfcWinnersShort,
-            afcWildcardsShort, nfcWildcardsShort,
-            poolerid, season,
-            (err) => {
-                if (err) {
-                    console.log(err);
-                    res.render('error.html');
-                } else {
-                    res.render('success.html');
-                }
+        db.run(sql, rows.flat(), (err) => {
+            if (err) {
+                console.log(err);
+                res.render('error.html');
+            } else {
+                res.render('success.html');
             }
-        );
+        });
     });
 });
 

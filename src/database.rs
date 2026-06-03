@@ -4,8 +4,8 @@ use std::fmt::{ Display, Debug };
 
 use anyhow::{anyhow, Result};
 use serde_json::{Value, Map};
-use sqlx::{ Pool, Sqlite, Row };
-use sqlx::sqlite::SqlitePool;
+use sqlx::{ Pool, QueryBuilder, Row, Sqlite };
+use sqlx::sqlite::{ SqlitePool, SqliteRow };
 
 pub struct DB {
     pool: Pool<Sqlite>,
@@ -29,21 +29,15 @@ pub enum PicksStatus {
     Filled(String, Option<u32>),
 }
 
-pub enum CapsuleStatus {
-    Primed,
-    Filled(CapsulePicks),
-}
-
 #[derive(Debug, Default)]
 pub struct CapsulePicks {
-    pub season: i64,
+    pub season: u16,
     pub poolerid: i64,
     pub name: String,
-    pub afc_winners: Option<String>,
-    pub nfc_winners: Option<String>,
-    pub afc_wildcards: Option<String>,
-    pub nfc_wildcards: Option<String>,
-    pub scorecache: Option<u32>,
+    pub nfc_wins: [String; 4],
+    pub nfc_wildcards: [String; 3],
+    pub afc_wins: [String; 4],
+    pub afc_wildcards: [String; 3],
 }
 
 impl Display for WeekPicks {
@@ -442,111 +436,92 @@ impl DB {
         }
     }
 
-    pub async fn prime_capsule(&self, discordid: &i64, season: &u16, poolid: &i64) -> Result<CapsuleStatus> {
-        let poolerid: i64 = sqlx::query("
-                SELECT p.id FROM users AS u
+    pub async fn fetch_pooler_capsule(&self, discordid: &i64, season: u16) -> Result<Option<CapsulePicks>> {
+        let prow = sqlx::query("
+                SELECT p.id, p.name FROM users AS u
                 JOIN poolers AS p
                 ON u.id = p.userid
                 WHERE u.discordid = ?
                 ")
             .bind(discordid)
             .fetch_one(&self.pool)
-            .await?
-            .get("id");
+            .await?;
+        let poolerid: i64 = prow.get("id");
+        let name: String = prow.get("name");
 
-        match sqlx::query("
-                SELECT season, poolerid, afc_winners, nfc_winners, afc_wildcards, nfc_wildcards, scorecache
+        let rows: Vec<SqliteRow> = sqlx::query("
+                SELECT type, conference, division, slot, team
                 FROM capsules
                 WHERE poolerid = ? AND season = ?
                 ")
             .bind(poolerid)
             .bind(season)
-            .fetch_one(&self.pool)
-            .await {
-                Ok(row) => {
-                    let capsule = CapsulePicks {
-                        season: row.get("season"),
-                        poolerid: row.get("poolerid"),
-                        name: String::new(),
-                        afc_winners: row.get("afc_winners"),
-                        nfc_winners: row.get("nfc_winners"),
-                        afc_wildcards: row.get("afc_wildcards"),
-                        nfc_wildcards: row.get("nfc_wildcards"),
-                        scorecache: row.get("scorecache"),
-                    };
+            .fetch_all(&self.pool)
+            .await?;
 
-                    // Check if any picks have been made
-                    if capsule.afc_winners.is_some() || capsule.nfc_winners.is_some() ||
-                       capsule.afc_wildcards.is_some() || capsule.nfc_wildcards.is_some() {
-                        Ok(CapsuleStatus::Filled(capsule))
-                    } else {
-                        Ok(CapsuleStatus::Primed)
-                    }
-                },
-                Err(_) => {
-                    // No capsule exists, create one
-                    sqlx::query("
-                            INSERT INTO capsules (season, poolerid, poolid)
-                            VALUES (?, ?, ?);
-                            ")
-                        .bind(season)
-                        .bind(poolerid)
-                        .bind(poolid)
-                        .execute(&self.pool)
-                        .await?;
-
-                    Ok(CapsuleStatus::Primed)
-                }
+        // 0 = not submitted, 14 = complete. Anything else breaks the all-or-nothing
+        // invariant the web writer enforces, so surface it loudly.
+        match rows.len() {
+            0 => Ok(None),
+            14 => {
+                let mut capsule = CapsulePicks { season, poolerid, name, ..Default::default() };
+                for row in &rows { populate_capsule(&mut capsule, row); }
+                Ok(Some(capsule))
+            },
+            n => panic!("[DB] pooler {poolerid} has {n} capsule rows for season {season} (expected 0 or 14)"),
         }
     }
 
-    pub async fn fetch_capsule(&self, season: &u16, poolid: &i64) -> Result<Vec<CapsulePicks>> {
-        let results: Vec<CapsulePicks> = sqlx::query("
-                SELECT c.season, c.poolerid, p.name, c.afc_winners, c.nfc_winners,
-                       c.afc_wildcards, c.nfc_wildcards, c.scorecache
-                FROM capsules AS c
-                JOIN poolers AS p ON p.id = c.poolerid
-                WHERE c.season = ? AND c.poolid = ?
+    pub async fn fetch_capsule(&self, season: &u16, poolid: &i64) -> Result<HashMap<i64, CapsulePicks>> {
+        let poolerids: Vec<i64>= sqlx::query("
+                SELECT id FROM poolers
+                WHERE poolid = ?
                 ")
-            .bind(season)
             .bind(poolid)
-            .fetch_all(&self.pool).await?
-            .iter().map(|row| {
-                CapsulePicks {
-                    season: row.get("season"),
-                    poolerid: row.get("poolerid"),
-                    name: row.get("name"),
-                    afc_winners: row.get("afc_winners"),
-                    nfc_winners: row.get("nfc_winners"),
-                    afc_wildcards: row.get("afc_wildcards"),
-                    nfc_wildcards: row.get("nfc_wildcards"),
-                    scorecache: row.get("scorecache"),
-                }
-            })
+            .fetch_all(&self.pool)
+            .await?
+            .iter().map(|row| row.get("id"))
             .collect();
 
-        Ok(results)
-    }
-
-    pub async fn cache_capsule(&self, season: u16, poolerid: i64, capsule_score: u32) -> Result<bool> {
-        match sqlx::query("
-                UPDATE capsules
-                SET scorecache = ?
-                WHERE season = ? AND poolerid = ?
-                ")
-            .bind(capsule_score)
-            .bind(season)
-            .bind(poolerid)
-            .execute(&self.pool)
-            .await {
-                Ok(r) => {
-                    println!("[DB] Successful capsule score cache updated: rows affected {}", r.rows_affected());
-                    Ok(true)
-                },
-                Err(e) => {
-                    println!("[DB] Could not update capsule score cache: {}", e);
-                    Ok(false)
-                }
+        let mut qb = QueryBuilder::new("
+                SELECT c.season, c.poolerid, p.name, c.type, c.conference,
+                       c.division, c.slot, c.team
+                FROM capsules AS c
+                JOIN poolers AS p ON p.id = c.poolerid
+                WHERE c.season = ");
+        qb.push_bind(*season);
+        qb.push(" AND c.poolerid IN (");
+        let mut list = qb.separated(",");
+        for pid in poolerids {
+            list.push_bind(pid);
         }
+        list.push_unseparated(") ORDER BY c.season, c.poolerid, c.conference, c.type, c.division, c.slot");
+
+        let rows: Vec<_> = qb.build().fetch_all(&self.pool).await?;
+        let mut capsules = HashMap::<i64, CapsulePicks>::new();
+
+        for row in &rows {
+            let poolerid: i64 = row.get("poolerid");
+            let name: String = row.get("name");
+
+            let capsule = capsules.entry(poolerid).or_insert_with(|| { CapsulePicks { season: *season, poolerid, name, ..Default::default() } });
+            populate_capsule(capsule, row);
+        }
+
+        Ok(capsules)
     }
+}
+
+fn populate_capsule(capsule: &mut CapsulePicks, row: &SqliteRow) {
+    let conf: i32 = row.get("conference");
+    let t: i32 = row.get("type");
+    let team: String = row.get("team");
+
+    match (conf, t) {
+        (0, 0) => capsule.nfc_wins[row.get::<i32, _>("division") as usize] = team,
+        (0, 1) => capsule.nfc_wildcards[row.get::<i32, _>("slot") as usize] = team,
+        (1, 0) => capsule.afc_wins[row.get::<i32, _>("division") as usize] = team,
+        (1, 1) => capsule.afc_wildcards[row.get::<i32, _>("slot") as usize] = team,
+        _ => unreachable!("[DB] Could not parse capsule row poolerid = {}; conference = {conf}; type = {t}", capsule.poolerid),
+    };
 }

@@ -1,19 +1,16 @@
 BEGIN TRANSACTION;
 
 CREATE TABLE IF NOT EXISTS "capsules" (
-	"season"	INTEGER NOT NULL DEFAULT 2000,
-	"poolerid"	INTEGER,
-	"poolid"	INTEGER,
+	"id"	     INTEGER PRIMARY KEY AUTOINCREMENT,
+	"season"	 INTEGER NOT NULL DEFAULT 2000,
+	"poolerid"	 INTEGER,
 
-    -- index 0 = North, 1 = South, 2 = East, 3 = West (e.g. "BUF,HOU,BAL,KC").
-	"afc_winners"	TEXT,
-	"nfc_winners"	TEXT,
-	"afc_wildcards"	TEXT,
-	"nfc_wildcards"	TEXT,
-	"scorecache"	INTEGER,
-	CONSTRAINT "SeasonPoolerId_PK" PRIMARY KEY("season","poolerid"),
-	CONSTRAINT "PoolerId_FK" FOREIGN KEY("poolerid") REFERENCES "poolers"("id"),
-	CONSTRAINT "PoolId_FK" FOREIGN KEY("poolid") REFERENCES "pools"("id")
+	"type"       INTEGER,
+	"conference" INTEGER,
+	"division"   INTEGER,
+	"slot"       INTEGER,
+	"team"       TEXT,
+	CONSTRAINT "PoolerId_FK" FOREIGN KEY("poolerid") REFERENCES "poolers"("id")
 );
 CREATE TABLE IF NOT EXISTS "features" (
 	"id"	INTEGER,

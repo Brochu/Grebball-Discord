@@ -1,4 +1,5 @@
 use std::env;
+use std::collections::HashMap;
 
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
@@ -46,10 +47,14 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     let (weeks, _week_count) = db.fetch_season(&poolid, &season).await.unwrap();
     let capsule = match db.fetch_capsule(&season, &poolid).await {
         Ok(cap) => cap,
-        Err(_) => vec![],
+        Err(_) => HashMap::<_, _>::new(),
     };
     let picture = get_playoff_picture(season).await;
-    let cap_results = calc_playoff_picture(&picture, &capsule).await;
+    let cap_results = if picture.reg_season_over {
+        calc_playoff_picture(&picture, &capsule)
+    } else {
+        Vec::new()
+    };
     let mut season_data = Vec::<SeasonResult>::new();
 
     for (_, feat, picks) in weeks.iter() {
@@ -102,13 +107,16 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             }
         }
     });
-    let header = format!("Semaines{} {}|+C", " ".repeat(15-6), header);
+    // Only surface the capsule column once it actually counts (season over).
+    let cap_header = if picture.reg_season_over { "|+C" } else { "" };
+    let header = format!("Semaines{} {}{}", " ".repeat(15-6), header, cap_header);
     let message = season_data.iter()
         .fold(String::new(), |m, entry| {
             let width = 12 - entry.name.len();
             let grid = entry.scores.iter().fold(String::new(), |g, s| { format!("{}|{:02}", g, s) });
+            let cap_col = if picture.reg_season_over { format!("|{:02}", entry.cap_score) } else { String::new() };
 
-            format!("{}\n`{}{}[{:03}] {}|{:02}`", m, entry.name, " ".repeat(width), entry.total + entry.cap_score, grid, entry.cap_score)
+            format!("{}\n`{}{}[{:03}] {}{}`", m, entry.name, " ".repeat(width), entry.total + entry.cap_score, grid, cap_col)
         });
 
     if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {

@@ -641,81 +641,88 @@ pub struct CapsuleResults {
 }
 
 #[derive(Debug)]
-enum CapsuleState {
+enum CapsuleType {
     DivisionWinner,
     Wildcard,
 }
 
-fn split_csv(csv: &Option<String>) -> Vec<&str> {
-    csv.as_deref().map(|s| s.split(',').collect()).unwrap_or_default()
-}
-
-fn get_capsule_score(state: CapsuleState, unique: bool) -> u32 {
+fn get_capsule_score(state: CapsuleType, unique: bool) -> u32 {
     match (state, unique) {
-        (CapsuleState::DivisionWinner, true)  => 4,
-        (CapsuleState::DivisionWinner, false) => 2,
-        (CapsuleState::Wildcard      , true)  => 2,
-        (CapsuleState::Wildcard      , false) => 1,
+        (CapsuleType::DivisionWinner, true)  => 4,
+        (CapsuleType::DivisionWinner, false) => 2,
+        (CapsuleType::Wildcard      , true)  => 2,
+        (CapsuleType::Wildcard      , false) => 1,
     }
 }
 
-fn score_division_group(predicted: &[&str], actual: &[String; 4], all: &[Vec<&str>], self_idx: usize, score: &mut u32, icons: &mut String) {
-    for i in 0..4 {
-        let p = predicted.get(i).copied().unwrap_or_default();
-        if p.is_empty() { continue; }
-        icons.push_str(&format!("<:{}:{}>", p, get_team_emoji(p)));
-
-        // Skip undecided divisions; only score an exact, correct match.
-        if actual[i].is_empty() || p != actual[i] { continue; }
-
-        let unique = all.iter().enumerate()
-            .filter(|(j, _)| *j != self_idx)
-            .all(|(_, other)| other.get(i).copied().unwrap_or_default() != p);
-
-        *score += get_capsule_score(CapsuleState::DivisionWinner, unique);
-    }
-}
-
-fn score_wildcard_group(predicted: &Option<String>, actual: &[String], score: &mut u32, icons: &mut String) {
-    for team in split_csv(predicted) {
-        if team.is_empty() { continue; }
-
-        icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
-        if actual.iter().any(|t| t == team) {
-            *score += get_capsule_score(CapsuleState::Wildcard, false);
-        }
-    }
-}
-
-pub async fn calc_playoff_picture(picture: &PlayoffPicture, picks: &[CapsulePicks]) -> Vec<CapsuleResults> {
-    // Pre-split every pooler's winners so uniqueness is a positional column scan.
-    let afc_all: Vec<Vec<&str>> = picks.iter().map(|p| split_csv(&p.afc_winners)).collect();
-    let nfc_all: Vec<Vec<&str>> = picks.iter().map(|p| split_csv(&p.nfc_winners)).collect();
-
+pub fn calc_playoff_picture(picture: &PlayoffPicture, picks: &HashMap<i64, CapsulePicks>) -> Vec<CapsuleResults> {
     let mut results = Vec::<CapsuleResults>::with_capacity(picks.len());
-    for (idx, pick) in picks.iter().enumerate() {
-        let mut score = 0;
-        let mut icons = String::new();
 
-        // Order: AFC winners, AFC wildcards, then NFC winners, NFC wildcards.
-        icons.push_str(format!("  <:{}:{}>`:`", "AFC", get_afc_emoji()).as_str());
-        score_division_group(&afc_all[idx], &picture.afc_winners, &afc_all, idx, &mut score, &mut icons);
-        icons.push_str("`|`");
-        score_wildcard_group(&pick.afc_wildcards, &picture.afc_wildcards, &mut score, &mut icons);
-        icons.push_str(format!("`  `<:{}:{}>`:`", "NFC", get_nfc_emoji()).as_str());
-        score_division_group(&nfc_all[idx], &picture.nfc_winners, &nfc_all, idx, &mut score, &mut icons);
-        icons.push_str("`|`");
-        score_wildcard_group(&pick.nfc_wildcards, &picture.nfc_wildcards, &mut score, &mut icons);
+    for capsule in picks.values() {
+        let mut score = 0;
+
+        let mut icons = String::new();
+        icons.push_str(&format!("<:AFC:{}>", get_afc_emoji()));
+        for team in &capsule.afc_wins {
+            icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+        }
+        icons.push('|');
+        for team in &capsule.afc_wildcards {
+            icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+        }
+        icons.push_str(&format!(" - <:NFC:{}>", get_nfc_emoji()));
+        for team in &capsule.nfc_wins {
+            icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+        }
+        icons.push('|');
+        for team in &capsule.nfc_wildcards {
+            icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+        }
+
+        for i in 0..4 {
+            let nfc = &capsule.nfc_wins[i];
+            assert!(!nfc.is_empty(), "empty NFC winner: poolerid={}, div={}", capsule.poolerid, i);
+            if *nfc == picture.nfc_winners[i] {
+                let unique = picks.values()
+                    .filter(|other| other.poolerid != capsule.poolerid)
+                    .all(|other| other.nfc_wins[i] != *nfc);
+
+                score += get_capsule_score(CapsuleType::DivisionWinner, unique);
+            }
+
+            let afc = &capsule.afc_wins[i];
+            assert!(!afc.is_empty(), "empty AFC winner: poolerid={}, div={}", capsule.poolerid, i);
+            if *afc == picture.afc_winners[i] {
+                let unique = picks.values()
+                    .filter(|other| other.poolerid != capsule.poolerid)
+                    .all(|other| other.afc_wins[i] != *afc);
+
+                score += get_capsule_score(CapsuleType::DivisionWinner, unique);
+            }
+        }
+
+        score += capsule.nfc_wildcards.iter().fold(0, |score, team| {
+            score + match picture.nfc_wildcards.contains(team) {
+                true => get_capsule_score(CapsuleType::Wildcard, false),
+                false => 0,
+            }
+        });
+        score += capsule.afc_wildcards.iter().fold(0, |score, team| {
+            score + match picture.afc_wildcards.contains(team) {
+                true => get_capsule_score(CapsuleType::Wildcard, false),
+                false => 0,
+            }
+        });
 
         results.push(CapsuleResults {
-            poolerid: pick.poolerid,
-            name: pick.name.clone(),
+            poolerid: capsule.poolerid,
+            name: capsule.name.clone(),
             score,
             icons,
             cache: false,
         });
     }
 
-    results.sort_unstable_by(|l, r| { r.score.cmp(&l.score) });
-    return results;
+    results.sort_unstable_by(|l, r| r.score.cmp(&l.score));
+    results
 }
