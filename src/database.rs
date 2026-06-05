@@ -34,10 +34,16 @@ pub struct CapsulePicks {
     pub season: u16,
     pub poolerid: i64,
     pub name: String,
+
     pub nfc_wins: [String; 4],
+    pub nfc_wins_counts: [i32; 4],
     pub nfc_wildcards: [String; 3],
+    pub nfc_wild_counts: [i32; 3],
+
     pub afc_wins: [String; 4],
+    pub afc_wins_counts: [i32; 4],
     pub afc_wildcards: [String; 3],
+    pub afc_wild_counts: [i32; 3],
 }
 
 impl Display for WeekPicks {
@@ -450,7 +456,8 @@ impl DB {
         let name: String = prow.get("name");
 
         let rows: Vec<SqliteRow> = sqlx::query("
-                SELECT type, conference, division, slot, team
+                SELECT type, conference, division, slot, team,
+                       COUNT(*) OVER (PARTITION BY season, type, conference, division, team) AS pick_count
                 FROM capsules
                 WHERE poolerid = ? AND season = ?
                 ")
@@ -459,8 +466,6 @@ impl DB {
             .fetch_all(&self.pool)
             .await?;
 
-        // 0 = not submitted, 14 = complete. Anything else breaks the all-or-nothing
-        // invariant the web writer enforces, so surface it loudly.
         match rows.len() {
             0 => Ok(None),
             14 => {
@@ -485,10 +490,12 @@ impl DB {
 
         let mut qb = QueryBuilder::new("
                 SELECT c.season, c.poolerid, p.name, c.type, c.conference,
-                       c.division, c.slot, c.team
+                       c.division, c.slot, c.team,
+                       COUNT(*) OVER (PARTITION BY c.season, c.type, c.conference, c.division, c.team) AS pick_count
                 FROM capsules AS c
                 JOIN poolers AS p ON p.id = c.poolerid
-                WHERE c.season = ");
+                WHERE c.season = 
+                ");
         qb.push_bind(*season);
         qb.push(" AND c.poolerid IN (");
         let mut list = qb.separated(",");
@@ -516,12 +523,29 @@ fn populate_capsule(capsule: &mut CapsulePicks, row: &SqliteRow) {
     let conf: i32 = row.get("conference");
     let t: i32 = row.get("type");
     let team: String = row.get("team");
+    let count: i32 = row.get("pick_count");
 
     match (conf, t) {
-        (0, 0) => capsule.nfc_wins[row.get::<i32, _>("division") as usize] = team,
-        (0, 1) => capsule.nfc_wildcards[row.get::<i32, _>("slot") as usize] = team,
-        (1, 0) => capsule.afc_wins[row.get::<i32, _>("division") as usize] = team,
-        (1, 1) => capsule.afc_wildcards[row.get::<i32, _>("slot") as usize] = team,
+        (0, 0) => {
+            let i = row.get::<i32, _>("division") as usize;
+            capsule.nfc_wins[i] = team;
+            capsule.nfc_wins_counts[i] = count;
+        },
+        (0, 1) => {
+            let i = row.get::<i32, _>("slot") as usize;
+            capsule.nfc_wildcards[i] = team;
+            capsule.nfc_wild_counts[i] = count;
+        },
+        (1, 0) => {
+            let i = row.get::<i32, _>("division") as usize;
+            capsule.afc_wins[i] = team;
+            capsule.afc_wins_counts[i] = count;
+        },
+        (1, 1) => {
+            let i = row.get::<i32, _>("slot") as usize;
+            capsule.afc_wildcards[i] = team;
+            capsule.afc_wild_counts[i] = count;
+        },
         _ => unreachable!("[DB] Could not parse capsule row poolerid = {}; conference = {conf}; type = {t}", capsule.poolerid),
     };
 }

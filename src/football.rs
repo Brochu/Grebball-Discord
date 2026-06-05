@@ -683,21 +683,13 @@ pub fn calc_playoff_picture(picture: &PlayoffPicture, picks: &HashMap<i64, Capsu
             let nfc = &capsule.nfc_wins[i];
             assert!(!nfc.is_empty(), "empty NFC winner: poolerid={}, div={}", capsule.poolerid, i);
             if *nfc == picture.nfc_winners[i] {
-                let unique = picks.values()
-                    .filter(|other| other.poolerid != capsule.poolerid)
-                    .all(|other| other.nfc_wins[i] != *nfc);
-
-                score += get_capsule_score(CapsuleType::DivisionWinner, unique);
+                score += get_capsule_score(CapsuleType::DivisionWinner, capsule.nfc_wins_counts[i] == 1);
             }
 
             let afc = &capsule.afc_wins[i];
             assert!(!afc.is_empty(), "empty AFC winner: poolerid={}, div={}", capsule.poolerid, i);
             if *afc == picture.afc_winners[i] {
-                let unique = picks.values()
-                    .filter(|other| other.poolerid != capsule.poolerid)
-                    .all(|other| other.afc_wins[i] != *afc);
-
-                score += get_capsule_score(CapsuleType::DivisionWinner, unique);
+                score += get_capsule_score(CapsuleType::DivisionWinner, capsule.afc_wins_counts[i] == 1);
             }
         }
 
