@@ -155,27 +155,13 @@ app.post('/submit/:token', (req, res) => {
     });
 });
 
-app.get('/capsule/:discordid/:season', (req, res) => {
-    const discordid = req.params['discordid'];
-    const season = req.params['season'];
+app.get('/capsule/:token', (req, res) => {
+    const token = req.params['token'];
 
     LoadDB((db) => {
-        const sql = `
-            SELECT p.id AS poolerid,
-                   (SELECT count(*) FROM capsules
-                    WHERE poolerid = p.id AND season = ?) AS count
-            FROM poolers AS p
-            JOIN users AS u ON u.id = p.userid
-            WHERE u.discordid = ?
-        `;
-        db.get(sql, season, discordid, async (err, row) => {
-            if (err || !row) {
-                console.log(err);
-                res.render('error.html');
-                return;
-            }
-
-            if (row['count'] != 0) {
+        db.get('SELECT season FROM pick_tokens WHERE token = ?', token, (err, row) => {
+            if (err || !row) {        // bad/expired token
+                if (err) console.log(err);
                 res.render('error.html');
                 return;
             }
@@ -183,8 +169,8 @@ app.get('/capsule/:discordid/:season', (req, res) => {
             res.render('playoffs.html', {
                 afcTeams,
                 nfcTeams,
-                poolerid: row['poolerid'],
-                season: season
+                token,
+                season: row['season']
             });
         });
     });
@@ -193,47 +179,61 @@ app.get('/capsule/:discordid/:season', (req, res) => {
 const CAP_TYPE = { DIVISION_WIN: 0, WILDCARD: 1 };
 const CAP_CONF = { NFC: 0, AFC: 1 };
 const DIV_ORDER = ['North', 'South', 'East', 'West']; // index = division column value
+const TEAM_IDX = 6; // position of the team short name in a capsule row
 
-app.post('/capsule-submit', (req, res) => {
-    const { poolerid, season, afcWinners, nfcWinners, afcWildcards, nfcWildcards } = req.body;
+app.post('/capsule-submit/:token', (req, res) => {
+    const token = req.params['token'];
+    const { afcWinners, nfcWinners, afcWildcards, nfcWildcards } = req.body;
 
-    // Parse the JSON strings from the form
+    // Parse the JSON strings from the form (pick payload only)
     const afcWinnersObj = JSON.parse(afcWinners);
     const nfcWinnersObj = JSON.parse(nfcWinners);
     const afcWildcardsArr = JSON.parse(afcWildcards);
     const nfcWildcardsArr = JSON.parse(nfcWildcards);
 
-    const rows = [];
-    DIV_ORDER.forEach((div, divIdx) => {
-        rows.push([season, poolerid, CAP_TYPE.DIVISION_WIN, CAP_CONF.AFC, divIdx, 0, GetTeamShortName(afcWinnersObj[div])]);
-        rows.push([season, poolerid, CAP_TYPE.DIVISION_WIN, CAP_CONF.NFC, divIdx, 0, GetTeamShortName(nfcWinnersObj[div])]);
-    });
-    afcWildcardsArr.forEach((name, slot) => {
-        rows.push([season, poolerid, CAP_TYPE.WILDCARD, CAP_CONF.AFC, 0, slot, GetTeamShortName(name)]);
-    });
-    nfcWildcardsArr.forEach((name, slot) => {
-        rows.push([season, poolerid, CAP_TYPE.WILDCARD, CAP_CONF.NFC, 0, slot, GetTeamShortName(name)]);
-    });
-
-    if (rows.length !== 14 || rows.some(r => !r[6])) {
-        console.log('Incomplete capsule submission, refusing to insert');
-        res.render('error.html');
-        return;
-    }
-
     LoadDB((db) => {
-        const placeholders = rows.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
-        const sql = `
-            INSERT INTO capsules (season, poolerid, type, conference, division, slot, team)
-            VALUES ${placeholders}
-        `;
-        db.run(sql, rows.flat(), (err) => {
-            if (err) {
-                console.log(err);
+        // Identity (poolerid, season) comes from the token, never the body
+        db.get('SELECT poolerid, season FROM pick_tokens WHERE token = ?', token, (err, row) => {
+            if (err || !row) {
+                if (err) console.log(err);
                 res.render('error.html');
-            } else {
-                res.render('success.html');
+                return;
             }
+
+            const { poolerid, season } = row;
+
+            const rows = [];
+            DIV_ORDER.forEach((div, divIdx) => {
+                rows.push([season, poolerid, CAP_TYPE.DIVISION_WIN, CAP_CONF.AFC, divIdx, 0, GetTeamShortName(afcWinnersObj[div])]);
+                rows.push([season, poolerid, CAP_TYPE.DIVISION_WIN, CAP_CONF.NFC, divIdx, 0, GetTeamShortName(nfcWinnersObj[div])]);
+            });
+            afcWildcardsArr.forEach((name, slot) => {
+                rows.push([season, poolerid, CAP_TYPE.WILDCARD, CAP_CONF.AFC, 0, slot, GetTeamShortName(name)]);
+            });
+            nfcWildcardsArr.forEach((name, slot) => {
+                rows.push([season, poolerid, CAP_TYPE.WILDCARD, CAP_CONF.NFC, 0, slot, GetTeamShortName(name)]);
+            });
+
+            if (rows.length !== 14 || rows.some(r => !r[TEAM_IDX])) {
+                console.log('Incomplete capsule submission, refusing to insert');
+                res.render('error.html');
+                return;
+            }
+
+            const placeholders = rows.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
+            const insert = `
+                INSERT INTO capsules (season, poolerid, type, conference, division, slot, team)
+                VALUES ${placeholders}
+            `;
+            db.run(insert, rows.flat(), (err) => {
+                if (err) {
+                    console.log(err);
+                    res.render('error.html');
+                    return;
+                }
+                // Consume the token so the link can't be replayed or double-submitted
+                db.run('DELETE FROM pick_tokens WHERE token = ?', token, () => res.render('success.html'));
+            });
         });
     });
 });
