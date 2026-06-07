@@ -97,8 +97,7 @@
         </div>
     </div>
 
-    <form action="/submit" method="post" id="picks-form">
-    <input type="hidden" name="pickid" value="<%= pickid %>" />
+    <form action="/submit/<%= token %>" method="post" id="picks-form">
     <input type="hidden" name="matchids" value="<%= matchids %>" />
     <input type="hidden" name="favteam" value="<%= favteam %>" />
     <input type="hidden" name="forcedid" value="<%= forcedid %>" />

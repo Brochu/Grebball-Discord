@@ -1,5 +1,4 @@
 use std::env;
-use serde_json::{Value, Map};
 
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
@@ -7,7 +6,7 @@ use serenity::model::application::interaction::application_command::ApplicationC
 use serenity::model::prelude::command::{CommandOptionType, CommandType};
 use serenity::prelude::*;
 
-use library::database::{DB, PicksStatus};
+use library::database::DB;
 use library::football::{get_week, get_team_emoji};
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
@@ -54,84 +53,84 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[picks] No week arg given with the command").value.as_ref()
         .unwrap().as_str().unwrap().parse::<i64>()
         .expect("[picks] Could not parse week arg to u64");
-    let week_name = command.data.options.first().unwrap().name.as_str();
 
     let discordid = command.user.id.as_u64()
         .to_string().parse::<i64>()
         .unwrap();
+    let poolerid = match db.fetch_poolerid(&discordid).await {
+        Ok(pid) => pid,
+        Err(_) => {
+            if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+                res
+                    .kind(InteractionResponseType::ChannelMessageWithSource)
+                    .interaction_response_data(|m| m
+                        .ephemeral(true)
+                        .content("Tu n'es pas inscrit au pool.")
+                    )
+            })
+            .await {
+                println!("![picks] Cannot respond to slash command : {:?}", reason);
+            }
+            return;
+        },
+    };
 
-    if let Ok(status) = db.prime_picks(&discordid, &season, &week).await {
-        let message = match status {
-            PicksStatus::Primed(row_id) => {
-                let picks_url = env::var("PICKS_URL").expect("![Picks] Could not find 'PICKS_URL' env var");
-                let url = format!("{}/{}/{}", picks_url, discordid, row_id);
+    let message = match db.fetch_pick(&season, &week, &poolerid).await {
+        Ok(p) => {
+            let picks = p.picks.unwrap();
+            let feature = db.fetch_feature(season, week).await.ok();
 
-                format!("Prêt pour les choix de la {} à faire ici: {}", week_name, url)
-            },
-            PicksStatus::Filled(pickstring, featpick) => {
-                let picks: Map<String, Value> = serde_json::from_str(&pickstring).expect("![picks] Could not parse picks properly");
-                let feature = db.fetch_feature(season, week).await.ok();
+            let (icons, feat_str) = get_week(&season, &week).await
+                .expect("![picks] Could not fetch week data")
+                .fold((String::new(), String::new()), |(mut icons, mut feat_str), m| {
+                    let team = picks.get(&m.id_event).unwrap();
+                    let emoji = get_team_emoji(team);
 
-                let (icons, feat_str) = get_week(&season, &week).await
-                    .expect("![picks] Could not fetch week data")
-                    .fold((String::new(), String::new()), |(mut icons, mut feat_str), m| {
-                        let team = picks.get(&m.id_event).unwrap()
-                            .as_str().unwrap();
-                        let emoji = get_team_emoji(team);
+                    icons.push_str(format!("<:{}:{}> ", team, emoji).as_str());
 
-                        icons.push_str(format!("<:{}:{}> ", team, emoji).as_str());
-
-                        if let Some(ref feat) = feature {
-                            if feat.matchid == m.id_event {
-                                let away_emoji = get_team_emoji(&m.away_team);
-                                let home_emoji = get_team_emoji(&m.home_team);
-                                let trend = match featpick {
-                                    Some(1) => ":chart_with_upwards_trend:",
-                                    _ => ":chart_with_downwards_trend:",
-                                };
-                                feat_str = format!(
-                                    "<:{}:{}> @ <:{}:{}> {}",
-                                    m.away_team, away_emoji, m.home_team, home_emoji, trend
-                                );
-                            }
+                    if let Some(ref feat) = feature {
+                        if feat.matchid == m.id_event {
+                            let away_emoji = get_team_emoji(&m.away_team);
+                            let home_emoji = get_team_emoji(&m.home_team);
+                            let trend = match p.featpick {
+                                Some(1) => ":chart_with_upwards_trend:",
+                                _ => ":chart_with_downwards_trend:",
+                            };
+                            feat_str = format!(
+                                "<:{}:{}> @ <:{}:{}> {}",
+                                m.away_team, away_emoji, m.home_team, home_emoji, trend
+                            );
                         }
+                    }
 
-                        (icons, feat_str)
-                    });
+                    (icons, feat_str)
+                });
 
-                if feat_str.is_empty() {
-                    format!("## Choix pour la semaine {}, {}\n{}", week, season, icons)
-                } else {
-                    format!("## Choix pour la semaine {}, {}\n{}\n**Feature:** {}", week, season, icons, feat_str)
-                }
+            if feat_str.is_empty() {
+                format!("## Choix pour la semaine {}, {}\n{}", week, season, icons)
+            } else {
+                format!("## Choix pour la semaine {}, {}\n{}\n**Feature:** {}", week, season, icons, feat_str)
+            }
+        },
+        Err(_) => match db.issue_pick_token(season, week, poolerid).await {
+            Ok(token) => {
+                let picks_url = env::var("PICKS_URL").expect("![Picks] Could not find 'PICKS_URL' env var");
+                let week_name = command.data.options.first().unwrap().name.as_str();
+                format!("Prêt pour les choix de la {} à faire ici: {}/{}", week_name, picks_url, token)
             },
-        };
+            Err(_) => "Une erreur s'est produite avec la commande `/choix` .".to_string(),
+        },
+    };
 
-        if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
-            res
-                .kind(InteractionResponseType::ChannelMessageWithSource)
-                .interaction_response_data(|m| m
-                    .ephemeral(true)
-                    .content(message)
-                )
-        })
-        .await {
-            println!("![picks] Cannot respond to slash command : {:?}", reason);
-        }
-
-    } else {
-        println!("[picks] Error while priming picks for week {}", week);
-
-        if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
-            res
-                .kind(InteractionResponseType::ChannelMessageWithSource)
-                .interaction_response_data(|m| m
-                    .ephemeral(true)
-                    .content("Une erreur s'est produite avec la commande `/choix` .")
-                )
-        })
-        .await {
-            println!("![picks] Cannot respond to slash command : {:?}", reason);
-        }
+    if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+        res
+            .kind(InteractionResponseType::ChannelMessageWithSource)
+            .interaction_response_data(|m| m
+                .ephemeral(true)
+                .content(message)
+            )
+    })
+    .await {
+        println!("![picks] Cannot respond to slash command : {:?}", reason);
     }
 }

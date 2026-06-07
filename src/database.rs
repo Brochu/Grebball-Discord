@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+
 use std::env;
 use std::fmt::{ Display, Debug };
 
@@ -23,11 +24,6 @@ pub struct WeekPicks {
 }
 
 type SeasonPicks = Vec<(i64, Option<WeekFeature>, Vec<WeekPicks>)>;
-
-pub enum PicksStatus {
-    Primed(i64),
-    Filled(String, Option<u32>),
-}
 
 #[derive(Debug, Default)]
 pub struct CapsulePicks {
@@ -248,54 +244,23 @@ impl DB {
         Ok((season, week_count))
     }
 
-    pub async fn prime_picks(&self, discordid: &i64, season: &u16, week: &i64) -> Result<PicksStatus> {
-        let poolerid: i64 = sqlx::query("
-                SELECT p.id FROM users AS u
-                JOIN poolers AS p
-                ON u.id = p.userid
-                WHERE u.discordid = ?
-                ")
-            .bind(discordid)
-            .fetch_one(&self.pool)
-            .await?
-            .get("id");
-
-        match sqlx::query("
-                SELECT id, pickstring, featurepick FROM picks
-                WHERE poolerid = ? AND season = ? AND week = ?
+    pub async fn issue_pick_token(&self, season: u16, week: i64, poolerid: i64) -> Result<i64> {
+        let row = sqlx::query("
+                INSERT INTO pick_tokens (poolerid, token, season, week)
+                VALUES (?, random() & 0x7fffffffffffffff, ?, ?)
+                ON CONFLICT(poolerid) DO UPDATE SET
+                    token  = excluded.token,
+                    season = excluded.season,
+                    week   = excluded.week
+                RETURNING token;
                 ")
             .bind(poolerid)
             .bind(season)
             .bind(week)
             .fetch_one(&self.pool)
-            .await {
-                Ok(row) => {
-                    if let Some(pickstring) = row.get::<Option<String>, &str>("pickstring") {
-                        let featpick = row.get::<Option<u32>, &str>("featurepick");
-                        Ok(PicksStatus::Filled(pickstring, featpick))
-                    }
-                    else {
-                        // Picks are already primed and not filled
-                        let id: i64 = row.get("id");
-                        Ok(PicksStatus::Primed(id))
-                    }
-                },
-                Err(_) => {
-                    let new_row = sqlx::query("
-                            INSERT INTO picks (season, week, poolerid)
-                            VALUES (?, ?, ?);
-                            SELECT last_insert_rowid();
-                            ")
-                        .bind(season)
-                        .bind(week)
-                        .bind(poolerid)
-                        .fetch_one(&self.pool)
-                        .await?;
+            .await?;
 
-                    let id: i64 = new_row.get(0);
-                    Ok(PicksStatus::Primed(id))
-                }
-        }
+        Ok(row.get("token"))
     }
 
     pub async fn cache_results(&self, pickid: &i64, score: &u32, featscore: &u32) -> Result<bool> {

@@ -21,6 +21,13 @@ CREATE TABLE IF NOT EXISTS "features" (
 	"match"	TEXT,
 	PRIMARY KEY("id" AUTOINCREMENT)
 );
+CREATE TABLE IF NOT EXISTS "pick_tokens" (
+    "poolerid" INTEGER PRIMARY KEY,
+    "token"    INTEGER NOT NULL UNIQUE,
+    "season"   INTEGER NOT NULL,
+    "week"     INTEGER NOT NULL,
+    CONSTRAINT "PoolerId_FK" FOREIGN KEY("poolerid") REFERENCES "poolers"("id") ON DELETE CASCADE
+);
 CREATE TABLE IF NOT EXISTS "picks" (
 	"id"	INTEGER,
 	"season"	INTEGER,
@@ -31,7 +38,8 @@ CREATE TABLE IF NOT EXISTS "picks" (
 	"featurepick"	INTEGER,
 	"featcache"	INTEGER,
 	PRIMARY KEY("id" AUTOINCREMENT),
-	CONSTRAINT "PoolerId_FK" FOREIGN KEY("poolerid") REFERENCES "poolers"("id") ON DELETE SET NULL
+	CONSTRAINT "PoolerId_FK" FOREIGN KEY("poolerid") REFERENCES "poolers"("id") ON DELETE SET NULL,
+	CONSTRAINT "uq_picks_pooler_week" UNIQUE ("season", "week", "poolerid")
 );
 CREATE TABLE IF NOT EXISTS "poolers" (
 	"id"	INTEGER,

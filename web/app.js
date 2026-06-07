@@ -14,110 +14,100 @@ app.use(express.urlencoded({ extended: false }));
 
 const LoadDB = require('./database');
 
-app.get('/:discordid/:pickid', async (req, res) => {
-    // Get params from querystring
-    const discordid = req.params['discordid'];
-    const pickid = req.params['pickid'];
+app.get('/:token', async (req, res) => {
+    const token = req.params['token'];
 
     LoadDB((db) => {
         const sql = `
-            SELECT u.avatar, po.name, po.favteam, pi.season, pi.week, pi.pickstring, ft.type, ft.target, ft.match
-            FROM users AS u
-                JOIN poolers as po
-                ON u.id = po.userid
-                JOIN picks as pi
-                ON po.id = pi.poolerid
-                LEFT JOIN features as ft
-                ON ft.season = pi.season AND ft.week = pi.week
-            WHERE u.discordid = ? AND pi.id = ?
+            SELECT t.season, t.week,
+                   u.avatar, po.name, po.favteam,
+                   ft.match AS feat_id, ft.target AS feat_val
+            FROM pick_tokens AS t
+                JOIN poolers AS po ON po.id = t.poolerid
+                JOIN users   AS u  ON u.id  = po.userid
+                LEFT JOIN features AS ft ON ft.season = t.season AND ft.week = t.week
+            WHERE t.token = ?
         `;
-        db.get(sql, discordid, pickid, async (err, row) => {
+        db.get(sql, token, async (err, row) => {
+            // Bad/expired token
             if (err || !row) {
                 if (err) {
-                    console.log('Could not query DB for users, err: ', err.message);
+                    console.log('Could not query DB for token, err: ', err.message);
                 }
                 res.render('error.html');
                 return;
             }
-            else {
-                // Picks are already in the DB
-                if (row['pickstring'] != null) {
-                    res.render('error.html');
-                    return;
-                }
 
-                const avatar = row['avatar'];
-                const username = row['name'];
-                const favteam = row['favteam']
-                const season = row['season'];
-                const week = row['week'];
+            const avatar = row['avatar'];
+            const username = row['name'];
+            const favteam = row['favteam'];
+            const season = row['season'];
+            const week = row['week'];
 
-                const feat_id = row['match'];
-                const feat_type = row['type'];
-                const feat_val = row['target'];
+            const feat_id = row['feat_id'];
+            const feat_val = row['feat_val'];
 
-                var w = week;
-                var stype = 2;
-                if (week == 19 || week == '19') { w = 1; stype = 3; }
-                else if (week == 20 || week == '20') { w = 2; stype = 3; }
-                else if (week == 21 || week == '21') { w = 3; stype = 3; }
-                else if (week == 22 || week == '22') { w = 5; stype = 3; }
+            var w = week;
+            var stype = 2;
+            if (week == 19 || week == '19') { w = 1; stype = 3; }
+            else if (week == 20 || week == '20') { w = 2; stype = 3; }
+            else if (week == 21 || week == '21') { w = 3; stype = 3; }
+            else if (week == 22 || week == '22') { w = 5; stype = 3; }
 
-                const partial_url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
-                const url = `${partial_url}?dates=${season}&seasontype=${stype}&week=${w}`;
-                const result = await fetch(url);
-                const json = await result.json();
+            const partial_url = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard";
+            const url = `${partial_url}?dates=${season}&seasontype=${stype}&week=${w}`;
+            const result = await fetch(url);
+            const json = await result.json();
 
-                let matches = [];
-                let matchids = [];
-                let forcedid = 0;
-                if (json['events']) {
-                    matches = json['events'].map((m) => {
-                        match = {};
-                        match['idEvent'] = m['id'];
-                        match['date'] = new Date(m['date']);
+            let matches = [];
+            let matchids = [];
+            let forcedid = 0;
+            if (json['events']) {
+                matches = json['events'].map((m) => {
+                    const match = {};
+                    match['idEvent'] = m['id'];
+                    match['date'] = new Date(m['date']);
 
-                        const teams = m['competitions'][0]['competitors'];
-                        const hteam = teams[0];
-                        const ateam = teams[1];
+                    const teams = m['competitions'][0]['competitors'];
+                    const hteam = teams[0];
+                    const ateam = teams[1];
 
 
-                        match['homeTeam'] = hteam['team']['abbreviation'];
-                        match['awayTeam'] = ateam['team']['abbreviation'];
-                        match['strHomeTeam'] = hteam['team']['displayName'];
-                        match['strAwayTeam'] = ateam['team']['displayName'];
+                    match['homeTeam'] = hteam['team']['abbreviation'];
+                    match['awayTeam'] = ateam['team']['abbreviation'];
+                    match['strHomeTeam'] = hteam['team']['displayName'];
+                    match['strAwayTeam'] = ateam['team']['displayName'];
 
-                        match['homeRecordAll'] = hteam['records'][0];
-                        match['homeRecordAlt'] = hteam['records'][1];
-                        match['awayRecordAll'] = ateam['records'][0];
-                        match['awayRecordAlt'] = ateam['records'][2];
+                    match['homeRecordAll'] = hteam['records'][0];
+                    match['homeRecordAlt'] = hteam['records'][1];
+                    match['awayRecordAll'] = ateam['records'][0];
+                    match['awayRecordAlt'] = ateam['records'][2];
 
-                        if (m['id'] == feat_id) {
-                            match['featured'] = true;
-                        }
+                    if (m['id'] == feat_id) {
+                        match['featured'] = true;
+                    }
 
-                        if (match['awayTeam'] === favteam || match['homeTeam'] === favteam) {
-                            forcedid = m['id'];
-                        }
-                        matchids.push(m['id']);
-                        return match;
-                    });
-                }
-
-                res.render('picks.html', {
-                    season, week,
-                    pickid,
-                    username, favteam, avatar,
-                    matches, matchids, forcedid,
-                    feat_val
+                    if (match['awayTeam'] === favteam || match['homeTeam'] === favteam) {
+                        forcedid = m['id'];
+                    }
+                    matchids.push(m['id']);
+                    return match;
                 });
             }
+
+            res.render('picks.html', {
+                season, week,
+                token,
+                username, favteam, avatar,
+                matches, matchids, forcedid,
+                feat_val
+            });
         });
     });
 });
 
-app.post('/submit', (req, res) => {
-    const pickid = req.body['pickid'];
+app.post('/submit/:token', (req, res) => {
+    const token = req.params['token'];
     const matchids = req.body['matchids'];
     const favteam = req.body['favteam'];
     const forcedid = req.body['forcedid'];
@@ -137,19 +127,30 @@ app.post('/submit', (req, res) => {
     });
 
     LoadDB((db) => {
-        const sql = `
-            UPDATE picks
-                SET pickstring = ?, featurepick = ?
-            WHERE id = ?
-        `;
-        db.run(sql, JSON.stringify(picks), Number(feat_pick), pickid, (err) => {
-            if (err) {
-                console.log(err);
+        // Resolve identity from the token, never from the request body
+        db.get('SELECT poolerid, season, week FROM pick_tokens WHERE token = ?', token, (err, row) => {
+            if (err || !row) {
+                if (err) {
+                    console.log(err);
+                }
                 res.render('error.html');
+                return;
             }
-            else {
-                res.render('success.html');
-            }
+
+            const { poolerid, season, week } = row;
+            const insert = `
+                INSERT INTO picks (season, week, poolerid, pickstring, featurepick)
+                VALUES (?, ?, ?, ?, ?)
+            `;
+            db.run(insert, season, week, poolerid, JSON.stringify(picks), Number(feat_pick), (err) => {
+                if (err) {
+                    console.log(err);
+                    res.render('error.html');
+                    return;
+                }
+                // Consume the token so the link can't be replayed or double-submitted
+                db.run('DELETE FROM pick_tokens WHERE token = ?', token, () => res.render('success.html'));
+            });
         });
     });
 });
