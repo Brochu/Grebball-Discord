@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fmt::{ Display, Debug };
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use serde_json::{Value, Map};
 use sqlx::{ Pool, QueryBuilder, Row, Sqlite };
 use sqlx::sqlite::{ SqlitePool, SqliteRow };
@@ -338,27 +338,21 @@ impl DB {
     }
 
     pub async fn fetch_feature(&self, season: u16, week: i64) -> Result<WeekFeature> {
-        match sqlx::query("
+        let row = sqlx::query("
             SELECT ft.season, ft.week, ft.type, ft.target, ft.match FROM features AS ft
             WHERE season = ? AND week = ?;
         ")
         .bind(season)
         .bind(week)
-        .fetch_one(&self.pool).await
-        {
-            Ok(r) => {
-                Ok(WeekFeature {
-                    season: r.get("season"),
-                    week: r.get("week"),
-                    feattype: r.get("type"),
-                    target: r.get("target"),
-                    matchid: r.get("match"),
-                })
-            },
-            Err(e) => {
-                Err(anyhow!(e))
-            }
-        }
+        .fetch_one(&self.pool).await?;
+
+        Ok(WeekFeature {
+            season: row.get("season"),
+            week: row.get("week"),
+            feattype: row.get("type"),
+            target: row.get("target"),
+            matchid: row.get("match"),
+        })
     }
 
     pub async fn set_feature(&self, season: u16, week: i64, target: i64, matchid: &String) -> Result<bool> {

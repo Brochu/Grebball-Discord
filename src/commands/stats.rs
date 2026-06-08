@@ -72,7 +72,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
     let (weeks, _) = db.fetch_season(&poolid, &season).await.unwrap();
     for (w, feat_info, poolers) in &weeks[..] {
-        for m in get_week(&season, &w).await.unwrap() {
+        for m in get_week(&season, &w).await {
             //TODO: Look into skipping matches that are not played yet
             let picks: Vec<(_, _)> = poolers.iter()
                 .map(|p| {

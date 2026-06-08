@@ -62,7 +62,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             let score = if pick.cached.is_some() {
                 pick.cached.unwrap() + pick.featcached.unwrap()
             } else {
-                let matches: Vec<Match> = get_week(&season, &pick.week).await.unwrap().collect();
+                let matches: Vec<Match> = get_week(&season, &pick.week).await;
                 let results = calc_results(&pick.week, &matches, &picks, feat).await;
                 let result = results.iter()
                     .find(|res| res.poolerid == pick.poolerid)

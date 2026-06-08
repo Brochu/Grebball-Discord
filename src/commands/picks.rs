@@ -81,7 +81,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             let feature = db.fetch_feature(season, week).await.ok();
 
             let (icons, feat_str) = get_week(&season, &week).await
-                .expect("![picks] Could not fetch week data")
+                .into_iter()
                 .fold((String::new(), String::new()), |(mut icons, mut feat_str), m| {
                     let team = picks.get(&m.id_event).unwrap();
                     let emoji = get_team_emoji(team);

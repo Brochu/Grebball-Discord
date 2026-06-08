@@ -60,9 +60,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
     match db.fetch_picks(&poolid, &season, &week).await {
         Ok(picks) => {
-            let matches: Vec<Match> = get_week(&season, &week).await
-                .expect("[results] Could not fetch week data")
-                .collect();
+            let matches: Vec<Match> = get_week(&season, &week).await;
 
             let feature = db.fetch_feature(season, week).await.ok();
             let feat_line = if let Some(feat) = &feature {

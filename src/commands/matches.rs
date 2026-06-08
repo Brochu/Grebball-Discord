@@ -72,8 +72,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             .expect("![Week] Could not parse 'CONF_SEASON' to int");
         let week = str.parse::<i64>()
             .expect("![Week] Could not parse week arg to u64");
-        let matches = get_week(&season, &week).await
-            .expect("![Week] Could not fetch match data");
+        let matches = get_week(&season, &week).await;
 
         let feature_id = if let Ok(feature) = db.fetch_feature(season, week).await {
             feature.matchid
@@ -81,7 +80,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             String::new()
         };
 
-        let output = matches.fold(String::new(), |mut out, m| {
+        let output = matches.into_iter().fold(String::new(), |mut out, m| {
             let aemoji = get_team_emoji(m.away_team.as_str());
             let hemoji = get_team_emoji(m.home_team.as_str());
 

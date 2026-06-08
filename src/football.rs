@@ -165,10 +165,7 @@ impl Debug for Match {
     }
 }
 
-//TODO: Return vector<Match> here so we can collect and sort matches here
-// ESPN's matches get re-ordered based on some logic I don't understand yet
-// I think the outputs on Discord look better when the matches are always in the same order
-pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Match>> {
+pub async fn get_week(season: &u16, week: &i64) -> Vec<Match> {
     let data_url = env::var("DATA_URL")
         .expect("![Football] Could not find 'DATA_URL' env var");
 
@@ -187,7 +184,7 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
     let schedule: ESPNSchedule = serde_json::from_str(&scoreres)
         .expect("![Football] Could not parse response");
 
-    let matches = schedule.events.into_iter().map(move |e| {
+    schedule.events.into_iter().map(move |e| {
         let away_team = &e.comp[0].teams[1];
         let home_team = &e.comp[0].teams[0];
         let match_date = e.comp[0].date.replace("Z", ":00Z");
@@ -201,8 +198,8 @@ pub async fn get_week(season: &u16, week: &i64) -> Option<impl Iterator<Item=Mat
                 .map(|dt| dt.with_timezone(&Utc))
                 .expect("![Football] Could not parse event's date")
         }
-    });
-    return Some(matches);
+    })
+    .collect()
 }
 
 #[derive(Serialize, Deserialize, Debug)]

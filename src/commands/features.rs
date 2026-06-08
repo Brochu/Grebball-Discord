@@ -74,9 +74,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("![Week] Could not parse 'CONF_SEASON' to int");
     let week = week_opt.parse::<i64>()
         .expect("![Week] Could not parse week arg to u64");
-    let matches: Vec<_> = get_week(&season, &week).await
-        .expect("![Week] Could not fetch match data")
-        .collect();
+    let matches: Vec<_> = get_week(&season, &week).await;
 
     if let Some(game) = matches.get(match_opt as usize) {
         match db.set_feature(season, week, target_opt, &game.id_event).await {
