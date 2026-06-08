@@ -428,15 +428,15 @@ fn calc_results_internal(
                 .all(|pp| pp != pick);
 
             let outcome = if let (Some(a), Some(h)) = (m.away_score, m.home_score) {
-				if a == 0 && h == 0 {
-					MatchOutcome::NotPlayed
-				} else {
-					match a.cmp(&h) {
-						Ordering::Less => if pick == m.away_team { MatchOutcome::Loss } else { MatchOutcome::Win },
-						Ordering::Greater => if pick == m.away_team { MatchOutcome::Win } else { MatchOutcome::Loss },
-						Ordering::Equal => MatchOutcome::Tied,
-					}
-				}
+                if a == 0 && h == 0 {
+                    MatchOutcome::NotPlayed
+                } else {
+                    match a.cmp(&h) {
+                        Ordering::Less => if pick == m.away_team { MatchOutcome::Loss } else { MatchOutcome::Win },
+                        Ordering::Greater => if pick == m.away_team { MatchOutcome::Win } else { MatchOutcome::Loss },
+                        Ordering::Equal => MatchOutcome::Tied,
+                    }
+                }
             }
             else {
                 MatchOutcome::NotPlayed
@@ -526,13 +526,13 @@ pub enum Division {
 }
 
 impl Division {
-    pub fn from_espn(abbr: &str) -> Option<Division> {
+    pub fn from_espn(abbr: &str) -> Division {
         match abbr {
-            "NORTH" => Some(Division::North),
-            "SOUTH" => Some(Division::South),
-            "EAST"  => Some(Division::East),
-            "WEST"  => Some(Division::West),
-            _ => None,
+            "NORTH" => Division::North,
+            "SOUTH" => Division::South,
+            "EAST"  => Division::East,
+            "WEST"  => Division::West,
+            other   => panic!("![Football] Unknown division abbreviation from ESPN: {other}"),
         }
     }
 }
@@ -595,12 +595,11 @@ pub async fn get_playoff_picture(season: u16) -> PlayoffPicture {
                     let team = entry.team.abbreviation.clone();
 
                     if (1..=4).contains(&seed) {
-                        if let Some(div) = Division::from_espn(div_abbr) {
-                            match conf {
-                                "AFC" => picture.afc_winners[div as usize] = team,
-                                "NFC" => picture.nfc_winners[div as usize] = team,
-                                _ => {}
-                            }
+                        let div = Division::from_espn(div_abbr);
+                        match conf {
+                            "AFC" => picture.afc_winners[div as usize] = team,
+                            "NFC" => picture.nfc_winners[div as usize] = team,
+                            _ => {}
                         }
                     } else if (5..=7).contains(&seed) {
                         wildcards.push((seed, team));

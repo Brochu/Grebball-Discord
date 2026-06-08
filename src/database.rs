@@ -143,7 +143,7 @@ impl DB {
                 WeekPicks { pickid, poolerid, name, week: *week, picks, featpick, cached, featcached }
             })
             .collect();
-        
+
         Ok(results)
     }
 
