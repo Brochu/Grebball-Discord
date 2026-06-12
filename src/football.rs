@@ -330,73 +330,71 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], fe
         }
     });
 
-    let mut output: Vec<PickResults> = picks.iter()
-        .map(|p| {
-            let name = p.name.to_owned();
-            let mut featscore: u32 = 0;
+    let mut results = Vec::<PickResults>::new();
+    for pick in picks {
+        let pickid = pick.pickid;
+        let poolerid = pick.poolerid;
+        let name = pick.name.clone();
+        let cache = week_complete && pickid.is_some() && pick.cached.is_none();
 
-            let icons = if let Some(picks) = &p.picks {
-                matches.iter().fold(String::new(), |mut acc, m| {
-                    if let (Some(f), Some(fp), Some(asc), Some(hsc)) = (feat, p.featpick, m.away_score, m.home_score) {
-                        //TODO: Can we make this more generic if needed?
-                        if m.id_event == f.matchid && (asc + hsc) > 0 && (
-                            fp == 1 && (asc + hsc) > f.target as u64 ||
-                            fp == 0 && (asc + hsc) <= f.target as u64
-                        ) {
-                            featscore = 3;
-                        }
-                    }
-                    let choice = match picks.get(&m.id_event) {
-                        Some(p) => p.as_str(),
-                        None => "NA",
-                    };
-
-                    acc.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
-                    acc
-                })
-            }
-            else {
-                String::new()
-            };
-
-            let overunder = if let Some(featpick) = &p.featpick {
-                if *featpick == 0 {
-                    format!(":{}:", "chart_with_downwards_trend")
-                } else {
-                    format!(":{}:", "chart_with_upwards_trend")
-                }
-            } else {
-                String::new()
-            };
-
-            if let Some(cached) = p.cached {
-                PickResults {
-                    pickid: p.pickid, poolerid: p.poolerid, name,
-                    score: cached, featscore: p.featcached.unwrap_or_else(|| featscore), icons, overunder,
-                    cache: false && week_complete && p.pickid.is_some()
+        // Featured Match
+        let featscore = if let Some(cached_score) = pick.featcached {
+            cached_score
+        }
+        else {
+            if let (Some(f), Some(pick)) = (feat, pick.featpick) {
+                let feat_match = matches.iter().find(|m| m.id_event == f.matchid).unwrap();
+                match (pick, feat_match.away_score, feat_match.home_score) {
+                    (1, Some(a), Some(h)) if a + h > f.target as u64 => 3,
+                    (0, Some(a), Some(h)) if a + h > 0 && a + h <= f.target as u64 => 3,
+                    _ => 0
                 }
             }
             else {
-                let (score, cache) = match &p.picks {
-                    Some(poolerpicks) => (
-                        calc_results_internal( &matches, &week, picks, &poolerpicks, p.poolerid),
-                        true && week_complete && p.pickid.is_some()),
-                    None => (0, false && week_complete && p.pickid.is_some()),
-                };
-                PickResults {
-                    pickid: p.pickid, poolerid: p.poolerid,
-                    name, score, featscore, icons, overunder, cache
-                }
+                0
             }
-        })
-        .collect();
+        };
+        let overunder = match pick.featpick {
+            Some(p) if p == 0 => ":chart_with_downwards_trend:".to_owned(),
+            Some(p) if p == 1 => ":chart_with_upwards_trend:".to_owned(),
+            _ => String::new(),
+        };
 
-    output.sort_unstable_by(|l, r| {
+        // Week's Score
+        let score = if let Some(cached_score) = pick.cached {
+            cached_score
+        }
+        else {
+            match &pick.picks {
+                Some(pooler_picks) => calc_results_internal(&matches, &week, picks, pooler_picks, pick.poolerid),
+                None => 0,
+            }
+        };
+
+        // Build Icons List
+        let icons = if let Some(pick_map) = &pick.picks {
+            let invalid = "NA".to_owned();
+            let mut temp = String::new();
+
+            for m in matches {
+                let choice = pick_map.get(&m.id_event).unwrap_or(&invalid);
+                temp.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
+            }
+            temp
+        }
+        else {
+            String::new()
+        };
+
+        results.push(PickResults { pickid, poolerid, name, score, featscore, icons, overunder, cache });
+    }
+
+    results.sort_unstable_by(|l, r| {
         let rs = r.score + r.featscore;
         let ls = l.score + l.featscore;
         rs.cmp(&ls)
     });
-    output
+    results
 }
 
 #[derive(Debug)]
@@ -407,47 +405,35 @@ enum MatchOutcome {
     NotPlayed,
 }
 
-fn calc_results_internal(
-    matches: &[Match],
-    week: &i64,
-    poolpicks: &[WeekPicks],
-    picks: &HashMap<String, String>,
-    poolerid: i64) -> u32 {
+fn calc_results_internal(matches: &[Match], week: &i64, poolpicks: &[WeekPicks], picks: &HashMap<String, String>, poolerid: i64) -> u32 {
+    let mut total = 0;
 
-    let total = matches.iter().fold(0, |acc, m| {
-        if let Some(pick) = picks.get(&m.id_event) {
-            let pick = pick.as_str();
-            let unique = poolpicks.iter()
-                .filter(|&pp| pp.poolerid != poolerid)
-                .map(|pp| { 
-                    match &pp.picks {
-                        Some(p) => p.get(&m.id_event).unwrap().as_str(),
-                        None => "",
-                    }
-                })
-                .all(|pp| pp != pick);
-
-            let outcome = if let (Some(a), Some(h)) = (m.away_score, m.home_score) {
-                if a == 0 && h == 0 {
-                    MatchOutcome::NotPlayed
-                } else {
-                    match a.cmp(&h) {
-                        Ordering::Less => if pick == m.away_team { MatchOutcome::Loss } else { MatchOutcome::Win },
-                        Ordering::Greater => if pick == m.away_team { MatchOutcome::Win } else { MatchOutcome::Loss },
-                        Ordering::Equal => MatchOutcome::Tied,
-                    }
+    for m in matches {
+        let Some(choice) = picks.get(&m.id_event).map(|p| String::as_str(p)) else {
+            continue;
+        };
+        let unique = poolpicks.iter()
+            .filter(|&pp| pp.poolerid != poolerid)
+            .map(|pp| { 
+                match &pp.picks {
+                    Some(p) => p.get(&m.id_event).unwrap().as_str(),
+                    None => "",
                 }
-            }
-            else {
-                MatchOutcome::NotPlayed
-            };
+            })
+            .all(|pp| pp != choice);
 
-            acc + get_score(&outcome, unique, &week)
-        }
-        else {
-            acc
-        }
-    });
+        let outcome = match (m.away_score, m.home_score) {
+            (Some(0), Some(0))                                   => MatchOutcome::NotPlayed,
+            (Some(a), Some(h)) if a > h && choice == m.away_team => MatchOutcome::Win,
+            (Some(a), Some(h)) if a < h && choice == m.home_team => MatchOutcome::Win,
+            (Some(a), Some(h)) if a == h                         => MatchOutcome::Tied,
+            (Some(_), Some(_))                                   => MatchOutcome::Loss,
+            _                                                    => MatchOutcome::NotPlayed,
+        };
+
+        total += get_score(&outcome, unique, week);
+    }
+
     total
 }
 
