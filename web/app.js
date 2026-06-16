@@ -34,6 +34,7 @@ app.get('/:token', async (req, res) => {
                 if (err) {
                     console.log('Could not query DB for token, err: ', err.message);
                 }
+                console.log("??? ", row);
                 res.render('error.html');
                 return;
             }
@@ -60,7 +61,6 @@ app.get('/:token', async (req, res) => {
             const json = await result.json();
 
             let matches = [];
-            let matchids = [];
             let forcedid = 0;
             if (json['events']) {
                 matches = json['events'].map((m) => {
@@ -90,7 +90,6 @@ app.get('/:token', async (req, res) => {
                     if (match['awayTeam'] === favteam || match['homeTeam'] === favteam) {
                         forcedid = m['id'];
                     }
-                    matchids.push(m['id']);
                     return match;
                 });
             }
@@ -99,7 +98,7 @@ app.get('/:token', async (req, res) => {
                 season, week,
                 token,
                 username, favteam, avatar,
-                matches, matchids, forcedid,
+                matches, forcedid,
                 feat_val
             });
         });
@@ -108,48 +107,68 @@ app.get('/:token', async (req, res) => {
 
 app.post('/submit/:token', (req, res) => {
     const token = req.params['token'];
-    const matchids = req.body['matchids'];
-    const favteam = req.body['favteam'];
-    const forcedid = req.body['forcedid'];
-    const feat_pick = req.body['feat_pick'];
+    const { matchids, favteam, forcedid, feat_pick, ...picks } = req.body;
 
-    var picks = {};
-    matchids.split(',').forEach((i) => {
-        var pick = req.body[i];
+    if (forcedid && forcedid !== '0') {
+        picks[forcedid] = favteam;
+    }
 
-        if (pick) {
-            picks[i] = pick;
-        } else if (forcedid === i) {
-            picks[i] = favteam;
-        } else {
-            picks[i] = "N/A";
-        }
-    });
+    const entries = Object.entries(picks);
+    if (entries.length === 0) {
+        console.log('Empty pick submission, refusing to insert');
+        res.render('error.html');
+        return;
+    }
 
     LoadDB((db) => {
-        // Resolve identity from the token, never from the request body
         db.get('SELECT poolerid, season, week FROM pick_tokens WHERE token = ?', token, (err, row) => {
             if (err || !row) {
-                if (err) {
-                    console.log(err);
-                }
+                console.log(err);
                 res.render('error.html');
                 return;
             }
-
             const { poolerid, season, week } = row;
-            const insert = `
-                INSERT INTO picks (season, week, poolerid, pickstring, featurepick)
-                VALUES (?, ?, ?, ?, ?)
-            `;
-            db.run(insert, season, week, poolerid, JSON.stringify(picks), Number(feat_pick), (err) => {
+
+            db.run('BEGIN', (err) => {
                 if (err) {
                     console.log(err);
                     res.render('error.html');
                     return;
                 }
-                // Consume the token so the link can't be replayed or double-submitted
-                db.run('DELETE FROM pick_tokens WHERE token = ?', token, () => res.render('success.html'));
+
+                const parentInsert = `
+                    INSERT INTO picks (season, week, poolerid, featurepick)
+                    VALUES (?, ?, ?, ?)
+                `;
+                db.run(parentInsert, [season, week, poolerid, Number(feat_pick)], function (err) {
+                    if (err) {
+                        db.run('ROLLBACK');
+                        console.log(err);
+                        res.render('error.html');
+                        return;
+                    }
+
+                    const pickid = this.lastID;
+                    const placeholders = entries.map(() => '(?, ?, ?)').join(', ');
+                    const params = entries.flatMap(([matchid, team]) => [pickid, matchid, team]);
+
+                    const childInsert = `
+                        INSERT INTO match_picks (pickid, matchid, team)
+                        VALUES ${placeholders}
+                    `;
+                    db.run(childInsert, params, (err) => {
+                        if (err) {
+                            db.run('ROLLBACK');
+                            console.log(err);
+                            res.render('error.html');
+                            return;
+                        }
+
+                        db.run('DELETE FROM pick_tokens WHERE token = ?', token, () => {
+                            db.run('COMMIT', () => res.render('success.html'));
+                        });
+                    });
+                });
             });
         });
     });
