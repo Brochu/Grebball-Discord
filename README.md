@@ -49,10 +49,6 @@ The variables you must set are:
 | `WEEKLY_WEBHOOK` | optional | Webhook for the startup weekly reminder. |
 | `BLAME_URL` | optional | Only needed by the `/blame` command. |
 
-> `APP_ID`, `PUBLIC_KEY`, `CONF_LEAGUE`, and `FOOTBALL_URL` appear in the example
-> for reference but are **not currently read by the code** — you can leave them
-> blank.
-
 ## 2. Create your local database
 
 The database lives in `local/` (gitignored). Create the folder and build a
