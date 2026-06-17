@@ -76,6 +76,10 @@ INSERT INTO poolers (name, favteam, poolid) VALUES ('Bob', 'DAL', 1);
 .quit
 ```
 
+> Optional: `db/seed-2025-w1.sql` loads a sample set of 2025 week-1 picks for
+> testing the scoring code (`sqlite3 local/local.db < db/seed-2025-w1.sql`). It
+> expects poolers with ids 1–10 to already exist.
+
 ## 3. Run the bot
 
 From the repo root:
@@ -97,8 +101,9 @@ npm install
 node app.js
 ```
 
-It listens on **http://localhost:3000** (matching `PICKS_URL`). The bot links
-poolers to this page when they go to submit picks.
+It listens on **http://localhost:3000** (matching `PICKS_URL`) and reads the
+same root `.env` for `DATABASE_URL`, so it opens the very database file the bot
+uses. The bot links poolers to this page when they go to submit picks.
 
 ## Discord setup
 
@@ -138,7 +143,7 @@ db/                  SQL schema files
 local/               SQLite database (gitignored, you create this)
 web/                 Express pick app
   app.js             server + routes (port 3000)
-  database.js        opens ../local/local.db
+  database.js        opens the DATABASE_URL sqlite file (reads ../.env)
   views/             EJS/HTML templates
 .env.example         template for your .env
 ```

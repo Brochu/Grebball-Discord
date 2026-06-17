@@ -16,6 +16,7 @@ pub struct WeekPicks {
     pub name: String,
     pub week: i64,
     pub picks: Option<HashMap<String, String>>,
+    pub counts: Option<HashMap<String, i32>>,
     pub featpick: Option<u32>,
     pub cached: Option<u32>,
     pub featcached: Option<u32>,
@@ -111,7 +112,8 @@ impl DB {
         let rows = sqlx::query("
                 SELECT pl.id AS 'poolerid', pl.name,
                    pk.id AS 'pickid', pk.featurepick, pk.scorecache, pk.featcache,
-                   mp.matchid, mp.team
+                   mp.matchid, mp.team,
+                   COUNT(*) OVER (PARTITION BY mp.matchid, mp.team) AS 'pick_count'
                 FROM poolers AS pl
                 LEFT JOIN picks AS pk ON pk.poolerid = pl.id AND pk.season = ? AND pk.week = ?
                 LEFT JOIN match_picks AS mp ON mp.pickid = pk.id
@@ -134,6 +136,7 @@ impl DB {
                     name: row.get("name"),
                     week: *week,
                     picks: pickid.map(|_| HashMap::new()),
+                    counts: pickid.map(|_| HashMap::new()),
                     featpick: row.get("featurepick"),
                     cached: row.get("scorecache"),
                     featcached: row.get("featcache"),
@@ -142,7 +145,10 @@ impl DB {
 
             if let Some(matchid) = row.get::<Option<String>, _>("matchid") {
                 if let Some(map) = entry.picks.as_mut() {
-                    map.insert(matchid, row.get("team"));
+                    map.insert(matchid.clone(), row.get("team"));
+                }
+                if let Some(count) = entry.counts.as_mut() {
+                    count.insert(matchid, row.get("pick_count"));
                 }
             }
         }
@@ -154,7 +160,8 @@ impl DB {
         let rows = sqlx::query("
                 SELECT pk.id AS 'pickid', pl.id AS 'poolerid', pl.name,
                    pk.featurepick, pk.scorecache, pk.featcache,
-                   mp.matchid, mp.team
+                   mp.matchid, mp.team,
+                   COUNT(*) OVER (PARTITION BY mp.matchid, mp.team) AS 'pick_count'
                 FROM picks AS pk
                 JOIN poolers AS pl ON pl.id = pk.poolerid
                 LEFT JOIN match_picks AS mp ON mp.pickid = pk.id
@@ -172,12 +179,15 @@ impl DB {
         };
 
         let mut map = HashMap::<String, String>::new();
+        let mut map_counts = HashMap::<String, i32>::new();
         for row in &rows {
             if let Some(matchid) = row.get::<Option<String>, _>("matchid") {
-                map.insert(matchid, row.get("team"));
+                map.insert(matchid.clone(), row.get("team"));
+                map_counts.insert(matchid, row.get("pick_count"));
             }
         }
         let picks = if map.is_empty() { None } else { Some(map) };
+        let counts = if map_counts.is_empty() { None } else { Some(map_counts) };
 
         Ok(WeekPicks {
             pickid: first.get("pickid"),
@@ -185,6 +195,7 @@ impl DB {
             name: first.get("name"),
             week: *week,
             picks,
+            counts,
             featpick: first.get("featurepick"),
             cached: first.get("scorecache"),
             featcached: first.get("featcache")
@@ -214,7 +225,8 @@ impl DB {
         let season_rows = sqlx::query("
                     SELECT pk.id as 'pickid', pl.id as 'poolerid', pl.name,
                         pk.week, pk.scorecache, pk.featurepick, pk.featcache,
-                        mp.matchid, mp.team
+                        mp.matchid, mp.team,
+                        COUNT(*) OVER (PARTITION BY mp.matchid, mp.team) AS 'pick_count'
                     FROM picks AS pk
                     JOIN poolers AS pl ON pl.id = pk.poolerid AND pl.poolid = ?
                     LEFT JOIN match_picks AS mp ON mp.pickid = pk.id
@@ -237,6 +249,7 @@ impl DB {
                     name: row.get("name"),
                     week,
                     picks: pickid.map(|_| HashMap::new()),
+                    counts: pickid.map(|_| HashMap::new()),
                     featpick: row.get("featurepick"),
                     cached: row.get("scorecache"),
                     featcached: row.get("featcache"),
@@ -245,7 +258,10 @@ impl DB {
 
             if let Some(matchid) = row.get::<Option<String>, _>("matchid") {
                 if let Some(map) = entry.picks.as_mut() {
-                    map.insert(matchid, row.get("team"));
+                    map.insert(matchid.clone(), row.get("team"));
+                }
+                if let Some(count) = entry.counts.as_mut() {
+                    count.insert(matchid, row.get("pick_count"));
                 }
             }
         }

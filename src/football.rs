@@ -365,9 +365,9 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], fe
             cached_score
         }
         else {
-            match &pick.picks {
-                Some(pooler_picks) => calc_results_internal(&matches, &week, picks, pooler_picks, pick.poolerid),
-                None => 0,
+            match (&pick.picks, &pick.counts) {
+                (Some(pooler_picks), Some(pooler_counts)) => calc_results_internal(&matches, &week, pooler_picks, pooler_counts),
+                _ => 0,
             }
         };
 
@@ -405,23 +405,15 @@ enum MatchOutcome {
     NotPlayed,
 }
 
-fn calc_results_internal(matches: &[Match], week: &i64, poolpicks: &[WeekPicks], picks: &HashMap<String, String>, poolerid: i64) -> u32 {
+fn calc_results_internal(matches: &[Match], week: &i64, picks: &HashMap<String, String>, counts: &HashMap<String, i32>) -> u32 {
     let mut total = 0;
 
     for m in matches {
         let Some(choice) = picks.get(&m.id_event).map(|p| String::as_str(p)) else {
             continue;
         };
-        let unique = poolpicks.iter()
-            .filter(|&pp| pp.poolerid != poolerid)
-            .map(|pp| { 
-                match &pp.picks {
-                    Some(p) => p.get(&m.id_event).unwrap().as_str(),
-                    None => "",
-                }
-            })
-            .all(|pp| pp != choice);
 
+        let unique = counts[&m.id_event] == 1;
         let outcome = match (m.away_score, m.home_score) {
             (Some(0), Some(0))                                   => MatchOutcome::NotPlayed,
             (Some(a), Some(h)) if a > h && choice == m.away_team => MatchOutcome::Win,
