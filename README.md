@@ -40,13 +40,11 @@ The variables you must set are:
 | --- | --- | --- |
 | `DISCORD_TOKEN` | yes | Your bot token (Developer Portal → Bot → Reset Token). |
 | `GUILD_ID` | yes | The server the bot registers slash commands to. |
-| `RESULTS_WEBHOOK` | yes | Discord webhook the bot posts results to. |
 | `POOL_ID` | yes | Which pool row (in `pools`) this instance manages. |
 | `CONF_SEASON` | yes | The NFL season year, e.g. `2025`. |
 | `DATABASE_URL` | yes | SQLite URL — leave as `sqlite:local/local.db`. |
 | `PICKS_URL` | yes | Base URL of the web pick app (`http://localhost:3000` locally). |
 | `DATA_URL` / `STANDINGS_URL` | yes | ESPN scoreboard / standings endpoints (defaults provided). |
-| `WEEKLY_WEBHOOK` | optional | Webhook for the startup weekly reminder. |
 | `BLAME_URL` | optional | Only needed by the `/blame` command. |
 
 ## 2. Create your local database
@@ -124,9 +122,6 @@ You'll want your own bot + a throwaway server so you never touch production:
 2. Enable **Developer Mode**: *User Settings → Advanced → Developer Mode*.
 3. Right-click the server icon → **Copy Server ID** and paste it into
    `GUILD_ID`.
-4. For `RESULTS_WEBHOOK` (and optionally `WEEKLY_WEBHOOK`): right-click a
-   channel → *Edit Channel → Integrations → Webhooks → New Webhook*, then
-   *Copy Webhook URL*.
 
 That gives you a fully isolated environment to develop against.
 

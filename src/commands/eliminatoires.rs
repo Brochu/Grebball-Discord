@@ -5,7 +5,6 @@ use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::command::CommandType;
-use serenity::model::webhook::Webhook;
 use serenity::prelude::*;
 
 use library::database::DB;
@@ -51,23 +50,22 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     let picture = football::get_playoff_picture(season).await;
     let results = football::calc_playoff_picture(&picture, &capsules);
 
-    match env::var("RESULTS_WEBHOOK") {
-        Ok(url) => {
-            let hook = Webhook::from_url(&ctx.http, url.as_str()).await.unwrap();
+    if results.is_empty() {
+        if let Err(message) = command.channel_id.send_message(&ctx.http, |res| {
+            res.content("Aucune capsule trouvée.")
+        }).await {
+            println!("![eliminatoires] Cannot respond to interaction : {:?}", message);
+        }
+        return;
+    }
 
-            if results.is_empty() {
-                hook.execute(&ctx.http, false, |h| { h.content("Aucune capsule trouvée.") }).await.unwrap();
-                return;
-            }
+    for (i, r) in results.iter().enumerate() {
+        let pad = " ".repeat(12usize.saturating_sub(r.name.len()));
 
-            for (i, r) in results.iter().enumerate() {
-                let pad = " ".repeat(12usize.saturating_sub(r.name.len()));
-                hook.execute(&ctx.http, false, |h| {
-                    h.content(format!("`#{:<2} {}{} {:>3}pts` {}\n", i+1, r.name, pad, r.score, r.icons).as_str())
-                }).await.unwrap();
-            }
-            // TODO: persist scores via cache_capsule once a season-over gate exists
-        },
-        Err(_) => { panic!("Could not find ENV `RESULTS_WEBHOOK`") },
+        if let Err(message) = command.channel_id.send_message(&ctx.http, |res| {
+            res.content(format!("`#{:<2} {}{} {:>3}pts` {}\n", i+1, r.name, pad, r.score, r.icons).as_str())
+        }).await {
+            println!("![eliminatoires] Cannot respond to interaction : {:?}", message);
+        }
     }
 }

@@ -4,7 +4,6 @@ use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::application::interaction::application_command::ApplicationCommandInteraction;
 use serenity::model::prelude::command::{CommandType, CommandOptionType};
-use serenity::model::webhook::Webhook;
 use serenity::prelude::*;
 
 use library::database::DB;
@@ -87,27 +86,22 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 println!("![results] Cannot respond to slash command : {:?}", reason);
             }
 
-            let webhook = match env::var("RESULTS_WEBHOOK") {
-                Ok(url) => Some(Webhook::from_url(&ctx.http, url.as_str()).await.unwrap()),
-                Err(_) => None,
-            };
-
             for r in calc_results(&week, &matches, &picks, &feature).await.iter() {
                 if r.cache {
                     db.cache_results(&r.pickid.unwrap(), &r.score, &r.featscore).await.unwrap();
                 }
 
                 let width = 12usize.saturating_sub(r.name.len());
-                if let Some(hook) = &webhook {
-                    hook.execute(&ctx.http, false, |h| {
-                        if r.featscore == 0 {
-                            h.content(format!("`{}{} ({:02})  ` {} | {}\n",
-                                r.name, " ".repeat(width), r.score, r.icons, r.overunder).as_str())
-                        } else {
-                            h.content(format!("`{}{} ({:02}+{})` {} | {}\n",
-                                r.name, " ".repeat(width), r.score, r.featscore, r.icons, r.overunder).as_str())
-                        }
-                    }).await.unwrap();
+                if let Err(message) = command.channel_id.send_message(&ctx.http, |res| {
+                    if r.featscore == 0 {
+                        res.content(format!("`{}{} ({:02})  ` {} | {}\n",
+                            r.name, " ".repeat(width), r.score, r.icons, r.overunder).as_str())
+                    } else {
+                        res.content(format!("`{}{} ({:02}+{})` {} | {}\n",
+                            r.name, " ".repeat(width), r.score, r.featscore, r.icons, r.overunder).as_str())
+                    }
+                }).await {
+                    println!("![results] Cannot respond to slash command : {:?}", message);
                 }
             }
         },
