@@ -29,6 +29,7 @@ pub struct CapsulePicks {
     pub season: u16,
     pub poolerid: i64,
     pub name: String,
+    pub repicks: i32,
 
     pub nfc_wins: [String; 4],
     pub nfc_wins_counts: [i32; 4],
@@ -443,7 +444,7 @@ impl DB {
 
     pub async fn fetch_pooler_capsule(&self, discordid: &i64, season: u16) -> Result<Option<CapsulePicks>> {
         let prow = sqlx::query("
-                SELECT p.id, p.name FROM users AS u
+                SELECT p.id, p.name, p.repicks FROM users AS u
                 JOIN poolers AS p
                 ON u.id = p.userid
                 WHERE u.discordid = ?
@@ -453,6 +454,7 @@ impl DB {
             .await?;
         let poolerid: i64 = prow.get("id");
         let name: String = prow.get("name");
+        let repicks: i32 = prow.get("repicks");
 
         let rows: Vec<SqliteRow> = sqlx::query("
                 SELECT type, conference, division, slot, team,
@@ -468,7 +470,7 @@ impl DB {
         match rows.len() {
             0 => Ok(None),
             14 => {
-                let mut capsule = CapsulePicks { season, poolerid, name, ..Default::default() };
+                let mut capsule = CapsulePicks { season, poolerid, name, repicks, ..Default::default() };
                 for row in &rows { populate_capsule(&mut capsule, row); }
                 Ok(Some(capsule))
             },
@@ -488,7 +490,7 @@ impl DB {
             .collect();
 
         let mut qb = QueryBuilder::new("
-                SELECT c.season, c.poolerid, p.name, c.type, c.conference,
+                SELECT c.season, c.poolerid, p.name, p.repicks, c.type, c.conference,
                        c.division, c.slot, c.team,
                        COUNT(*) OVER (PARTITION BY c.season, c.type, c.conference, c.division, c.team) AS pick_count
                 FROM capsules AS c
@@ -509,8 +511,9 @@ impl DB {
         for row in &rows {
             let poolerid: i64 = row.get("poolerid");
             let name: String = row.get("name");
+            let repicks: i32 = row.get("repicks");
 
-            let capsule = capsules.entry(poolerid).or_insert_with(|| { CapsulePicks { season: *season, poolerid, name, ..Default::default() } });
+            let capsule = capsules.entry(poolerid).or_insert_with(|| { CapsulePicks { season: *season, poolerid, name, repicks, ..Default::default() } });
             populate_capsule(capsule, row);
         }
 

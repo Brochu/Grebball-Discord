@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS "poolers" (
     "favteam" TEXT,
     "poolid"  INTEGER,
     "userid"  INTEGER,
+    "repicks" INTEGER NOT NULL DEFAULT (0),
     PRIMARY KEY("id" AUTOINCREMENT),
     CONSTRAINT "PoolId_FK" FOREIGN KEY("poolid") REFERENCES "pools"("id") ON DELETE SET NULL,
     CONSTRAINT "UserId_FK" FOREIGN KEY("userid") REFERENCES "users"("id") ON DELETE SET NULL

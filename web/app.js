@@ -34,7 +34,6 @@ app.get('/:token', async (req, res) => {
                 if (err) {
                     console.log('Could not query DB for token, err: ', err.message);
                 }
-                console.log("??? ", row);
                 res.render('error.html');
                 return;
             }
@@ -256,6 +255,157 @@ app.post('/capsule-submit/:token', (req, res) => {
         });
     });
 });
+
+app.get('/capsule-repicks/:token', (req, res) => {
+    const token = req.params['token'];
+
+    LoadDB((db) => {
+        const sql = `
+            SELECT t.season, p.repicks, c.type, c.conference, c.division, c.slot, c.team
+            FROM pick_tokens AS t
+            JOIN poolers AS p
+                ON p.id = t.poolerid
+            JOIN capsules AS c
+                ON c.poolerid = t.poolerid AND c.season = t.season
+            WHERE token = ?
+        `;
+        db.all(sql, token, (err, rows) => {
+            if (err || !rows || rows.length === 0) {
+                if (err) console.log(err);
+                res.render('error.html');
+                return;
+            }
+
+            const afcWinners = rows
+                .filter(e => e.type === 0 && e.conference === 1)
+                .reduce((acc, e) => {
+                    acc[DIV_ORDER[e.division]] = e.team;
+                    return acc;
+                }, {});
+
+            const nfcWinners = rows
+                .filter(e => e.type === 0 && e.conference === 0)
+                .reduce((acc, e) => {
+                    acc[DIV_ORDER[e.division]] = e.team;
+                    return acc;
+                }, {});
+
+            let afcWildcards = rows.filter((e) => {
+                return e.type === 1 && e.conference === 1;
+            });
+            afcWildcards.sort((a, b) => a.slot - b.slot);
+            afcWildcards = afcWildcards.map((e) => e.team);
+
+            let nfcWildcards = rows.filter((e) => {
+                return e.type === 1 && e.conference === 0;
+            });
+            nfcWildcards.sort((a, b) => a.slot - b.slot);
+            nfcWildcards = nfcWildcards.map((e) => e.team);
+
+            res.render('playoff-repicks.html', {
+                afcWinners,
+                nfcWinners,
+                afcWildcards,
+                nfcWildcards,
+                repicks: rows[0]['repicks'],
+                afcTeams, nfcTeams,
+                token, season: rows[0]['season']
+            });
+        });
+    });
+});
+
+app.post('/capsule-repicks-submit/:token', (req, res) => {
+    const token = req.params['token'];
+    const { afcWinners, nfcWinners, afcWildcards, nfcWildcards } = req.body;
+
+    // Parse the JSON strings from the form (pick payload only)
+    const afcWinnersObj = JSON.parse(afcWinners);
+    const nfcWinnersObj = JSON.parse(nfcWinners);
+    const afcWildcardsArr = JSON.parse(afcWildcards);
+    const nfcWildcardsArr = JSON.parse(nfcWildcards);
+
+    LoadDB((db) => {
+        const sql = `
+            SELECT pt.poolerid, pt.season, pl.repicks
+            FROM pick_tokens AS pt
+            JOIN poolers AS pl
+                ON pt.poolerid = pl.id
+            WHERE token = ?
+        `;
+        db.get(sql, token, (err, row) => {
+            if (err || !row) {
+                if (err) console.log(err);
+                res.render('error.html');
+                return;
+            }
+
+            const { poolerid, season, repicks } = row;
+
+            db.all('SELECT id, type, conference, division, slot, team FROM capsules WHERE season = ? AND poolerid = ?', season, poolerid, (err, rows) => {
+                if (err || !rows) { if (err) console.log(err); res.render('error.html'); return; }
+
+                const changes = {};
+                for (const r of rows) {
+                    const is_win = r['type'] === 0;
+                    const is_afc = r['conference'] === 1;
+
+                    let new_team = '';
+                    if (is_win) {
+                        new_team = (is_afc) ? afcWinnersObj[DIV_ORDER[r['division']]] : nfcWinnersObj[DIV_ORDER[r['division']]];
+                    }
+                    else {
+                        new_team = (is_afc) ? afcWildcardsArr[r['slot']] : nfcWildcardsArr[r['slot']];
+                    }
+
+                    if (!new_team) {
+                        console.log('Incomplete re-pick submission, refusing to apply');
+                        res.render('error.html');
+                        return;
+                    }
+
+                    if (r['team'] !== new_team) {
+                        changes[r['id']] = new_team;
+                    }
+                }
+
+                const ids = Object.keys(changes);
+                if (ids.length > repicks) {
+                    console.log("Trying to change more than {repicks} capsule picks");
+                    res.render('error.html');
+                    return;
+                }
+                if (ids.length <= 0) {
+                    res.render('success.html');
+                    return;
+                }
+
+                db.serialize(() => {
+                    db.run('BEGIN');
+
+                    const stmt = db.prepare('UPDATE capsules SET team = ? WHERE id = ?');
+                    for (const id of ids) {
+                        stmt.run(changes[id], id);
+                    }
+                    stmt.finalize();
+
+                    db.run('UPDATE poolers SET repicks = repicks - ? WHERE id = ?', ids.length, poolerid);
+                    db.run('DELETE FROM pick_tokens WHERE token = ?', token);
+
+                    db.run('COMMIT', (err) => {
+                        if (err) {
+                            console.log(err);
+                            res.render('error.html');
+                            return;
+                        }
+                        res.render('success.html');
+                    });
+                });
+            });
+        });
+    });
+});
+
 
 const port = 3000;
 

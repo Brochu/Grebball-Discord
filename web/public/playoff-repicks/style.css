@@ -1,0 +1,79 @@
+.team-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.team-name {
+  font-size: 0.95rem;
+}
+
+.header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background-color: var(--bs-secondary-bg);
+}
+
+.budget-banner,
+.footer-bar {
+  border: 1px solid var(--bs-border-color);
+  background-color: var(--bs-secondary-bg);
+}
+
+.repick-card {
+  border: 1px solid var(--bs-border-color);
+}
+
+.slot-label {
+  background-color: var(--bs-tertiary-bg);
+  color: var(--bs-secondary-color);
+  letter-spacing: 0.04em;
+}
+
+.swap-btn {
+  font-size: 0.8rem;
+}
+
+/* Reserved row showing the team that was swapped out (kept at a fixed height
+   so cards don't change size when a swap is made). */
+.swap-out {
+  display: flex;
+  align-items: center;
+  min-height: 1.75rem;
+  margin-top: 0.5rem;
+}
+
+.team-logo-sm {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.out-badge {
+  background-color: rgba(220, 53, 69, 0.18);
+  color: #ea868f;
+  font-weight: 600;
+}
+
+/* States used by later steps (swap confirmed / budget exhausted) */
+.repick-card.changed {
+  border-color: var(--bs-success);
+}
+
+.repick-card.locked {
+  opacity: 0.7;
+}
+
+@media (max-width: 576px) {
+  .team-name {
+    font-size: 0.9rem;
+  }
+  .team-logo {
+    width: 24px;
+    height: 24px;
+  }
+}

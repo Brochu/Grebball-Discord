@@ -171,7 +171,7 @@ function render() {
   const phaseDesc = document.getElementById('phase-description');
   
   if (phase === 'winners') {
-    phaseDesc.textContent = 'Step 1: Select division winners (1 per division)';
+    phaseDesc.textContent = 'Étape 1: Choisir les Gagnants de Division (1 par division)';
     
     afcDiv.innerHTML = divisions.map(d => renderDivisionWinners(afcTeams, d, 'AFC')).join('');
     nfcDiv.innerHTML = divisions.map(d => renderDivisionWinners(nfcTeams, d, 'NFC')).join('');
@@ -184,12 +184,12 @@ function render() {
     afcCounter.className = afcCount === 4 ? 'badge bg-success' : 'badge bg-secondary';
     nfcCounter.className = nfcCount === 4 ? 'badge bg-success' : 'badge bg-secondary';
     
-    actionBtn.textContent = 'Continue to Wild Cards';
+    actionBtn.textContent = 'Continuer aux Wild Cards';
     actionBtn.disabled = !allWinnersSelected();
     actionBtn.onclick = proceedToWildcards;
     backBtn.style.display = 'none';
   } else {
-    phaseDesc.textContent = 'Step 2: Select wild card teams (3 per conference)';
+    phaseDesc.textContent = 'Étape 2: Choisir les équipes Wild Cards (3 par conférence)';
     afcDiv.innerHTML = divisions.map(d => renderDivisionWildcards(afcTeams, d, 'AFC')).join('');
     nfcDiv.innerHTML = divisions.map(d => renderDivisionWildcards(nfcTeams, d, 'NFC')).join('');
     
@@ -198,7 +198,7 @@ function render() {
     afcCounter.className = afcWildcards.length === 3 ? 'badge bg-success' : 'badge bg-secondary';
     nfcCounter.className = nfcWildcards.length === 3 ? 'badge bg-success' : 'badge bg-secondary';
     
-    actionBtn.textContent = 'Submit Predictions';
+    actionBtn.textContent = 'Soumettre la capsule';
     actionBtn.disabled = !canSubmit();
     actionBtn.onclick = submitForm;
     backBtn.style.display = 'inline-block';

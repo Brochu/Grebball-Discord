@@ -67,6 +67,30 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 println!("![capsule] Cannot respond to slash command : {:?}", reason);
             }
         },
+        Ok(Some(capsule)) if capsule.repicks > 0 => {
+            let message = match db.issue_pick_token(season, 0, poolerid).await {
+                Ok(token) => {
+                    let picks_url = env::var("PICKS_URL")
+                        .expect("![capsule] Could not find 'PICKS_URL' env var");
+                    let url = format!("{}/capsule-repicks/{}", picks_url, token);
+
+                    format!("{} changements disponible pour la capsule {season}: {url}", capsule.repicks)
+                },
+                Err(_) => "Une erreur s'est produite avec la commande `/capsule` .".to_string(),
+            };
+
+            if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+                res
+                    .kind(InteractionResponseType::ChannelMessageWithSource)
+                    .interaction_response_data(|m| m
+                        .ephemeral(true)
+                        .content(message)
+                    )
+            })
+            .await {
+                println!("![capsule] Cannot respond to slash command : {:?}", reason);
+            }
+        },
         Ok(Some(capsule)) => {
             let mut content = format!("**Capsule {}**\n\n", season);
 
