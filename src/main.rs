@@ -1,23 +1,18 @@
-use chrono::{Local, Datelike, Timelike, Weekday};
 use dotenv::dotenv;
-use std::{env, time::Duration};
+use library::football::{list_emoji_names, sync_emojis};
+use serenity::utils::read_image;
+use std::env;
 
 use serenity::async_trait;
 use serenity::model::application::interaction::Interaction;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
-use serenity::model::webhook::Webhook;
 use serenity::prelude::*;
 
-use tokio::spawn;
-
 use library::database::DB;
-use library::football::{ get_week, get_team_emoji };
 
 mod commands;
-
-const VS_EMOJI: &str = "<:VS:1102123108187525130>";
 
 struct Bot {
     database: DB,
@@ -66,6 +61,9 @@ impl EventHandler for Bot {
             .expect("![Handler] Could not parse guild_id to int")
         );
 
+        let emojis = guild_id.emojis(&ctx.http).await.expect("![Handler] Could not fetch all server emojis");
+        sync_emojis(&emojis);
+
         let commands = GuildId::set_application_commands(&guild_id, &ctx.http, |cmds| {
             cmds
                 .create_application_command(|cmd| commands::matches::register(cmd))
@@ -85,6 +83,7 @@ impl EventHandler for Bot {
         commands.iter()
             .for_each(|c| println!("\t-{}", c.name));
 
+        /*
         spawn(async move {
             let db = DB::new().await;
 
@@ -124,10 +123,13 @@ impl EventHandler for Bot {
                 }
             }
         });
+        */
     }
 }
 
+/*
 async fn weekly_matches_message(season: &u16, week: &i64) -> String {
+    const VS_EMOJI: &str = "<:VS:1102123108187525130>";
     let matches = get_week(&season, &week).await;
 
     matches.into_iter().fold(String::new(), |mut out, m| {
@@ -153,10 +155,52 @@ async fn weekly_matches_message(season: &u16, week: &i64) -> String {
         out
     })
 }
+*/
 
+/*
 async fn weekly_results_message(_db: &DB, _poolid: &i64, _season: &u16, _week: &i64) -> String {
     //TODO: Bring changes from results.rs
     String::new()
+}
+*/
+
+async fn reset_emojis(token: &str) {
+    let http = serenity::http::Http::new(token);
+    let guild = GuildId(env::var("GUILD_ID")
+        .expect("![Handler] Could not find env var 'GUILD_ID'")
+        .parse()
+        .expect("![Handler] Could not parse guild_id to int")
+    );
+
+    let folder = "./web/public/teams";
+    let emojis: Vec<_> = guild.emojis(&http).await
+       .expect("![Handler] Could not fetch all server emojis");
+
+    let names = list_emoji_names();
+    let filtered: Vec<_> = emojis
+       .iter().filter(|&e| names.contains(&e.name.as_str()))
+       .collect();
+
+    for e in &filtered {
+        match guild.delete_emoji(&http, e.id).await {
+            Ok(_) => println!("[SYNC-EMOJIS] Successfully deleted emoji {} -> {}", e.id, e.name),
+            Err(err) => println!("[SYNC-EMOJIS] Could not delete emoji {} -> {} : {err}", e.id, e.name),
+        }
+    }
+
+    for &name in names {
+        let path = format!("{folder}/{}.png", name);
+        let img = match read_image(&path) {
+            Ok(img) => img,
+            Err(e) => { println!("[SYNC-EMOJIS] Skipping {name}, can't read {path} : {e}"); continue; },
+        };
+
+        match guild.create_emoji(&http, name, &img).await {
+            Ok(emoji) => println!("[SYNC-EMOJIS] Successfully added new emoji {} -> {}", emoji.id, emoji.name),
+            Err(err) => println!("[SYNC-EMOJIS] Could not create emoji {} : {err}", name),
+        }
+    }
+    return;
 }
 
 #[tokio::main]
@@ -165,9 +209,16 @@ async fn main() {
 
     let token = env::var("DISCORD_TOKEN")
         .expect("![MAIN] Cannot find 'DISCORD_TOKEN' in env");
+
+    if env::args().any(|v| v == "--sync-emojis") {
+        reset_emojis(&token).await;
+        return;
+    }
+
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
-        | GatewayIntents::MESSAGE_CONTENT;
+        | GatewayIntents::MESSAGE_CONTENT
+        | GatewayIntents::GUILD_EMOJIS_AND_STICKERS;
 
     let mut client = Client::builder(token, intents)
         .event_handler(Bot { database: DB::new().await })

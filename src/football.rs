@@ -1,11 +1,51 @@
-use std::{env, cmp::Ordering, collections::HashMap};
+use std::{env, cmp::Ordering, collections::HashMap, sync::OnceLock};
 use core::fmt::{Display, Debug};
 
 use chrono::{ DateTime, TimeDelta, Utc };
 use serde::{Deserialize, Serialize};
-use serenity::model::id::EmojiId;
+use serenity::{model::id::EmojiId, utils::Emoji};
 
 use crate::database::{WeekFeature, WeekPicks, CapsulePicks};
+
+pub fn list_emoji_names() -> &'static [&'static str] {
+    return &[
+        "ARI",
+        "ATL",
+        "BAL",
+        "BUF",
+        "CAR",
+        "CHI",
+        "CIN",
+        "CLE",
+        "DAL",
+        "DEN",
+        "DET",
+        "GB",
+        "HOU",
+        "IND",
+        "JAX",
+        "KC",
+        "LAR",
+        "LAC",
+        "LV",
+        "MIA",
+        "MIN",
+        "NE",
+        "NO",
+        "NYG",
+        "NYJ",
+        "PHI",
+        "PIT",
+        "SEA",
+        "SF",
+        "TB",
+        "TEN",
+        "WSH",
+
+        "AFC",
+        "NFC",
+    ];
+}
 
 pub fn get_short_name(name: &str) -> String {
     match name {
@@ -49,50 +89,37 @@ pub fn get_short_name(name: &str) -> String {
 }
 
 pub fn get_team_emoji(team: &str) -> EmojiId {
-    return EmojiId(match team {
-        "ARI" => 1142671366424887367,
-        "ATL" => 1142671368161341491,
-        "BAL" => 1142671369008582697,
-        "BUF" => 1142671369956507668,
-        "CAR" => 1142671371260932197,
-        "CHI" => 1142671373139968040,
-        "CIN" => 1142671374515703868,
-        "CLE" => 1142671375941783685,
-        "DAL" => 1142671377736925234,
-        "DEN" => 1142671664379875459,
-        "DET" => 1142671665449410570,
-        "GB"  => 1142671674727223507,
-        "HOU" => 1142671676417523731,
-        "IND" => 1142671380832338000,
-        "JAX" => 1142671677990387722,
-        "KC"  => 1142671679051546724,
-        "LA"  => 1142671680410484888,
-        "LAR" => 1142671680410484888,
-        "LAC" => 1142671682121773097,
-        "LV"  => 1142671384263270410,
-        "MIA" => 1142671683325526126,
-        "MIN" => 1142671684395094086,
-        "NE"  => 1142671686001512538,
-        "NO"  => 1142671388507918356,
-        "NYG" => 1142671779022770237,
-        "NYJ" => 1142671392026923148,
-        "PHI" => 1142671781107347606,
-        "PIT" => 1142671688723603496,
-        "SEA" => 1142671395256541225,
-        "SF"  => 1142671782139134043,
-        "TB"  => 1142671784433430570,
-        "TEN" => 1142671692989218937,
-        "WAS" => 1142671397987041281,
-        "WSH" => 1142671397987041281,
-        _     => 1142674584508825681,
-    });
+    return EMOJIS.get()
+        .and_then(|emojis| emojis.get(team))
+        .copied()
+        .unwrap_or(EmojiId(1142674584508825681));
 }
 
 pub fn get_afc_emoji() -> EmojiId {
-    EmojiId(1505942320200159364)
+    return EMOJIS.get()
+        .and_then(|emojis| emojis.get("AFC"))
+        .copied()
+        .unwrap_or(EmojiId(1142674584508825681));
 }
 pub fn get_nfc_emoji() -> EmojiId {
-    EmojiId(1505942365276471317)
+    return EMOJIS.get()
+        .and_then(|emojis| emojis.get("NFC"))
+        .copied()
+        .unwrap_or(EmojiId(1142674584508825681));
+}
+
+static EMOJIS: OnceLock<HashMap<String, EmojiId>> = OnceLock::new();
+
+pub fn sync_emojis(emojis: &[Emoji]) {
+    let names = list_emoji_names();
+    let map = emojis.iter()
+        .filter(|&e| names.contains(&e.name.as_str()))
+        .fold(HashMap::<_, _>::new(), |mut map, e| {
+            map.insert(e.name.clone(), e.id);
+            map
+        });
+
+    let _ = EMOJIS.set(map);
 }
 
 pub fn get_team_id(team: &str) -> i64 {
