@@ -172,7 +172,6 @@ async fn reset_emojis(token: &str) {
         .expect("![Handler] Could not parse guild_id to int")
     );
 
-    let folder = "./web/public/teams";
     let emojis: Vec<_> = guild.emojis(&http).await
        .expect("![Handler] Could not fetch all server emojis");
 
@@ -188,8 +187,12 @@ async fn reset_emojis(token: &str) {
         }
     }
 
+    let folder = "./web/public/teams";
+    let prefix = env::var("EMOJI_PREFIX")
+        .expect("![MAIN] Cannot find 'EMOJI_PREFIX' in env");
+
     for &name in names {
-        let path = format!("{folder}/{}.png", name);
+        let path = format!("{folder}/{prefix}{name}.png");
         let img = match read_image(&path) {
             Ok(img) => img,
             Err(e) => { println!("[SYNC-EMOJIS] Skipping {name}, can't read {path} : {e}"); continue; },

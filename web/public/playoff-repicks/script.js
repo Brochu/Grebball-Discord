@@ -1,3 +1,5 @@
+const e_prefix = window.e_prefix ?? '';
+
 // ---- Theme toggle (same pattern as the playoff page) ----
 function initTheme() {
   const saved = localStorage.getItem('theme') || 'dark';
@@ -84,7 +86,7 @@ function cardHtml(s) {
           </button>
         </div>
         <div class="d-flex align-items-center">
-          <img src="/teams/${sname}.png" alt="${team.name}" class="team-logo me-2">
+          <img src="/teams/${e_prefix}${sname}.png" alt="${team.name}" class="team-logo me-2">
           <div>
             <div class="fw-bold team-name">${team.name}</div>
             <div class="text-muted small">${team.conf}</div>
@@ -93,7 +95,7 @@ function cardHtml(s) {
         <div class="swap-out small">
           ${changed ? `
             <span class="badge out-badge me-1">Retiré</span>
-            <img src="/teams/${original[s.id]}.png" alt="${origTeam.name}" class="team-logo-sm me-1">
+            <img src="/teams/${e_prefix}${original[s.id]}.png" alt="${origTeam.name}" class="team-logo-sm me-1">
             <span class="text-decoration-line-through text-muted">${origTeam.name}</span>
           ` : ''}
         </div>
@@ -176,7 +178,7 @@ function swapRowHtml(slot, t, action) {
     <button type="button"
             class="list-group-item list-group-item-action d-flex align-items-center ${disabled ? 'disabled' : ''}"
             ${disabled ? 'aria-disabled="true"' : onclick}>
-      <img src="/teams/${t.sname}.png" alt="${t.name}" class="team-logo me-2">
+      <img src="/teams/${e_prefix}${t.sname}.png" alt="${t.name}" class="team-logo me-2">
       <div class="flex-grow-1 text-start">
         <div class="fw-bold team-name">${t.name}</div>
         <div class="text-muted small">${slot.conf}</div>
@@ -229,12 +231,12 @@ function reviewRowHtml(s) {
       <div class="card-body p-3 d-flex align-items-center flex-wrap">
         <span class="badge slot-label text-uppercase me-3">${s.label}</span>
         <span class="d-flex align-items-center text-muted me-3">
-          <img src="/teams/${original[s.id]}.png" alt="${outTeam.name}" class="team-logo-sm me-1">
+          <img src="/teams/${e_prefix}${original[s.id]}.png" alt="${outTeam.name}" class="team-logo-sm me-1">
           <span class="text-decoration-line-through">${outTeam.name}</span>
         </span>
         <i class="bi bi-arrow-right me-3"></i>
         <span class="d-flex align-items-center fw-bold">
-          <img src="/teams/${current[s.id]}.png" alt="${inTeam.name}" class="team-logo me-2">
+          <img src="/teams/${e_prefix}${current[s.id]}.png" alt="${inTeam.name}" class="team-logo me-2">
           <span>${inTeam.name}</span>
         </span>
       </div>

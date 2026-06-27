@@ -1,7 +1,6 @@
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 
-require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 const dburl = process.env.DATABASE_URL || 'sqlite:local/local.db';
 const dbfile = path.resolve(__dirname, '..', dburl.replace(/^sqlite:/, ''));
 

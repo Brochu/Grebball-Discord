@@ -1,3 +1,5 @@
+const e_prefix = window.e_prefix ?? '';
+
 // Theme toggle functionality
 function initTheme() {
   const savedTheme = localStorage.getItem('theme') || 'light';
@@ -97,7 +99,7 @@ function renderDivisionWinners(teams, division, conference) {
     html += `
       <button class="btn ${btnClass} btn-sm text-start d-flex align-items-center"
               onclick="toggleWinner('${conference}', '${division}', '${team.name}')">
-        <img src="/teams/${team.sname}.png" alt="${team.name}" class="team-logo me-2">
+        <img src="/teams/${e_prefix}${team.sname}.png" alt="${team.name}" class="team-logo me-2">
         <span class="flex-grow-1 team-name">${team.name}</span>
         ${isSelected ? '<i class="bi bi-check-lg"></i>' : ''}
       </button>
@@ -144,7 +146,7 @@ function renderDivisionWildcards(teams, division, conference) {
     html += `
       <button class="btn ${btnClass} btn-sm text-start d-flex align-items-center" ${disabled}
               onclick="${!isWinner ? `toggleWildcard('${conference}', '${team.name}')` : ''}">
-        <img src="/teams/${team.sname}.png" alt="${team.name}" class="team-logo me-2">
+        <img src="/teams/${e_prefix}${team.sname}.png" alt="${team.name}" class="team-logo me-2">
         <span class="flex-grow-1 team-name">${team.name}</span>
         ${icon}
       </button>

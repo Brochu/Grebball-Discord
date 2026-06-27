@@ -1,3 +1,6 @@
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+
 const express = require('express');
 const app = express();
 // Setup rendering engine
@@ -13,6 +16,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 const LoadDB = require('./database');
+const e_prefix = process.env.EMOJI_PREFIX || '';
 
 app.get('/:token', async (req, res) => {
     const token = req.params['token'];
@@ -77,10 +81,10 @@ app.get('/:token', async (req, res) => {
                     match['strHomeTeam'] = hteam['team']['displayName'];
                     match['strAwayTeam'] = ateam['team']['displayName'];
 
-                    match['homeRecordAll'] = hteam['records'][0];
-                    match['homeRecordAlt'] = hteam['records'][1];
-                    match['awayRecordAll'] = ateam['records'][0];
-                    match['awayRecordAlt'] = ateam['records'][2];
+                    match['homeRecordAll'] = (hteam['records']) ? hteam['records'][0] : 0;
+                    match['homeRecordAlt'] = (hteam['records']) ? hteam['records'][1] : 0;
+                    match['awayRecordAll'] = (ateam['records']) ? ateam['records'][0] : 0;
+                    match['awayRecordAlt'] = (ateam['records']) ? ateam['records'][2] : 0;
 
                     if (m['id'] == feat_id) {
                         match['featured'] = true;
@@ -98,7 +102,7 @@ app.get('/:token', async (req, res) => {
                 token,
                 username, favteam, avatar,
                 matches, forcedid,
-                feat_val
+                feat_val, e_prefix
             });
         });
     });
@@ -188,7 +192,8 @@ app.get('/capsule/:token', (req, res) => {
                 afcTeams,
                 nfcTeams,
                 token,
-                season: row['season']
+                season: row['season'],
+                e_prefix
             });
         });
     });
@@ -309,7 +314,8 @@ app.get('/capsule-repicks/:token', (req, res) => {
                 nfcWildcards,
                 repicks: rows[0]['repicks'],
                 afcTeams, nfcTeams,
-                token, season: rows[0]['season']
+                token, season: rows[0]['season'],
+                e_prefix
             });
         });
     });
