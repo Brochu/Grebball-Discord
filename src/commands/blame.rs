@@ -7,7 +7,7 @@ use serenity::model::prelude::command::{CommandOptionType, CommandType};
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::{calc_blame, get_team_id, get_schedule};
+use library::football::{BlameResult, calc_blame, get_team_id, get_schedule, get_long_name, get_team_emoji };
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -23,6 +23,26 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
         })
 }
 
+fn calc_blame_score(blame_res: &BlameResult) -> i32 {
+    return match blame_res {
+        BlameResult::Bye | BlameResult::Tied | BlameResult::NoChoice => 0,
+        BlameResult::WinUnique => 4,
+        BlameResult::Win => 2,
+        BlameResult::Loss => -2,
+        BlameResult::LossUnique => -4,
+    };
+}
+
+fn blame_score_emoji(blame_res: &BlameResult) -> &'static str{
+    return match blame_res {
+        BlameResult::Bye | BlameResult::Tied | BlameResult::NoChoice => ":white_large_square:",
+        BlameResult::WinUnique => ":arrow_double_up:",
+        BlameResult::Win => ":arrow_up:",
+        BlameResult::Loss => ":arrow_down:",
+        BlameResult::LossUnique => ":arrow_double_down:",
+    };
+}
+
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
     let poolid = env::var("POOL_ID")
         .expect("![Handler] Could not find env var 'POOL_ID'").parse::<i64>()
@@ -32,7 +52,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("[picks] Could not parse 'CONF_SEASON' to u16");
 
     let team = command.data.options.first().unwrap().clone().value.unwrap();
-    let teamid = get_team_id(team.as_str().unwrap());
+    let team = team.as_str().unwrap();
+    let teamid = get_team_id(team);
     if teamid == -1 {
         if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
             res
@@ -56,18 +77,24 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     let poolerid = db.fetch_poolerid(&discordid).await.unwrap();
 
     let matches = get_schedule(&season, &teamid).await;
-    let (seasondata, week_count) = db.fetch_season(&poolid, &season).await.unwrap();
-    (0..week_count).for_each(|i| {
-        println!("{:02} -- {:?}", i+1, matches[i]);
+    let (seasondata, _) = db.fetch_season(&poolid, &season).await.unwrap();
+    let pooler_picks: Vec<_> = seasondata.into_iter()
+        .filter_map(|(_, _, picks)| picks.into_iter().find(|p| p.poolerid == poolerid))
+        .collect();
+
+    let outcomes = calc_blame(&matches, &pooler_picks, team);
+    let emojis: String = outcomes.iter().enumerate().fold(String::new(), |mut acc, (i, o)| {
+        acc.push_str(format!("`{:02}` {}\n", i+1, blame_score_emoji(o)).as_str());
+        acc
     });
-    let _blame_score = calc_blame(&seasondata[0].0, &Vec::new(), &seasondata[0].2, &poolerid, team.as_str().unwrap());
+    let score: i32 = outcomes.iter().map(|o| calc_blame_score(o)).sum();
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res
             .kind(InteractionResponseType::ChannelMessageWithSource)
             .interaction_response_data(|m| m
                 .ephemeral(true)
-                    .content(format!("[{}]{} -> blame `{}`", discordid, season, team))
+                    .content(format!("Blâmer <:{}:{}> {}\n{}\n Total pour la saison: {}", team, get_team_emoji(team), get_long_name(team), emojis, score))
             )
     })
     .await {

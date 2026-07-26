@@ -88,6 +88,44 @@ pub fn get_short_name(name: &str) -> String {
     }.to_owned()
 }
 
+pub fn get_long_name(name: &str) -> String {
+    match name {
+        "ARI" => "Arizona Cardinals",
+        "ATL" => "Atlanta Falcons",
+        "BAL" => "Baltimore Ravens",
+        "BUF" => "Buffalo Bills",
+        "CAR" => "Carolina Panthers",
+        "CHI" => "Chicago Bears",
+        "CIN" => "Cincinnati Bengals",
+        "CLE" => "Cleveland Browns",
+        "DAL" => "Dallas Cowboys",
+        "DEN" => "Denver Broncos",
+        "DET" => "Detroit Lions",
+        "GB" => "Green Bay Packers",
+        "HOU" => "Houston Texans",
+        "IND" => "Indianapolis Colts",
+        "JAX" => "Jacksonville Jaguars",
+        "KC" => "Kansas City Chiefs",
+        "LAR" => "Los Angeles Rams",
+        "LAC" => "Los Angeles Chargers",
+        "LV" => "Las Vegas Raiders",
+        "MIA" => "Miami Dolphins",
+        "MIN" => "Minnesota Vikings",
+        "NE" => "New England Patriots",
+        "NO" => "New Orleans Saints",
+        "NYG" => "New York Giants",
+        "NYJ" => "New York Jets",
+        "PHI" => "Philadelphia Eagles",
+        "PIT" => "Pittsburgh Steelers",
+        "SEA" => "Seattle Seahawks",
+        "SF" => "San Francisco 49ers",
+        "TB" => "Tampa Bay Buccaneers",
+        "TEN" => "Tennessee Titans",
+        "WSH" => "Washington Commanders",
+        _                      => "N/A",
+    }.to_owned()
+}
+
 pub fn get_team_emoji(team: &str) -> EmojiId {
     return EMOJIS.get()
         .and_then(|emojis| emojis.get(team))
@@ -192,6 +230,40 @@ impl Debug for Match {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct ESPNSchedule {
+    events: Vec<ESPNEvent>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ESPNEvent {
+    id: String,
+    week: ESPNWeek,
+    #[serde(rename="competitions")]
+    comp: Vec<ESPNCompetition>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ESPNWeek {
+    number: i8,
+    //text: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ESPNCompetition {
+    id: String,
+    date: String,
+    #[serde(rename="competitors")]
+    teams: Vec<ESPNCompetitor>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct ESPNCompetitor {
+    team: ESPNTeam,
+    #[serde(default)]
+    score: String,
+}
+
 pub async fn get_week(season: &u16, week: &i64) -> Vec<Match> {
     let data_url = env::var("DATA_URL")
         .expect("![Football] Could not find 'DATA_URL' env var");
@@ -230,47 +302,39 @@ pub async fn get_week(season: &u16, week: &i64) -> Vec<Match> {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ESPNSchedule {
-    events: Vec<ESPNEvent>,
+struct ESPNSchedule2 {
+    events: Vec<ESPNEvent2>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ESPNEvent {
+struct ESPNEvent2 {
     id: String,
     week: ESPNWeek,
     #[serde(rename="competitions")]
-    comp: Vec<ESPNCompetition>,
+    comp: Vec<ESPNCompetition2>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ESPNWeek {
-    number: i8,
-    //text: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct ESPNCompetition {
+struct ESPNCompetition2 {
     id: String,
     date: String,
     #[serde(rename="competitors")]
-    teams: Vec<ESPNCompetitor>,
+    teams: Vec<ESPNCompetitor2>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ESPNCompetitor {
+struct ESPNCompetitor2 {
     team: ESPNTeam,
     #[serde(default)]
-    score: String,
+    score: Option<ESPNScore>,
 }
 
-/*
 #[derive(Serialize, Deserialize, Debug, Default)]
 #[allow(non_snake_case)]
 struct ESPNScore {
     value: f32,
     displayValue: String,
 }
-*/
 
 pub async fn get_schedule(season: &u16, teamid: &i64) -> Vec<Option<Match>> {
     let partial_url = env::var("BLAME_URL")
@@ -281,20 +345,15 @@ pub async fn get_schedule(season: &u16, teamid: &i64) -> Vec<Option<Match>> {
         .expect("![Football] Could not get reply")
         .text().await
         .expect("![Football] Could not retrieve text from response");
-    let schedule: ESPNSchedule = serde_json::from_str(&res).expect("![Football] Could not parse response");
+    let schedule: ESPNSchedule2 = serde_json::from_str(&res).expect("![Football] Could not parse response");
 
     let matches: Vec<_> = schedule.events.iter().map(|e| {
         let hteam = &e.comp[0].teams[0];
         let ateam = &e.comp[0].teams[1];
         let match_date = e.comp[0].date.replace("Z", ":00Z");
 
-        let (mut away_score, mut home_score) = (
-            ateam.score.parse::<u64>().ok(),
-            hteam.score.parse::<u64>().ok(),
-        );
-        if ateam.score.is_empty() && hteam.score.is_empty() {
-            (away_score, home_score) = (None, None);
-        }
+        let away_score = ateam.score.as_ref().map(|v| v.value as u64);
+        let home_score = hteam.score.as_ref().map(|v| v.value as u64);
 
         //TODO: Find a way to avoid all the clones
         (e.week.number, Match {
@@ -316,14 +375,56 @@ pub async fn get_schedule(season: &u16, teamid: &i64) -> Vec<Option<Match>> {
     return result;
 }
 
-pub fn calc_blame(
-    _week: &i64,
-    _matches: &[Match],
-    _picks: &[WeekPicks],
-    _poolerid: &i64,
-    _team: &str) -> i64 {
+#[derive(Debug)]
+pub enum BlameResult {
+    Bye,
+    NoChoice,
+    Tied,
+    Win,
+    WinUnique,
+    Loss,
+    LossUnique,
+}
 
-    return 0;
+pub fn calc_blame(
+    matches: &[Option<Match>],
+    pooler_picks: &Vec<WeekPicks>,
+    team: &str) -> Vec<BlameResult> {
+
+    let mut outcomes = Vec::<BlameResult>::new();
+    
+    for (i, week_match) in matches.iter().enumerate() {
+        if let (Some(m), Some(pooler)) = (week_match, pooler_picks.get(i)) {
+            if m.away_score == m.home_score {
+                outcomes.push(BlameResult::Tied);
+                continue
+            }
+            let won = if m.away_team == team {
+                m.away_score > m.home_score
+            } else {
+                m.home_score > m.away_score
+            };
+
+            let picked = pooler.picks.as_ref().and_then(|picks| picks.get(&m.id_event)).is_some_and(|p| p == team);
+            let unique = pooler.counts.as_ref().and_then(|counts| counts.get(&m.id_event)).is_some_and(|&c| c == 1);
+            
+            match (won == picked, unique) {
+                (false, false) => outcomes.push(BlameResult::Loss),
+                (false, true) => outcomes.push(BlameResult::LossUnique),
+                (true, false) => outcomes.push(BlameResult::Win),
+                (true, true) => outcomes.push(BlameResult::WinUnique),
+            };
+        } else {
+            if week_match.is_none() {
+                outcomes.push(BlameResult::Bye);
+            }
+            else if pooler_picks.get(i).is_none() {
+                outcomes.push(BlameResult::NoChoice);
+            }
+        }
+    }
+    
+    return outcomes;
 }
 
 pub struct PickResults {
