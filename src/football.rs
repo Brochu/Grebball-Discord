@@ -146,6 +146,22 @@ pub fn get_nfc_emoji() -> EmojiId {
         .unwrap_or(EmojiId(1142674584508825681));
 }
 
+// ESPN sits behind Akamai, which 403s any request whose User-Agent it doesn't
+// recognize -- and reqwest sends none at all by default.
+static HTTP: OnceLock<reqwest::Client> = OnceLock::new();
+
+fn http() -> &'static reqwest::Client {
+    HTTP.get_or_init(|| {
+        reqwest::Client::builder()
+            .user_agent(concat!(
+                env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),
+                " (+https://github.com/Brochu/Grebball-Discord)"
+            ))
+            .build()
+            .expect("![Football] Could not build HTTP client")
+    })
+}
+
 static EMOJIS: OnceLock<HashMap<String, EmojiId>> = OnceLock::new();
 
 pub fn sync_emojis(emojis: &[Emoji]) {
@@ -276,7 +292,7 @@ pub async fn get_week(season: &u16, week: &i64) -> Vec<Match> {
     let stype = if w < 100 { 2 } else { 3 };
 
     let scoreurl = format!("{}?dates={}&seasontype={}&week={}", data_url, season, stype, sw);
-    let scoreres = reqwest::get(scoreurl).await
+    let scoreres = http().get(scoreurl).send().await
         .expect("![Football] Could not get reply")
         .text().await
         .expect("![Football] Could not retrieve text from response");
@@ -341,7 +357,7 @@ pub async fn get_schedule(season: &u16, teamid: &i64) -> Vec<Option<Match>> {
         .expect("![Football] Could not find 'BLAME_URL' env var");
 
     let url = format!("{}/{}/schedule?season={}", partial_url, teamid, season);
-    let res = reqwest::get(url).await
+    let res = http().get(url).send().await
         .expect("![Football] Could not get reply")
         .text().await
         .expect("![Football] Could not retrieve text from response");
@@ -657,7 +673,7 @@ pub async fn get_playoff_picture(season: u16) -> PlayoffPicture {
         .expect("![Football] Could not find 'STANDINGS_URL' env var");
 
     let url = format!("{}?season={}&type=0&level=3", standings_url, season);
-    let res = reqwest::get(url).await
+    let res = http().get(url).send().await
         .expect("![Football] Could not get standings reply")
         .text().await
         .expect("![Football] Could not retrieve standings text");
