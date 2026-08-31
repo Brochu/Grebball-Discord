@@ -44,6 +44,7 @@ pub fn list_emoji_names() -> &'static [&'static str] {
 
         "AFC",
         "NFC",
+        "WildCards",
     ];
 }
 
@@ -142,6 +143,12 @@ pub fn get_afc_emoji() -> EmojiId {
 pub fn get_nfc_emoji() -> EmojiId {
     return EMOJIS.get()
         .and_then(|emojis| emojis.get("NFC"))
+        .copied()
+        .unwrap_or(EmojiId(1142674584508825681));
+}
+pub fn get_wildcards_emoji() -> EmojiId {
+    return EMOJIS.get()
+        .and_then(|emojis| emojis.get("WildCards"))
         .copied()
         .unwrap_or(EmojiId(1142674584508825681));
 }
@@ -780,19 +787,19 @@ pub fn calc_playoff_picture(picture: &PlayoffPicture, picks: &HashMap<i64, Capsu
         let mut score = 0;
 
         let mut icons = String::new();
-        icons.push_str(&format!("<:AFC:{}>", get_afc_emoji()));
+        icons.push_str(&format!("<:AFC:{}> ", get_afc_emoji()));
         for team in &capsule.afc_wins {
             icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
         }
-        icons.push('|');
+        icons.push_str(&format!("     <:WildCards:{}> ", get_wildcards_emoji()));
         for team in &capsule.afc_wildcards {
             icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
         }
-        icons.push_str(&format!(" - <:NFC:{}>", get_nfc_emoji()));
+        icons.push_str(&format!("   -   <:NFC:{}> ", get_nfc_emoji()));
         for team in &capsule.nfc_wins {
             icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
         }
-        icons.push('|');
+        icons.push_str(&format!("     <:WildCards:{}> ", get_wildcards_emoji()));
         for team in &capsule.nfc_wildcards {
             icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
         }
@@ -835,4 +842,28 @@ pub fn calc_playoff_picture(picture: &PlayoffPicture, picks: &HashMap<i64, Capsu
 
     results.sort_unstable_by(|l, r| r.score.cmp(&l.score));
     results
+}
+
+// Same layout as the pooler rows, so the reference row lines up under them.
+pub fn format_playoff_picture(picture: &PlayoffPicture) -> String {
+    let mut icons = String::new();
+
+    icons.push_str(&format!("<:AFC:{}> ", get_afc_emoji()));
+    for team in &picture.afc_winners {
+        icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+    }
+    icons.push_str(&format!("     <:WildCards:{}> ", get_wildcards_emoji()));
+    for team in &picture.afc_wildcards {
+        icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+    }
+    icons.push_str(&format!("   -   <:NFC:{}> ", get_nfc_emoji()));
+    for team in &picture.nfc_winners {
+        icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+    }
+    icons.push_str(&format!("     <:WildCards:{}> ", get_wildcards_emoji()));
+    for team in &picture.nfc_wildcards {
+        icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+    }
+
+    icons
 }

@@ -9,7 +9,7 @@ use serenity::prelude::*;
 
 use library::database::DB;
 
-pub const ACCESS: i64 = 0;
+pub const ACCESS: i64 = 1;
 
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
@@ -28,9 +28,9 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res
-            .kind(InteractionResponseType::ChannelMessageWithSource)
+            .kind(InteractionResponseType::DeferredChannelMessageWithSource)
             .interaction_response_data(|m| m
-                .content(format!("### Capsule {} — Correction\n", season).as_str())
+                .content("Calcul ...")
             )
     }).await {
         println!("![eliminatoires] Cannot respond to slash command : {:?}", reason);
@@ -53,12 +53,22 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     let results = football::calc_playoff_picture(&picture, &capsules);
 
     if results.is_empty() {
-        if let Err(message) = command.channel_id.send_message(&ctx.http, |res| {
+        if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
             res.content("Aucune capsule trouvée.")
         }).await {
-            println!("![eliminatoires] Cannot respond to interaction : {:?}", message);
+            println!("![eliminatoires] Cannot edit interaction response : {:?}", reason);
         }
         return;
+    }
+
+    // Padded to the same width as the pooler rows, so the emoji grids line up.
+    let header = format!("### Capsule {} — Correction\n`{:<23}` {}",
+        season, "Résultats", football::format_playoff_picture(&picture));
+
+    if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
+        res.content(header)
+    }).await {
+        println!("![eliminatoires] Cannot edit interaction response : {:?}", reason);
     }
 
     for (i, r) in results.iter().enumerate() {
