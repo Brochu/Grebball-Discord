@@ -93,6 +93,22 @@ impl DB {
 
         DB { pool: SqlitePool::connect(db_url.as_str()).await.unwrap() }
     }
+    
+    pub async fn fetch_access_level(&self, discordid: i64) -> i64 {
+        return match sqlx::query("
+                SELECT COALESCE(access, 0) AS access FROM users
+                WHERE discordid = ?
+                ")
+            .bind(discordid)
+            .fetch_optional(&self.pool).await {
+                Ok(row) => {
+                    row.map(|r| r.get("access")).unwrap_or(0)
+                },
+                Err(_) => {
+                    0
+                }
+            };
+    }
 
     pub async fn find_week(&self, poolid: &i64, season: &u16) -> Result<i64> {
         let week = sqlx::query("

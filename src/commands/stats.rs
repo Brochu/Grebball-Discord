@@ -10,6 +10,8 @@ use serenity::prelude::*;
 use library::database::{ DB, WeekFeature };
 use library::football::{ Match, get_week };
 
+pub const ACCESS: i64 = 0;
+
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
         .name("stats")

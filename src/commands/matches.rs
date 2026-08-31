@@ -13,6 +13,8 @@ use library::football::{ get_week, get_team_emoji };
 
 const VS_EMOJI: &str = "<:VS:1144451849571794997>";
 
+pub const ACCESS: i64 = 0;
+
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
         .name("semaine")

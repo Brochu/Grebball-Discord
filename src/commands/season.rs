@@ -10,6 +10,8 @@ use serenity::prelude::*;
 use library::database::DB;
 use library::football::{Match, calc_playoff_picture, calc_results, get_playoff_picture, get_week};
 
+pub const ACCESS: i64 = 0;
+
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
         .name("saison")

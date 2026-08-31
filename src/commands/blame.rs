@@ -9,6 +9,8 @@ use serenity::prelude::*;
 use library::database::DB;
 use library::football::{BlameResult, calc_blame, get_team_id, get_schedule, get_long_name, get_team_emoji };
 
+pub const ACCESS: i64 = 0;
+
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
         .name("blame")
@@ -48,8 +50,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         .expect("![Handler] Could not find env var 'POOL_ID'").parse::<i64>()
         .expect("![Handler] Could not parse pool_id to int");
     let season = env::var("CONF_SEASON")
-        .expect("[picks] Cannot find 'CONF_SEASON' in env").parse::<u16>()
-        .expect("[picks] Could not parse 'CONF_SEASON' to u16");
+        .expect("[blame] Cannot find 'CONF_SEASON' in env").parse::<u16>()
+        .expect("[blame] Could not parse 'CONF_SEASON' to u16");
 
     let team = command.data.options.first().unwrap().clone().value.unwrap();
     let team = team.as_str().unwrap();
@@ -64,7 +66,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 )
         })
         .await {
-            println!("![picks] Cannot respond to slash command : {:?}", reason);
+            println!("![blame] Cannot respond to slash command : {:?}", reason);
         }
         // We are done here, cannot handle invalid team name
         // Would like to create a list of possible values, but Discord caps it a 25 options
@@ -74,7 +76,23 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     let discordid = command.user.id.as_u64()
         .to_string().parse::<i64>()
         .unwrap();
-    let poolerid = db.fetch_poolerid(&discordid).await.unwrap();
+    let poolerid = match db.fetch_poolerid(&discordid).await {
+        Ok(pid) => pid,
+        Err(_) => {
+            if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
+                res
+                    .kind(InteractionResponseType::ChannelMessageWithSource)
+                    .interaction_response_data(|m| m
+                        .ephemeral(true)
+                        .content("Tu n'es pas inscrit au pool.")
+                    )
+            })
+            .await {
+                println!("![blame] Cannot respond to slash command : {:?}", reason);
+            }
+            return;
+        },
+    };
 
     let matches = get_schedule(&season, &teamid).await;
     let (seasondata, _) = db.fetch_season(&poolid, &season).await.unwrap();
@@ -98,6 +116,6 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             )
     })
     .await {
-        println!("![picks] Cannot respond to slash command : {:?}", reason);
+        println!("![blame] Cannot respond to slash command : {:?}", reason);
     }
 }

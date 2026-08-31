@@ -5,6 +5,7 @@ use std::env;
 
 use serenity::async_trait;
 use serenity::model::application::interaction::Interaction;
+use serenity::model::application::interaction::InteractionResponseType;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::model::id::GuildId;
@@ -16,6 +17,24 @@ mod commands;
 
 struct Bot {
     database: DB,
+    guild_id: GuildId,
+}
+
+// Access levels: 0 = pooler, 1 = admin.
+fn required_access(name: &str) -> Option<i64> {
+    Some(match name {
+        "semaine"         => commands::matches::ACCESS,
+        "choix"           => commands::picks::ACCESS,
+        "resultat"        => commands::results::ACCESS,
+        "saison"          => commands::season::ACCESS,
+        "stats"           => commands::stats::ACCESS,
+        "equipe"          => commands::team::ACCESS,
+        "blame"           => commands::blame::ACCESS,
+        "features"        => commands::features::ACCESS,
+        "capsule"         => commands::capsule::ACCESS,
+        "eliminatoires"   => commands::eliminatoires::ACCESS,
+        _                 => return None,
+    })
 }
 
 #[async_trait]
@@ -31,16 +50,51 @@ impl EventHandler for Bot {
 
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::ApplicationCommand(cmd) = interaction {
+            if !cmd.guild_id.map_or(false, |gid| gid == self.guild_id) {
+                return;
+            }
+
+            let cmd_access = required_access(&cmd.data.name);
+            if cmd_access.is_none() {
+                if let Err(reason) = cmd.create_interaction_response(&ctx.http, |res| {
+                    res
+                        .kind(InteractionResponseType::ChannelMessageWithSource)
+                        .interaction_response_data(|m| m
+                            .ephemeral(true)
+                            .content("Cette commande est invalide.")
+                        )
+                })
+                .await {
+                    println!("![Handler] Cannot respond to slash command : {:?}", reason);
+                }
+                return;
+            }
+
+            let user_access = self.database.fetch_access_level(cmd.user.id.0 as i64).await;
+            if user_access < cmd_access.unwrap() {
+                if let Err(reason) = cmd.create_interaction_response(&ctx.http, |res| {
+                    res
+                        .kind(InteractionResponseType::ChannelMessageWithSource)
+                        .interaction_response_data(|m| m
+                            .ephemeral(true)
+                            .content("Cette commande est réservée aux admins.")
+                        )
+                })
+                .await {
+                    println!("![Handler] Cannot respond to slash command : {:?}", reason);
+                }
+                return;
+            }
+
             match cmd.data.name.as_str() {
-                "semaine"  => commands::matches::run(ctx, &cmd, &self.database).await,
-                "choix"    => commands::picks::run(ctx, &cmd, &self.database).await,
-                //"ping"   => commands::ping::run(ctx, &cmd).await,
-                "resultat" => commands::results::run(ctx, &cmd, &self.database).await,
-                "saison"   => commands::season::run(ctx, &cmd, &self.database).await,
-                "stats"    => commands::stats::run(ctx, &cmd, &self.database).await,
-                "equipe"   => commands::team::run(ctx, &cmd, &self.database).await,
-                "blame"    => commands::blame::run(ctx, &cmd, &self.database).await,
-                "features" => commands::features::run(ctx, &cmd, &self.database).await,
+                "semaine"         => commands::matches::run(ctx, &cmd, &self.database).await,
+                "choix"           => commands::picks::run(ctx, &cmd, &self.database).await,
+                "resultat"        => commands::results::run(ctx, &cmd, &self.database).await,
+                "saison"          => commands::season::run(ctx, &cmd, &self.database).await,
+                "stats"           => commands::stats::run(ctx, &cmd, &self.database).await,
+                "equipe"          => commands::team::run(ctx, &cmd, &self.database).await,
+                "blame"           => commands::blame::run(ctx, &cmd, &self.database).await,
+                "features"        => commands::features::run(ctx, &cmd, &self.database).await,
                 "capsule"         => commands::capsule::run(ctx, &cmd, &self.database).await,
                 "eliminatoires"   => commands::eliminatoires::run(ctx, &cmd, &self.database).await,
                 _                 => println!("![Handler] Command not implemented!"),
@@ -55,20 +109,13 @@ impl EventHandler for Bot {
             ready.version
         );
 
-        let guild_id = GuildId(env::var("GUILD_ID")
-            .expect("![Handler] Could not find env var 'GUILD_ID'")
-            .parse()
-            .expect("![Handler] Could not parse guild_id to int")
-        );
-
-        let emojis = guild_id.emojis(&ctx.http).await.expect("![Handler] Could not fetch all server emojis");
+        let emojis = self.guild_id.emojis(&ctx.http).await.expect("![Handler] Could not fetch all server emojis");
         sync_emojis(&emojis);
 
-        let commands = GuildId::set_application_commands(&guild_id, &ctx.http, |cmds| {
+        let commands = GuildId::set_application_commands(&self.guild_id, &ctx.http, |cmds| {
             cmds
                 .create_application_command(|cmd| commands::matches::register(cmd))
                 .create_application_command(|cmd| commands::picks::register(cmd))
-                //.create_application_command(|cmd| commands::ping::register(cmd))
                 .create_application_command(|cmd| commands::results::register(cmd))
                 .create_application_command(|cmd| commands::season::register(cmd))
                 .create_application_command(|cmd| commands::stats::register(cmd))
@@ -218,13 +265,18 @@ async fn main() {
         return;
     }
 
+    let guild_id = GuildId(env::var("GUILD_ID")
+        .expect("![MAIN] Cannot find 'GUILD_ID' in env")
+        .parse()
+        .expect("![MAIN] Cannot parse 'GUILD_ID'")
+    );
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT
         | GatewayIntents::GUILD_EMOJIS_AND_STICKERS;
 
     let mut client = Client::builder(token, intents)
-        .event_handler(Bot { database: DB::new().await })
+        .event_handler(Bot { database: DB::new().await, guild_id })
         .await
         .expect("![MAIN] Could not create client");
 

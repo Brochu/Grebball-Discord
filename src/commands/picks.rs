@@ -9,6 +9,8 @@ use serenity::prelude::*;
 use library::database::DB;
 use library::football::{get_week, get_team_emoji};
 
+pub const ACCESS: i64 = 0;
+
 pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicationCommand {
     command
         .name("choix")
