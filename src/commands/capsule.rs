@@ -7,7 +7,7 @@ use serenity::model::prelude::command::CommandType;
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::{get_team_emoji, get_afc_emoji, get_nfc_emoji};
+use library::football::{get_team_emoji, get_afc_emoji, get_nfc_emoji, get_wildcards_emoji};
 
 pub const ACCESS: i64 = 0;
 
@@ -96,20 +96,20 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         Ok(Some(capsule)) => {
             let mut content = format!("**Capsule {}**\n\n", season);
 
-            content.push_str(&format!("<:AFC:{}> **Gagnants -** :", get_afc_emoji()));
+            content.push_str(&format!("<:AFC:{}> : ", get_afc_emoji()));
             for team in &capsule.afc_wins {
                 content.push_str(&format!(" <:{}:{}>", team, get_team_emoji(team)));
             }
-            content.push_str(&format!("  /  **Wildcards -** :"));
+            content.push_str(&format!(" / <:WildCards:{}>   ", get_wildcards_emoji()));
             for team in &capsule.afc_wildcards {
                 content.push_str(&format!(" <:{}:{}>", team, get_team_emoji(team)));
             }
 
-            content.push_str(&format!("\n<:NFC:{}> **Gagnants -** :", get_nfc_emoji()));
+            content.push_str(&format!("\n<:NFC:{}> : ", get_nfc_emoji()));
             for team in &capsule.nfc_wins {
                 content.push_str(&format!(" <:{}:{}>", team, get_team_emoji(team)));
             }
-            content.push_str(&format!("  /  **Wildcards -** :"));
+            content.push_str(&format!(" / <:WildCards:{}>   ", get_wildcards_emoji()));
             for team in &capsule.nfc_wildcards {
                 content.push_str(&format!(" <:{}:{}>", team, get_team_emoji(team)));
             }
