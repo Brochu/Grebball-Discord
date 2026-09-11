@@ -45,6 +45,8 @@ pub fn list_emoji_names() -> &'static [&'static str] {
         "AFC",
         "NFC",
         "WildCards",
+
+        "NA",
     ];
 }
 
@@ -131,26 +133,26 @@ pub fn get_team_emoji(team: &str) -> EmojiId {
     return EMOJIS.get()
         .and_then(|emojis| emojis.get(team))
         .copied()
-        .unwrap_or(EmojiId(1142674584508825681));
+        .unwrap_or(*EMOJIS.get().and_then(|emojis| emojis.get("NA")).unwrap());
 }
 
 pub fn get_afc_emoji() -> EmojiId {
     return EMOJIS.get()
         .and_then(|emojis| emojis.get("AFC"))
         .copied()
-        .unwrap_or(EmojiId(1142674584508825681));
+        .unwrap_or(*EMOJIS.get().and_then(|emojis| emojis.get("NA")).unwrap());
 }
 pub fn get_nfc_emoji() -> EmojiId {
     return EMOJIS.get()
         .and_then(|emojis| emojis.get("NFC"))
         .copied()
-        .unwrap_or(EmojiId(1142674584508825681));
+        .unwrap_or(*EMOJIS.get().and_then(|emojis| emojis.get("NA")).unwrap());
 }
 pub fn get_wildcards_emoji() -> EmojiId {
     return EMOJIS.get()
         .and_then(|emojis| emojis.get("WildCards"))
         .copied()
-        .unwrap_or(EmojiId(1142674584508825681));
+        .unwrap_or(*EMOJIS.get().and_then(|emojis| emojis.get("NA")).unwrap());
 }
 
 // ESPN sits behind Akamai, which 403s any request whose User-Agent it doesn't
@@ -753,6 +755,8 @@ pub async fn get_playoff_picture(season: u16) -> PlayoffPicture {
         && picture.nfc_wildcards.len() == 3;
 
     picture.reg_season_over = reg_over && complete;
+    picture.afc_wildcards.resize(3, String::new());
+    picture.nfc_wildcards.resize(3, String::new());
     return picture;
 }
 
@@ -850,19 +854,23 @@ pub fn format_playoff_picture(picture: &PlayoffPicture) -> String {
 
     icons.push_str(&format!("<:AFC:{}> ", get_afc_emoji()));
     for team in &picture.afc_winners {
-        icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+        let name = if team.len() != 0 { team } else { "NA" };
+        icons.push_str(&format!("<:{}:{}>", name, get_team_emoji(team)));
     }
     icons.push_str(&format!("     <:WildCards:{}> ", get_wildcards_emoji()));
     for team in &picture.afc_wildcards {
-        icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+        let name = if team.len() != 0 { team } else { "NA" };
+        icons.push_str(&format!("<:{}:{}>", name, get_team_emoji(team)));
     }
     icons.push_str(&format!("   -   <:NFC:{}> ", get_nfc_emoji()));
     for team in &picture.nfc_winners {
-        icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+        let name = if team.len() != 0 { team } else { "NA" };
+        icons.push_str(&format!("<:{}:{}>", name, get_team_emoji(team)));
     }
     icons.push_str(&format!("     <:WildCards:{}> ", get_wildcards_emoji()));
     for team in &picture.nfc_wildcards {
-        icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+        let name = if team.len() != 0 { team } else { "NA" };
+        icons.push_str(&format!("<:{}:{}>", name, get_team_emoji(team)));
     }
 
     icons
