@@ -5,7 +5,7 @@ use serenity::model::prelude::command::{CommandType, CommandOptionType};
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::get_team_emoji;
+use library::football::get_emoji;
 
 pub const ACCESS: i64 = 0;
 
@@ -31,7 +31,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     if let Some(option) = command.data.options.first() {
         let team = option.value.as_ref().unwrap().as_str().unwrap();
 
-        if get_team_emoji(team) != get_team_emoji("") {
+        if get_emoji(team) != get_emoji("") {
             match db.update_favteam(&discordid, team).await {
                 Ok(_) => { },
                 Err(e) => { println!("![team] Could not update favorite team: {}", e) },
@@ -43,7 +43,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         Ok((name, favteam)) => { (name, favteam) }
         Err(_) => { ("Inconnu".to_string(), "NA".to_string()) }
     };
-    let logo = get_team_emoji(&favteam);
+    let logo = get_emoji(&favteam);
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res

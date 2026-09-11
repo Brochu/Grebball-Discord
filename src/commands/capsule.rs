@@ -7,7 +7,7 @@ use serenity::model::prelude::command::CommandType;
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::{get_team_emoji, get_afc_emoji, get_nfc_emoji, get_wildcards_emoji};
+use library::football::get_emoji;
 
 pub const ACCESS: i64 = 0;
 
@@ -96,22 +96,22 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         Ok(Some(capsule)) => {
             let mut content = format!("**Capsule {}**\n\n", season);
 
-            content.push_str(&format!("<:AFC:{}> : ", get_afc_emoji()));
+            content.push_str(&format!("<:AFC:{}> : ", get_emoji("AFC")));
             for team in &capsule.afc_wins {
-                content.push_str(&format!(" <:{}:{}>", team, get_team_emoji(team)));
+                content.push_str(&format!(" <:{}:{}>", team, get_emoji(team)));
             }
-            content.push_str(&format!(" / <:WildCards:{}>   ", get_wildcards_emoji()));
+            content.push_str(&format!(" / <:WildCards:{}>   ", get_emoji("WildCards")));
             for team in &capsule.afc_wildcards {
-                content.push_str(&format!(" <:{}:{}>", team, get_team_emoji(team)));
+                content.push_str(&format!(" <:{}:{}>", team, get_emoji(team)));
             }
 
-            content.push_str(&format!("\n<:NFC:{}> : ", get_nfc_emoji()));
+            content.push_str(&format!("\n<:NFC:{}> : ", get_emoji("NFC")));
             for team in &capsule.nfc_wins {
-                content.push_str(&format!(" <:{}:{}>", team, get_team_emoji(team)));
+                content.push_str(&format!(" <:{}:{}>", team, get_emoji(team)));
             }
-            content.push_str(&format!(" / <:WildCards:{}>   ", get_wildcards_emoji()));
+            content.push_str(&format!(" / <:WildCards:{}>   ", get_emoji("WildCards")));
             for team in &capsule.nfc_wildcards {
-                content.push_str(&format!(" <:{}:{}>", team, get_team_emoji(team)));
+                content.push_str(&format!(" <:{}:{}>", team, get_emoji(team)));
             }
 
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {

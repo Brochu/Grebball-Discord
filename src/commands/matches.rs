@@ -9,7 +9,7 @@ use serenity::model::prelude::interaction::application_command::ApplicationComma
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::{ get_week, get_team_emoji };
+use library::football::{ get_week, get_emoji };
 
 const VS_EMOJI: &str = "<:VS:1144451849571794997>";
 
@@ -83,8 +83,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         };
 
         let output = matches.into_iter().fold(String::new(), |mut out, m| {
-            let aemoji = get_team_emoji(m.away_team.as_str());
-            let hemoji = get_team_emoji(m.home_team.as_str());
+            let aemoji = get_emoji(m.away_team.as_str());
+            let hemoji = get_emoji(m.home_team.as_str());
 
             let (ascore, hscore, aline, hline) = if let (Some(a), Some(h)) = (m.away_score, m.home_score) {
                 (a.to_string(), h.to_string(), a > h, h > a)

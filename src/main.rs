@@ -180,8 +180,8 @@ async fn weekly_matches_message(season: &u16, week: &i64) -> String {
     let matches = get_week(&season, &week).await;
 
     matches.into_iter().fold(String::new(), |mut out, m| {
-        let aemoji = get_team_emoji(m.away_team.as_str());
-        let hemoji = get_team_emoji(m.home_team.as_str());
+        let aemoji = get_emoji(m.away_team.as_str());
+        let hemoji = get_emoji(m.home_team.as_str());
 
             let (ascore, hscore, aline, hline) = if let (Some(a), Some(h)) = (m.away_score, m.home_score) {
                 (a.to_string(), h.to_string(),

@@ -129,28 +129,9 @@ pub fn get_long_name(name: &str) -> String {
     }.to_owned()
 }
 
-pub fn get_team_emoji(team: &str) -> EmojiId {
+pub fn get_emoji(name: &str) -> EmojiId {
     return EMOJIS.get()
-        .and_then(|emojis| emojis.get(team))
-        .copied()
-        .unwrap_or(*EMOJIS.get().and_then(|emojis| emojis.get("NA")).unwrap());
-}
-
-pub fn get_afc_emoji() -> EmojiId {
-    return EMOJIS.get()
-        .and_then(|emojis| emojis.get("AFC"))
-        .copied()
-        .unwrap_or(*EMOJIS.get().and_then(|emojis| emojis.get("NA")).unwrap());
-}
-pub fn get_nfc_emoji() -> EmojiId {
-    return EMOJIS.get()
-        .and_then(|emojis| emojis.get("NFC"))
-        .copied()
-        .unwrap_or(*EMOJIS.get().and_then(|emojis| emojis.get("NA")).unwrap());
-}
-pub fn get_wildcards_emoji() -> EmojiId {
-    return EMOJIS.get()
-        .and_then(|emojis| emojis.get("WildCards"))
+        .and_then(|emojis| emojis.get(name))
         .copied()
         .unwrap_or(*EMOJIS.get().and_then(|emojis| emojis.get("NA")).unwrap());
 }
@@ -531,7 +512,7 @@ pub async fn calc_results(week: &i64, matches: &[Match], picks: &[WeekPicks], fe
 
             for m in matches {
                 let choice = pick_map.get(&m.id_event).unwrap_or(&invalid);
-                temp.push_str(format!("<:{}:{}>", choice, get_team_emoji(choice)).as_str());
+                temp.push_str(format!("<:{}:{}>", choice, get_emoji(choice)).as_str());
             }
             temp
         }
@@ -791,21 +772,21 @@ pub fn calc_playoff_picture(picture: &PlayoffPicture, picks: &HashMap<i64, Capsu
         let mut score = 0;
 
         let mut icons = String::new();
-        icons.push_str(&format!("<:AFC:{}> ", get_afc_emoji()));
+        icons.push_str(&format!("<:AFC:{}> ", get_emoji("AFC")));
         for team in &capsule.afc_wins {
-            icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+            icons.push_str(&format!("<:{}:{}>", team, get_emoji(team)));
         }
-        icons.push_str(&format!("     <:WildCards:{}> ", get_wildcards_emoji()));
+        icons.push_str(&format!("     <:WildCards:{}> ", get_emoji("WildCards")));
         for team in &capsule.afc_wildcards {
-            icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+            icons.push_str(&format!("<:{}:{}>", team, get_emoji(team)));
         }
-        icons.push_str(&format!("   -   <:NFC:{}> ", get_nfc_emoji()));
+        icons.push_str(&format!("   -   <:NFC:{}> ", get_emoji("NFC")));
         for team in &capsule.nfc_wins {
-            icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+            icons.push_str(&format!("<:{}:{}>", team, get_emoji(team)));
         }
-        icons.push_str(&format!("     <:WildCards:{}> ", get_wildcards_emoji()));
+        icons.push_str(&format!("     <:WildCards:{}> ", get_emoji("WildCards")));
         for team in &capsule.nfc_wildcards {
-            icons.push_str(&format!("<:{}:{}>", team, get_team_emoji(team)));
+            icons.push_str(&format!("<:{}:{}>", team, get_emoji(team)));
         }
 
         for i in 0..4 {
@@ -852,25 +833,25 @@ pub fn calc_playoff_picture(picture: &PlayoffPicture, picks: &HashMap<i64, Capsu
 pub fn format_playoff_picture(picture: &PlayoffPicture) -> String {
     let mut icons = String::new();
 
-    icons.push_str(&format!("<:AFC:{}> ", get_afc_emoji()));
+    icons.push_str(&format!("<:AFC:{}> ", get_emoji("AFC")));
     for team in &picture.afc_winners {
         let name = if team.len() != 0 { team } else { "NA" };
-        icons.push_str(&format!("<:{}:{}>", name, get_team_emoji(team)));
+        icons.push_str(&format!("<:{}:{}>", name, get_emoji(team)));
     }
-    icons.push_str(&format!("     <:WildCards:{}> ", get_wildcards_emoji()));
+    icons.push_str(&format!("     <:WildCards:{}> ", get_emoji("WildCards")));
     for team in &picture.afc_wildcards {
         let name = if team.len() != 0 { team } else { "NA" };
-        icons.push_str(&format!("<:{}:{}>", name, get_team_emoji(team)));
+        icons.push_str(&format!("<:{}:{}>", name, get_emoji(team)));
     }
-    icons.push_str(&format!("   -   <:NFC:{}> ", get_nfc_emoji()));
+    icons.push_str(&format!("   -   <:NFC:{}> ", get_emoji("NFC")));
     for team in &picture.nfc_winners {
         let name = if team.len() != 0 { team } else { "NA" };
-        icons.push_str(&format!("<:{}:{}>", name, get_team_emoji(team)));
+        icons.push_str(&format!("<:{}:{}>", name, get_emoji(team)));
     }
-    icons.push_str(&format!("     <:WildCards:{}> ", get_wildcards_emoji()));
+    icons.push_str(&format!("     <:WildCards:{}> ", get_emoji("WildCards")));
     for team in &picture.nfc_wildcards {
         let name = if team.len() != 0 { team } else { "NA" };
-        icons.push_str(&format!("<:{}:{}>", name, get_team_emoji(team)));
+        icons.push_str(&format!("<:{}:{}>", name, get_emoji(team)));
     }
 
     icons

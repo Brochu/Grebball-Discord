@@ -7,7 +7,7 @@ use serenity::model::prelude::command::{CommandOptionType, CommandType};
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::{get_week, get_team_emoji};
+use library::football::{get_week, get_emoji};
 
 pub const ACCESS: i64 = 0;
 
@@ -86,14 +86,14 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 .into_iter()
                 .fold((String::new(), String::new()), |(mut icons, mut feat_str), m| {
                     let team = picks.get(&m.id_event).unwrap();
-                    let emoji = get_team_emoji(team);
+                    let emoji = get_emoji(team);
 
                     icons.push_str(format!("<:{}:{}> ", team, emoji).as_str());
 
                     if let Some(ref feat) = feature {
                         if feat.matchid == m.id_event {
-                            let away_emoji = get_team_emoji(&m.away_team);
-                            let home_emoji = get_team_emoji(&m.home_team);
+                            let away_emoji = get_emoji(&m.away_team);
+                            let home_emoji = get_emoji(&m.home_team);
                             let trend = match p.featpick {
                                 Some(1) => ":chart_with_upwards_trend:",
                                 _ => ":chart_with_downwards_trend:",

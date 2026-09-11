@@ -7,7 +7,7 @@ use serenity::model::prelude::command::{CommandOptionType, CommandType};
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::{BlameResult, calc_blame, get_team_id, get_schedule, get_long_name, get_team_emoji };
+use library::football::{BlameResult, calc_blame, get_team_id, get_schedule, get_long_name, get_emoji };
 
 pub const ACCESS: i64 = 0;
 
@@ -112,7 +112,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             .kind(InteractionResponseType::ChannelMessageWithSource)
             .interaction_response_data(|m| m
                 .ephemeral(true)
-                    .content(format!("Blâmer <:{}:{}> {}\n{}\n Total pour la saison: {}", team, get_team_emoji(team), get_long_name(team), emojis, score))
+                    .content(format!("Blâmer <:{}:{}> {}\n{}\n Total pour la saison: {}", team, get_emoji(team), get_long_name(team), emojis, score))
             )
     })
     .await {

@@ -7,7 +7,7 @@ use serenity::model::prelude::command::{CommandType, CommandOptionType};
 use serenity::prelude::*;
 
 use library::database::DB;
-use library::football::{ get_team_emoji, calc_results, get_week, Match };
+use library::football::{ get_emoji, calc_results, get_week, Match };
 
 pub const ACCESS: i64 = 0;
 
@@ -70,8 +70,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 let homes = feat_match.home_score.unwrap_or_default();
 
                 format!(":bar_chart: <:{}:{}> {} @ {} <:{}:{}>  -  O/U: {:02}.5  (Total: {})",
-                    feat_match.away_team, get_team_emoji(&feat_match.away_team), aways,
-                    homes, feat_match.home_team, get_team_emoji(&feat_match.home_team),
+                    feat_match.away_team, get_emoji(&feat_match.away_team), aways,
+                    homes, feat_match.home_team, get_emoji(&feat_match.home_team),
                     feat.target, aways + homes)
             } else {
                 format!("")
