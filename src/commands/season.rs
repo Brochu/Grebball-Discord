@@ -1,5 +1,5 @@
 use std::env;
-use std::collections::HashMap;
+use std::cmp::Reverse;
 use std::fmt::Write;
 
 use serenity::builder::CreateApplicationCommand;
@@ -21,7 +21,7 @@ pub fn register(command: &mut CreateApplicationCommand) -> &mut CreateApplicatio
 }
 
 struct SeasonResult {
-    //poolerid: i64,
+    poolerid: i64,
     name: String,
     scores: Vec<u32>,
     cap_score: u32,
@@ -30,11 +30,11 @@ struct SeasonResult {
 
 pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB) {
     let poolid = env::var("POOL_ID")
-        .expect("![Handler] Could not find env var 'POOL_ID'").parse::<i64>()
-        .expect("![Handler] Could not parse pool_id to int");
+        .expect("![season] Could not find env var 'POOL_ID'").parse::<i64>()
+        .expect("![season] Could not parse pool_id to int");
     let season = env::var("CONF_SEASON")
-        .expect("[results] Cannot find 'CONF_SEASON' in env").parse::<u16>()
-        .expect("[results] Could not parse 'CONF_SEASON' to u16");
+        .expect("[season] Cannot find 'CONF_SEASON' in env").parse::<u16>()
+        .expect("[season] Could not parse 'CONF_SEASON' to u16");
 
     if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
         res
@@ -44,16 +44,13 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
             )
     })
     .await {
-        println!("![results] Cannot respond to slash command : {:?}", reason);
+        println!("![season] Cannot respond to slash command : {:?}", reason);
     }
 
-    let (weeks, _week_count) = db.fetch_season(&poolid, &season).await.unwrap();
-    let capsule = match db.fetch_capsule(&season, &poolid).await {
-        Ok(cap) => cap,
-        Err(_) => HashMap::<_, _>::new(),
-    };
+    let (weeks, week_count) = db.fetch_season(&poolid, &season).await.unwrap();
     let picture = get_playoff_picture(season).await;
     let cap_results = if picture.reg_season_over {
+        let capsule = db.fetch_capsule(&season, &poolid).await.unwrap_or_default();
         calc_playoff_picture(&picture, &capsule)
     } else {
         Vec::new()
@@ -61,12 +58,15 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     let mut season_data = Vec::<SeasonResult>::new();
 
     for (week_num, feat, picks) in weeks.iter() {
-        let matches: Vec<Match> = get_week(&season, week_num).await;
+        let mut results = Vec::new();
         for pick in picks {
-            let score = if pick.cached.is_some() {
-                pick.cached.unwrap() + pick.featcached.unwrap()
+            let score = if let Some(cached) = pick.cached {
+                cached + pick.featcached.unwrap()
             } else {
-                let results = calc_results(&pick.week, &matches, &picks, feat).await;
+                if results.is_empty() {
+                    let matches: Vec<Match> = get_week(&season, week_num).await;
+                    results = calc_results(week_num, &matches, &picks, feat).await;
+                }
                 let result = results.iter()
                     .find(|res| res.poolerid == pick.poolerid)
                     .unwrap();
@@ -77,7 +77,7 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                 result.score + result.featscore
             };
 
-            if let Some(data) = season_data.iter_mut().find(|d| d.name.eq(&pick.name)) {
+            if let Some(data) = season_data.iter_mut().find(|d| d.poolerid == pick.poolerid) {
                 data.scores.push(score);
                 data.total += score;
             }
@@ -86,57 +86,69 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     Some(res) => res.score,
                     None => 0,
                 };
-                season_data.push(SeasonResult{ name: pick.name.clone(), scores: vec![score], cap_score: pooler_cap_score, total: score });
+                season_data.push(SeasonResult{ poolerid: pick.poolerid, name: pick.name.clone(), scores: vec![score], cap_score: pooler_cap_score, total: score + pooler_cap_score });
             }
         }
     }
 
-    season_data.sort_unstable_by(|l, r| {
-        let r_full = r.total + r.cap_score;
-        let l_full = l.total + l.cap_score;
-        r_full.cmp(&l_full)
-    });
+    season_data.sort_unstable_by_key(|d| Reverse(d.total));
 
     let mut message = String::new();
-    write!(message, "{:<19}", "`Semaines").unwrap();
-    for i in 1..=_week_count {
-        if i <= 18 {
-            write!(message, "|{:02}", i).unwrap();
+    for (first, last) in [(1, 9), (10, 18), (19, 22)] {
+        // Only surface the capsule column once it actually counts (season over).
+        let with_cap = first == 19 && picture.reg_season_over;
+        if first != 1 && first > week_count && !with_cap {
+            continue;
         }
-        else {
+        let last = last.min(week_count);
+
+        message.clear();
+        if first == 1 {
+            write!(message, "**Saison {}**\n", season).unwrap();
+        }
+        write!(message, "{:<19}", "`Semaines").unwrap();
+        for i in first..=last {
             match i {
-                19 => write!(message, "|{:02}", "WC").unwrap(),
-                20 => write!(message, "|{:02}", "DV").unwrap(),
-                21 => write!(message, "|{:02}", "CF").unwrap(),
-                22 => write!(message, "|{:02}", "SB").unwrap(),
+                1..=18 => write!(message, "|{:02}", i).unwrap(),
+                19 => message.push_str("|WC"),
+                20 => message.push_str("|DV"),
+                21 => message.push_str("|CF"),
+                22 => message.push_str("|SB"),
                 _ => unreachable!(),
             }
         }
-    }
-    if picture.reg_season_over {
-        write!(message, "|+C").unwrap();
-    }
-    write!(message, "`").unwrap();
-
-    // Only surface the capsule column once it actually counts (season over).
-    for entry in season_data.iter() {
-        write!(message, "\n`{:<12}[{:03}] ", entry.name, entry.total + entry.cap_score).unwrap();
-
-        for s in entry.scores.iter() {
-            write!(message, "|{:02}", s).unwrap();
+        if with_cap {
+            write!(message, "|+C").unwrap();
         }
+        write!(message, "`").unwrap();
 
-        if picture.reg_season_over {
-            write!(message, "|{:02}`", entry.cap_score).unwrap();
-        } else {
+        for entry in season_data.iter() {
+            write!(message, "\n`{:<12}[{:03}] ", entry.name, entry.total).unwrap();
+
+            for s in entry.scores.iter().skip(first - 1).take(last + 1 - first) {
+                write!(message, "|{:02}", s).unwrap();
+            }
+
+            if with_cap {
+                write!(message, "|{:02}", entry.cap_score).unwrap();
+            }
             write!(message, "`").unwrap();
         }
-    }
 
-    if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
-        res.content(format!("**Saison {}**\n{}\n", season, message))
-    })
-    .await {
-        println!("![results] Cannot respond to slash command : {:?}", reason);
+        if first == 1 {
+            message.push('\n');
+            if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
+                res.content(&message)
+            })
+            .await {
+                println!("![season] Cannot respond to slash command : {:?}", reason);
+            }
+        }
+        else if let Err(reason) = command.channel_id.send_message(&ctx.http, |res| {
+            res.content(&message)
+        })
+        .await {
+            println!("![season] Cannot respond to slash command : {:?}", reason);
+        }
     }
 }
