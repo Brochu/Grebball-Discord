@@ -72,10 +72,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     }
 
     for (i, r) in results.iter().enumerate() {
-        let pad = " ".repeat(12usize.saturating_sub(r.name.len()));
-
         if let Err(message) = command.channel_id.send_message(&ctx.http, |res| {
-            res.content(format!("`#{:<2} {}{} {:>3}pts` {}\n", i+1, r.name, pad, r.score, r.icons).as_str())
+            res.content(format!("`#{:<2} {:<12} {:>3}pts` {}\n", i+1, r.name, r.score, r.icons).as_str())
         }).await {
             println!("![eliminatoires] Cannot respond to interaction : {:?}", message);
         }
