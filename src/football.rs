@@ -133,7 +133,7 @@ pub fn get_emoji(name: &str) -> EmojiId {
     return EMOJIS.get()
         .and_then(|emojis| emojis.get(name))
         .copied()
-        .unwrap_or(*EMOJIS.get().and_then(|emojis| emojis.get("NA")).unwrap());
+        .unwrap_or_else(|| *EMOJIS.get().and_then(|emojis| emojis.get("NA")).unwrap());
 }
 
 // ESPN sits behind Akamai, which 403s any request whose User-Agent it doesn't
