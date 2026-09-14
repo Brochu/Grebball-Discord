@@ -1,5 +1,6 @@
 use std::env;
 use std::collections::HashMap;
+use std::fmt::Write;
 
 use serenity::builder::CreateApplicationCommand;
 use serenity::model::application::interaction::InteractionResponseType;
@@ -59,12 +60,12 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     };
     let mut season_data = Vec::<SeasonResult>::new();
 
-    for (_, feat, picks) in weeks.iter() {
+    for (week_num, feat, picks) in weeks.iter() {
+        let matches: Vec<Match> = get_week(&season, week_num).await;
         for pick in picks {
             let score = if pick.cached.is_some() {
                 pick.cached.unwrap() + pick.featcached.unwrap()
             } else {
-                let matches: Vec<Match> = get_week(&season, &pick.week).await;
                 let results = calc_results(&pick.week, &matches, &picks, feat).await;
                 let result = results.iter()
                     .find(|res| res.poolerid == pick.poolerid)
@@ -95,34 +96,45 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         let l_full = l.total + l.cap_score;
         r_full.cmp(&l_full)
     });
-    let header = (1..=_week_count).fold(String::new(), |m, i| {
+
+    let mut message = String::new();
+    write!(message, "{:<19}", "`Semaines").unwrap();
+    for i in 1..=_week_count {
         if i <= 18 {
-            format!("{}|{:02}", m, i)
+            write!(message, "|{:02}", i).unwrap();
         }
         else {
             match i {
-                19 => format!("{}|{:02}", m, "WC"),
-                20 => format!("{}|{:02}", m, "DV"),
-                21 => format!("{}|{:02}", m, "CF"),
-                22 => format!("{}|{:02}", m, "SB"),
+                19 => write!(message, "|{:02}", "WC").unwrap(),
+                20 => write!(message, "|{:02}", "DV").unwrap(),
+                21 => write!(message, "|{:02}", "CF").unwrap(),
+                22 => write!(message, "|{:02}", "SB").unwrap(),
                 _ => unreachable!(),
             }
         }
-    });
-    // Only surface the capsule column once it actually counts (season over).
-    let cap_header = if picture.reg_season_over { "|+C" } else { "" };
-    let header = format!("Semaines{} {}{}", " ".repeat(15-6), header, cap_header);
-    let message = season_data.iter()
-        .fold(String::new(), |m, entry| {
-            let width = 12 - entry.name.len();
-            let grid = entry.scores.iter().fold(String::new(), |g, s| { format!("{}|{:02}", g, s) });
-            let cap_col = if picture.reg_season_over { format!("|{:02}", entry.cap_score) } else { String::new() };
+    }
+    if picture.reg_season_over {
+        write!(message, "|+C").unwrap();
+    }
+    write!(message, "`").unwrap();
 
-            format!("{}\n`{}{}[{:03}] {}{}`", m, entry.name, " ".repeat(width), entry.total + entry.cap_score, grid, cap_col)
-        });
+    // Only surface the capsule column once it actually counts (season over).
+    for entry in season_data.iter() {
+        write!(message, "\n`{:<12}[{:03}] ", entry.name, entry.total + entry.cap_score).unwrap();
+
+        for s in entry.scores.iter() {
+            write!(message, "|{:02}", s).unwrap();
+        }
+
+        if picture.reg_season_over {
+            write!(message, "|{:02}`", entry.cap_score).unwrap();
+        } else {
+            write!(message, "`").unwrap();
+        }
+    }
 
     if let Err(reason) = command.edit_original_interaction_response(&ctx.http, |res| {
-        res.content(format!("Saison {}\n`{}`\n{}\n", season, header, message))
+        res.content(format!("**Saison {}**\n{}\n", season, message))
     })
     .await {
         println!("![results] Cannot respond to slash command : {:?}", reason);
