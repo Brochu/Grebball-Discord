@@ -223,6 +223,7 @@ impl DB {
         let mut feats: HashMap<_, _> = sqlx::query("
             SELECT season, week, type, target, match FROM features
             ORDER BY week
+            WHERE season = ?
             ")
         .bind(season)
         .fetch_all(&self.pool).await.unwrap_or_else(|_| vec![])
