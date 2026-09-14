@@ -93,14 +93,13 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
                     db.cache_results(&r.pickid.unwrap(), &r.score, &r.featscore).await.unwrap();
                 }
 
-                let width = 12usize.saturating_sub(r.name.len());
                 if let Err(message) = command.channel_id.send_message(&ctx.http, |res| {
                     if r.featscore == 0 {
-                        res.content(format!("`{}{} ({:02})  ` {} | {}\n",
-                            r.name, " ".repeat(width), r.score, r.icons, r.overunder).as_str())
+                        res.content(format!("`{:<12} ({:02})  ` {}\n{}\n",
+                            r.name, r.score, r.overunder, r.icons).as_str())
                     } else {
-                        res.content(format!("`{}{} ({:02}+{})` {} | {}\n",
-                            r.name, " ".repeat(width), r.score, r.featscore, r.icons, r.overunder).as_str())
+                        res.content(format!("`{:<12} ({:02}+{})` {}\n{}\n",
+                            r.name, r.score, r.featscore, r.overunder, r.icons).as_str())
                     }
                 }).await {
                     println!("![results] Cannot respond to slash command : {:?}", message);
