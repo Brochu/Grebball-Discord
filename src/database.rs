@@ -357,6 +357,34 @@ impl DB {
         Ok(row.get(0))
     }
 
+    pub async fn fetch_pooler_avatar(&self, discordid: &i64) -> Result<(i64, Option<String>)> {
+        let row = sqlx::query("
+                SELECT p.id, u.avatar FROM poolers AS p
+                JOIN users AS u
+                ON u.id = p.userid
+                WHERE discordid = ?
+                ")
+            .bind(discordid)
+            .fetch_one(&self.pool)
+            .await?;
+
+        Ok((row.get(0), row.get(1)))
+    }
+
+    pub async fn update_avatar(&self, discordid: &i64, avatar: &str) -> Result<()> {
+        sqlx::query("
+                UPDATE users
+                SET avatar = ?
+                WHERE discordid = ?
+                ")
+            .bind(avatar)
+            .bind(discordid)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn fetch_favteam(&self, discordid: &i64) -> Result<(String, String)> {
         let row = sqlx::query("
                 SELECT p.name, p.favteam FROM users AS u

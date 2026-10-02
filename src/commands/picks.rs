@@ -59,8 +59,8 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
     let discordid = command.user.id.as_u64()
         .to_string().parse::<i64>()
         .unwrap();
-    let poolerid = match db.fetch_poolerid(&discordid).await {
-        Ok(pid) => pid,
+    let (poolerid, avatar) = match db.fetch_pooler_avatar(&discordid).await {
+        Ok(pooler) => pooler,
         Err(_) => {
             if let Err(reason) = command.create_interaction_response(&ctx.http, |res| {
                 res
@@ -116,6 +116,13 @@ pub async fn run(ctx: Context, command: &ApplicationCommandInteraction, db: &DB)
         },
         Err(_) => match db.issue_pick_token(season, week, poolerid).await {
             Ok(token) => {
+                let face = command.user.face().replace("?size=1024", "?size=128");
+                if avatar.as_deref() != Some(face.as_str()) {
+                    if let Err(e) = db.update_avatar(&discordid, &face).await {
+                        println!("![picks] Could not update avatar: {}", e);
+                    }
+                }
+
                 let picks_url = env::var("PICKS_URL").expect("![Picks] Could not find 'PICKS_URL' env var");
                 let week_name = command.data.options.first().unwrap().name.as_str();
                 format!("Prêt pour les choix de la {} à faire ici: {}/{}", week_name, picks_url, token)
